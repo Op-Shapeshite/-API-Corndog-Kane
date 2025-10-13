@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"  # Adjust according to your app's port
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: npm run dev
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: splaceservice
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    environment:
+      - REDIS_PASSWORD=password
+    ports:
+      - "6379:6379"
+  kafka:
+    image: wurstmeister/kafka:latest
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_LISTENER_NAMES: INSIDE
+      KAFKA_LISTENER_TCP_PORT: 9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_LISTENER_NAME_INSIDE_PORT: 9093
+      KAFKA_LISTENER_NAME_INSIDE: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_INTERNAL: INSIDE
+      KAFKA_LISTENER_PORT: 9093
+    ports:
+      - "9093:9093"
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    ports:
+      - "2181:2181"
