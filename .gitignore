@@ -6,3 +6,4 @@
 *-lock.json
 
 *.log
+/src/generated/prisma
