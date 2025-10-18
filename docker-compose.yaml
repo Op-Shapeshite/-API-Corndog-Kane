@@ -9,7 +9,7 @@ services:
   #   working_dir: /app
   #   command: npm run dev
   #   depends_on:
-  #     - db
+  #     - db  
   #     - redis
   #   env_file:
   #     - .env
