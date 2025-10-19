@@ -10,8 +10,18 @@ export type TEntity = TUser | TOutlet;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
-  findUnique(args: { where: { id: number } }): Promise<T | null>;
-  findMany(): Promise<T[]>;
+  findUnique(args: { 
+    where: { id: number };
+    include?: Record<string, boolean | object>;
+  }): Promise<T | null>;
+  findMany(args?: { 
+    where?: Record<string, unknown>; 
+    skip?: number; 
+    take?: number;
+    orderBy?: Record<string, 'asc' | 'desc'>;
+    include?: Record<string, boolean | object>;
+  }): Promise<T[]>;
+  count(args?: { where?: Record<string, unknown> }): Promise<number>;
   create(args: { data: unknown }): Promise<T>;
   update(args: { where: { id: number }; data: unknown }): Promise<T>;
   delete(args: { where: { id: number } }): Promise<T>;
@@ -39,51 +49,131 @@ export interface EntityMapConfig {
   relations?: RelationMapping[];
 }
 
+// Search configuration
+export interface SearchConfig {
+  field: string;
+  value: string;
+}
+
+// Pagination result
+export interface PaginationResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export default abstract class Repository<T extends TEntity> implements RepositoryInterface<T> {
-  protected tableName: PrismaModelName;
-  protected prisma: PrismaClient;
-  protected mapper: EntityMapper<T>;
-  
-  constructor(tableName: PrismaModelName, mapConfig?: EntityMapConfig) {
-    this.tableName = tableName;
-    this.prisma = PostgresAdapter.client as PrismaClient;
-    const config = mapConfig || getEntityMapper(tableName);
-    this.mapper = new EntityMapper<T>(config);
-  }
-  
-  protected getModel(): PrismaDelegate<T> {
-    return this.prisma[this.tableName] as unknown as PrismaDelegate<T>;
-  }
-  
-  async getById(id: string): Promise<T | null> {
-    const model = this.getModel();
-    const record = await model.findUnique({ where: { id: parseInt(id) } });
-    return record ? this.mapper.mapToEntity(record) : null;
-  }
-  
-  async getAll(): Promise<T[]> {
-    const model = this.getModel();
-    const records = await model.findMany();
-    return this.mapper.mapToEntities(records);
-  }
-  
-  async update(id: string, item: Partial<T>): Promise<T> {
-    const model = this.getModel();
-    const updated = await model.update({ 
-      where: { id: parseInt(id) }, 
-      data: item as unknown
-    });
-    return this.mapper.mapToEntity(updated);
-  }
-  
-  async delete(id: string): Promise<void> {
-    const model = this.getModel();
-    await model.delete({ where: { id: parseInt(id) } });
-  }
-  
-  async create(item: T): Promise<T> {
-    const model = this.getModel();
-    const created = await model.create({ data: item as unknown });
-    return this.mapper.mapToEntity(created);
-  }
+	protected tableName: PrismaModelName;
+	protected prisma: PrismaClient;
+	protected mapper: EntityMapper<T>;
+
+	constructor(tableName: PrismaModelName, mapConfig?: EntityMapConfig) {
+		this.tableName = tableName;
+		this.prisma = PostgresAdapter.client as PrismaClient;
+		const config = mapConfig || getEntityMapper(tableName);
+		this.mapper = new EntityMapper<T>(config);
+	}
+
+	protected getModel(): PrismaDelegate<T> {
+		return this.prisma[this.tableName] as unknown as PrismaDelegate<T>;
+	}
+
+	async getById(id: string): Promise<T | null> {
+		const model = this.getModel();
+		const record = await model.findUnique({
+			where: { id: parseInt(id) },
+			include: this.mapper.getIncludes(),
+		});
+		return record ? this.mapper.mapToEntity(record) : null;
+	}
+
+	/**
+	 * Get all records with pagination and search
+	 * @param page - Page number (1-based)
+	 * @param limit - Records per page
+	 * @param search - Search configuration array for LIKE queries
+	 * @param filters - Exact match filters
+	 * @param orderBy - Sort configuration
+	 */
+	async getAll(
+		page: number = 1,
+		limit: number = 10,
+		search?: SearchConfig[],
+		filters?: Record<string, unknown>,
+		orderBy?: Record<string, 'asc' | 'desc'>
+	): Promise<PaginationResult<T>> {
+		const model = this.getModel();
+		
+		// Calculate skip for pagination
+		const skip = (page - 1) * limit;
+		
+		// Build where clause
+		const where: Record<string, unknown> = {};
+		
+		// Add exact match filters
+		if (filters) {
+			Object.assign(where, filters);
+		}
+		
+		// Add search conditions (LIKE)
+		if (search && search.length > 0) {
+			const searchConditions = search.map(({ field, value }) => ({
+				[field]: {
+					contains: value,
+					mode: 'insensitive' // Case-insensitive search
+				}
+			}));
+			
+			// Use OR condition for multiple search fields
+			if (searchConditions.length > 1) {
+				where.OR = searchConditions;
+			} else {
+				Object.assign(where, searchConditions[0]);
+			}
+		}
+		
+		// Get total count for pagination
+		const total = await model.count({ where });
+		
+		// Get paginated records
+		const records = await model.findMany({
+			where,
+			skip,
+			take: limit,
+			orderBy: orderBy || { id: 'asc' }, // Default sort by id ascending
+			include: this.mapper.getIncludes(), // Include all configured relations
+		});
+		const data = this.mapper.mapToEntities(records);
+		const totalPages = Math.ceil(total / limit);
+		
+		return {
+			data,
+			total,
+			page,
+			limit,
+			totalPages
+		};
+	}
+
+	async update(id: string, item: Partial<T>): Promise<T> {
+		const model = this.getModel();
+		const updated = await model.update({
+			where: { id: parseInt(id) },
+			data: item as unknown,
+		});
+		return this.mapper.mapToEntity(updated);
+	}
+
+	async delete(id: string): Promise<void> {
+		const model = this.getModel();
+		await model.delete({ where: { id: parseInt(id) } });
+	}
+
+	async create(item: T): Promise<T> {
+		const model = this.getModel();
+		const created = await model.create({ data: item as unknown });
+		return this.mapper.mapToEntity(created);
+	}
 }

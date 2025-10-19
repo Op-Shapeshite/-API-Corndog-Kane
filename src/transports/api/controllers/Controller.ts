@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { TErrorResponse, TResponse } from "../../../core/entities/base/response";
 type TDataMetadataResponse<T, M> = {
-  data: T;
+  data: T |T[];
   metadata: M;
 };
 export default class Controller<T, M> {
@@ -15,7 +15,7 @@ export default class Controller<T, M> {
 			message: message || "Request was successful",
 			data,
 			metadata,
-		} as TResponse<T, M>);
+		} as TResponse<T | T[], M>);
 	}
 	protected getFailureResponse(
 		res: Response,

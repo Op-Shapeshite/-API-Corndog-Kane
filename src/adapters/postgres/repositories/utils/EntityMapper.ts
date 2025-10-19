@@ -13,6 +13,23 @@ export class EntityMapper<T> {
   }
 
   /**
+   * Get Prisma include configuration for relations
+   * Automatically generates includes from relations configuration
+   */
+  public getIncludes(): Record<string, boolean | object> | undefined {
+    if (!this.mapConfig.relations || this.mapConfig.relations.length === 0) {
+      return undefined;
+    }
+
+    const includes: Record<string, boolean> = {};
+    for (const relation of this.mapConfig.relations) {
+      includes[relation.dbField] = true;
+    }
+    
+    return includes;
+  }
+
+  /**
    * Map database record to entity
    * Main entry point for transforming database records
    */

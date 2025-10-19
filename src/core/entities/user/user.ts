@@ -1,4 +1,4 @@
-import { TRole, TRoleGetResponse } from "./role";
+import { TRole } from "./role";
 
 export type TUser = {
   id: string;
@@ -32,9 +32,10 @@ export type TUserUpdateRequest = {
   role_id?: number;
   is_active?: boolean;
 }
-export type TUserGetResponse = Omit<TUser, 'isActive' | 'createdAt' | 'updatedAt' |'password'> & {
+export type TUserGetResponse = Omit<TUser, 'isActive' | 'createdAt' | 'updatedAt' |'password'| 'role'|"logins"| 'lastestLogin'> & {
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
-  role: TRoleGetResponse;
+  role?: string;
+  lastest_login?: Date | null;
 }

@@ -46,11 +46,12 @@ export const UserMapperEntity: EntityMapConfig = {
           user_agent: string;
           login_at: Date;
         }>;
-        return logins.map(login => ({
+        const mappedLogins = logins.map(login => ({
           ipAddress: login.ip_address,
           userAgent: login.user_agent,
           loginAt: login.login_at,
         }));
+        return mappedLogins;
       }
     }
   ],
