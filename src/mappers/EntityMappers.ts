@@ -1,4 +1,4 @@
-import { EntityMapConfig } from "../Repository";
+import { EntityMapConfig } from "../adapters/postgres/repositories/Repository";
 import { UserMapperEntity } from "./mappers/UserMapperEntity";
 import { RoleMapperEntity } from "./mappers/RoleMapperEntity";
 import { OutletMapperEntity } from "./mappers/OutletMapperEntity";

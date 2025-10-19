@@ -1,6 +1,6 @@
 import { MapperUtil } from "../MapperUtil";
-import { TRole } from "../../../../../core/entities/user/role";
-import { EntityMapConfig } from "../../Repository";
+import { TRole } from "../../core/entities/user/role";
+import { EntityMapConfig } from "../../adapters/postgres/repositories/Repository";
 
 /**
  * User entity mapping configuration

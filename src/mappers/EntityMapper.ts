@@ -1,5 +1,5 @@
 import { MapperUtil } from "./MapperUtil";
-import { EntityMapConfig, FieldMapping, RelationMapping } from "../Repository";
+import { EntityMapConfig, FieldMapping, RelationMapping } from "../adapters/postgres/repositories/Repository";
 
 /**
  * EntityMapper class handles all mapping logic from database records to domain entities

@@ -3,8 +3,8 @@ import { TUser } from "../../../core/entities/user/user";
 import { TOutlet } from "../../../core/entities/outlet/outlet";
 import { PrismaClient } from "@prisma/client"; 
 import PostgresAdapter from "../instance";
-import { EntityMapper } from "./utils/EntityMapper";
-import { getEntityMapper } from "./utils/EntityMappers";
+import { EntityMapper } from "../../../mappers/EntityMapper";
+import { getEntityMapper } from "../../../mappers/EntityMappers";
 
 export type TEntity = TUser | TOutlet;
 

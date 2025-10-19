@@ -1,5 +1,5 @@
 import { MapperUtil } from "../MapperUtil";
-import { EntityMapConfig } from "../../Repository";
+import { EntityMapConfig } from "../../adapters/postgres/repositories/Repository";
 
 /**
  * Login entity mapping configuration

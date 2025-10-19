@@ -10,7 +10,7 @@ export type TResponse<T,M> = {
 export type TErrorResponse = {
   field: string;
   message: string;
-  type: "not_found" | "invalid" | "required" | "conflict" | "internal_error";
+  type: "not_found" | "invalid" | "required" | "conflict" | "internal_error" | "unique_constraint";
 }
 export type TMetadataResponse = {
   page: number;
