@@ -7,3 +7,5 @@
 
 *.log
 /src/generated/prisma
+
+/prisma/migrations/*

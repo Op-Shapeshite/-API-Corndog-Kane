@@ -1,0 +1,265 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ADAPTER_PRISMA_POSTGRES_URL")
+}
+// Enums used across the schema
+
+enum MeritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+// User authentication and authorization models
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  name      String?
+  password  String
+  role_id   Int
+  role      Role     @relation(fields: [role_id], references: [id])
+  outlets   Outlet?
+  is_active Boolean  @default(true)
+  logins    Login[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("users")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("roles")
+}
+
+model Login {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  user      User     @relation(fields: [user_id], references: [id])
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("user_logins")
+}
+// Outlet management models
+
+model Outlet {
+  id             Int             @id @default(autoincrement())
+  name           String
+  location       String
+  pic_name       String
+  pic_phone      String
+  check_in_time  DateTime
+  check_out_time DateTime
+  salary         Int
+  is_active      Boolean         @default(true)
+  user_id        Int             @unique
+  user           User            @relation(fields: [user_id], references: [id])
+  outlet_employee OutletEmployee[]
+  product_outlets ProductOutlet[]
+  orders         Order[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("outlets")
+}
+
+model OutletEmployee {
+  id          Int      @id @default(autoincrement())
+  outlet_id   Int
+  employee_id Int
+  assigned_at DateTime @default(now())
+  outlet      Outlet   @relation(fields: [outlet_id], references: [id])
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  is_active   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("outlet_employees")
+}
+// Product and inventory models
+
+model Product {
+  id              Int             @id @default(autoincrement())
+  name            String
+  image_path      String?
+  description     String?
+  price           Float
+  category_id     Int
+  category        ProductCategory @relation(fields: [category_id], references: [id])
+  is_active       Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  product_outlets ProductOutlet[]
+  order_items     OrderItem[]
+
+  @@map("products")
+}
+
+model ProductCategory {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  is_active Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@map("product_categories")
+}
+
+model ProductOutlet {
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  outlet_id  Int
+  qty        Int      @default(0)
+  product    Product  @relation(fields: [product_id], references: [id])
+  outlet     Outlet   @relation(fields: [outlet_id], references: [id])
+  is_active  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("product_outlets")
+}
+// Order and sales models
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  outlet_id      Int
+  employee_id    Int
+  payment_method String
+  total_amount   Int
+  status         String      @default("PENDING")
+  is_active      Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+  outlet         Outlet      @relation(fields: [outlet_id], references: [id])
+  employee       Employee    @relation(fields: [employee_id], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order_id   Int
+  product_id Int
+  quantity   Int
+  price      Float
+  order      Order    @relation(fields: [order_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+  is_active  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("order_items")
+}
+// Employee and human resource models
+
+model Employee {
+  id              Int              @id @default(autoincrement())
+  name            String
+  phone           String
+  nik             String           @unique
+  address         String
+  province_id     Int
+  city_id         Int
+  district_id     Int
+  subdistrict_id  Int
+  merital_status  MeritalStatus
+  religion        String
+  birth_date      DateTime
+  hire_date       DateTime
+  payroll         Payroll[]
+  is_active       Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  outlet_employee OutletEmployee[]
+  orders          Order[]
+
+  @@map("employees")
+}
+
+model Payroll {
+  id          Int      @id @default(autoincrement())
+  employee_id Int
+  salary      Float
+  bonus       Float    @default(0)
+  deductions  Float    @default(0)
+  pay_date    DateTime @default(now())
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  is_active   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("employee_payrolls")
+}
+// Warehouse and material management models
+
+model suplier {
+  id        Int        @id @default(autoincrement())
+  name      String
+  phone     String     @unique
+  address   String?
+  is_active Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  material  material[]
+
+  @@map("supliers")
+}
+
+model material {
+  id           Int           @id @default(autoincrement())
+  suplier_id   Int
+  suplier      suplier       @relation(fields: [suplier_id], references: [id])
+  name         String
+  is_active    Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  material_in  MaterialIn[]
+  material_out MaterialOut[]
+
+  @@map("materials")
+}
+
+model MaterialIn {
+  id            Int      @id @default(autoincrement())
+  material_id   Int
+  price         Int
+  quantity_unit String
+  quantity      Int
+  material      material @relation(fields: [material_id], references: [id])
+  received_at   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("material_ins")
+}
+
+model MaterialOut {
+  id            Int      @id @default(autoincrement())
+  material_id   Int
+  quantity_unit String
+  quantity      Int
+  material      material @relation(fields: [material_id], references: [id])
+  used_at       DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("material_outs")
+}
