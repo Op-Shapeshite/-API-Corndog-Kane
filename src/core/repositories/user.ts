@@ -1,10 +1,8 @@
 import { TUser } from "../entities/user/user";
-import { Repository } from "./Repository";
+import Repository from "./Repository";
 
 export interface UserRepository  extends Repository<TUser> {
-  findById(id: string): Promise<TUser | null>;
   findByUsername(username: string): Promise<TUser | null>;
-  create(user: TUser): Promise<TUser>;
-  update(id: string, user: Partial<TUser>): Promise<TUser>;
-  delete(id: string): Promise<void>;
+  updatePassword(id: number, newPassword: string): Promise<void>;
+  createLoginHistory(userId: number, ipAddress: string, userAgent: string): Promise<void>;
 }

@@ -6,7 +6,12 @@ export type TUser = {
   username: string;
   password: string;
   role:TRole;
-  lastestLogin: Date | null;
+  lastestLogin?: Date | null;
+  logins: {
+    ipAddress: string,
+    userAgent: string,
+    loginAt: Date,
+  }[]
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

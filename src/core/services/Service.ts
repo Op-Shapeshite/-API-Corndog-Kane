@@ -1,6 +1,6 @@
 import { TOutlet } from "../entities/outlet/outlet";
 import { TUser } from "../entities/user/user";
-import { Repository } from "../repositories";
+import  Repository  from "../repositories/Repository";
 
 type TEntity = TUser | TOutlet;
 

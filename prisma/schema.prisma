@@ -51,7 +51,10 @@ model Login {
   id        Int      @id @default(autoincrement())
   user_id   Int
   user      User     @relation(fields: [user_id], references: [id])
-  token     String   @unique
+  ip_address String
+  user_agent String
+  login_at   DateTime @default(now())
+  is_active  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("user_logins")

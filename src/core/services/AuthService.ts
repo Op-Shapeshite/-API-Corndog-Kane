@@ -11,16 +11,19 @@ export class AuthService extends Service<TUser> {
     super(repository);
   }
 
-  async login(credentials: TLoginRequest): Promise<TLoginResponse | null> {
+  async login(credentials: TLoginRequest,metadata:{ipAddress:string,userAgent:string}): Promise<TLoginResponse | null> {
     const user = await this.repository.findByUsername(credentials.username);
     
     if (!user) {
       return null;
     }
     const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-    
+
     if (!isPasswordValid) return null;
 
+    await this.repository.createLoginHistory(
+      +user.id, metadata.ipAddress, metadata.userAgent
+    );
     return {
       id: user.id,
       name: user.name,

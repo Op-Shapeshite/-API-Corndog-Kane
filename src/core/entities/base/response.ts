@@ -1,14 +1,11 @@
-import { TLoginResponse } from "../user/auth";
-import { TRoleGetResponse } from "../user/role";
-import { TUserGetResponse } from "../user/user";
 
-export type TResponse = {
+export type TResponse<T,M> = {
   code: number;
   status: "success" | "failed";
   message: string;
-  data?: TLoginResponse| TUserGetResponse|TRoleGetResponse ;
+  data?: T;
   errors?: TErrorResponse[];
-  metadata?: TMetadataResponse;
+  metadata?: M;
 }
 export type TErrorResponse = {
   field: string;

@@ -9,3 +9,6 @@ export type TLoginResponse = {
   username: string;
   role: string;
 }
+export type TLoginMetadataResponse = {
+  token: string;
+}
