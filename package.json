@@ -13,7 +13,11 @@
 		"prisma:migrate": "dotenv -e .env -- prisma migrate dev",
 		"prisma:studio": "dotenv -e .env -- prisma studio",
 		"prisma:push": "dotenv -e .env -- prisma db push",
-		"prisma:seed": "dotenv -e .env -- prisma db seed"
+		"prisma:seed": "dotenv -e .env -- prisma db seed",
+		"create:resource": "node scripts/generate.js create:resource",
+		"create:endpoint": "node scripts/generate.js create:endpoint",
+		"create:model": "node scripts/generate.js create:model",
+		"generate": "node scripts/generate.js help"
 	},
 	"prisma": {
 		"seed": "ts-node prisma/seed.ts"
