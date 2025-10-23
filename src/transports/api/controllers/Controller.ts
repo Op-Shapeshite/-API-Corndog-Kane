@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { TErrorResponse, TMetadataResponse, TResponse } from "../../../core/entities/base/response";
-import { PrismaErrorHandler } from "../../../adapters/postgres/repositories/PrismaErrorHandler";
 import { Service, TEntity } from "../../../core/services/Service";
+import { ErrorHandlerChain } from "../../../core/errors/ErrorHandlerChain";
 
 type TDataMetadataResponse<T, M> = {
   data: T |T[] |null;
@@ -45,11 +45,12 @@ export default class Controller<T, M> {
 
 	/**
 	 * Handle service errors with consistent response format
-	 * Automatically handles Prisma errors with proper status codes and error types
+	 * Uses Chain of Responsibility pattern to handle different error types
+	 * Automatically handles Prisma, Validation, and Application errors
 	 * @param res - Express Response object
 	 * @param error - The error object thrown
 	 * @param message - User-friendly error message
-	 * @param statusCode - HTTP status code (default: 500, overridden by Prisma errors)
+	 * @param statusCode - HTTP status code (default: 500, overridden by specific errors)
 	 * @param emptyData - Empty data object matching the expected type
 	 * @param emptyMetadata - Empty metadata object matching the expected type
 	 */
@@ -63,19 +64,21 @@ export default class Controller<T, M> {
 	) {
 		console.error(`${message}:`, error);
 		
-		// Check if it's a Prisma error and handle it specifically
-		const prismaError = PrismaErrorHandler.handlePrismaError(error);
-		if (prismaError) {
+		// Use Chain of Responsibility pattern for error handling
+		const errorChain = ErrorHandlerChain.build();
+		const errorResponse = errorChain.handle(error);
+		
+		if (errorResponse) {
 			return this.getFailureResponse(
 				res,
 				{ data: emptyData, metadata: emptyMetadata },
-				prismaError.errors,
-				message,
-				prismaError.statusCode
+				errorResponse.errors,
+				errorResponse.message,
+				errorResponse.statusCode
 			);
 		}
 		
-		// Default error handling for non-Prisma errors
+		// Fallback for unexpected errors
 		return this.getFailureResponse(
 			res,
 			{ data: emptyData, metadata: emptyMetadata },

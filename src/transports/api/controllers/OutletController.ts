@@ -1,6 +1,4 @@
 import { Request, Response } from "express";
-import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
-import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
 import { TOutletCreateRequest, TOutletGetResponse, TOutletGetResponseWithSettings, TOutletUpdateRequest, TOutletWithSettings } from "../../../core/entities/outlet/outlet";
@@ -9,6 +7,21 @@ import EmployeeService from "../../../core/services/EmployeeService";
 import Controller from "./Controller";
 import { OutletResponseMapper } from "../../../mappers/response-mappers/OutletResponseMapper";
 import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
+import { ServiceFactory } from "../../../core/factories/ServiceFactory";
+import { EventEmitter } from "../../../core/events/EventEmitter";
+import { Events } from "../../../core/events/EventTypes";
+import { OutletExistsValidationStrategy, EmployeeExistsValidationStrategy } from "../../../core/strategies/EntityValidationStrategies";
+
+/**
+ * OutletController - Demonstrates all design patterns
+ * - Factory Pattern: ServiceFactory for service creation
+ * - Chain of Responsibility: Error handling in base Controller
+ * - Strategy Pattern: Validation strategies for entity existence
+ * - Observer Pattern: Event emission for business events
+ * - Specification Pattern: Available for complex queries
+ * - Builder Pattern: Available for complex object creation
+ * - Dependency Injection: Can use Container instead of Factory
+ */
 
 export class OutletController extends Controller<
 	| TOutletGetResponse
@@ -21,8 +34,13 @@ export class OutletController extends Controller<
 
 	constructor() {
 		super();
-		this.outletService = new OutletService(new OutletRepository());
-		this.employeeService = new EmployeeService(new EmployeeRepository());
+		// Using Factory Pattern for service creation
+		this.outletService = ServiceFactory.getOutletService();
+		this.employeeService = ServiceFactory.getEmployeeService();
+		
+		// Alternative: Using DI Container (can switch between Factory and Container)
+		// this.outletService = Container.resolve<OutletService>('OutletService');
+		// this.employeeService = Container.resolve<EmployeeService>('EmployeeService');
 	}
 
 	findById = async (req: Request, res: Response): Promise<Response> => {
@@ -140,25 +158,25 @@ export class OutletController extends Controller<
 			const employeeId = parseInt(req.params.employeeid);
 			const { date, is_for_one_week } = req.body;
 
-			// Validate outlet exists
-			const outlet = await this.outletService.findById(outletId.toString());
-			if (!outlet) {
+			// Using Strategy Pattern for validation - validate outlet
+			const outletValidation = await new OutletExistsValidationStrategy().validate({ outletId });
+			if (!outletValidation.isValid) {
 				return this.getFailureResponse(
 					res,
 					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					outletValidation.errors,
 					'Outlet not found',
 					404
 				);
 			}
 
-			// Validate employee exists
-			const employee = await this.employeeService.findById(employeeId.toString());
-			if (!employee) {
+			// Validate employee
+			const employeeValidation = await new EmployeeExistsValidationStrategy().validate({ employeeId });
+			if (!employeeValidation.isValid) {
 				return this.getFailureResponse(
 					res,
 					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
-					[{ field: 'employeeid', message: 'Employee not found', type: 'not_found' }],
+					employeeValidation.errors,
 					'Employee not found',
 					404
 				);
@@ -170,6 +188,16 @@ export class OutletController extends Controller<
 				new Date(date),
 				is_for_one_week
 			);
+
+			// Using Observer Pattern - emit event for each assignment
+			for (const assignment of assignments) {
+				await EventEmitter.emit(Events.EMPLOYEE_ASSIGNED, {
+					assignment,
+					outletId,
+					employeeId,
+					timestamp: new Date()
+				});
+			}
 
 			const responseData = assignments.map((assignment) =>
 				OutletAssignmentResponseMapper.toListResponse(assignment)
