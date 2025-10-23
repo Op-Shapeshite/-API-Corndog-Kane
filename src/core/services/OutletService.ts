@@ -1,10 +1,11 @@
 import OutletRepository from "../../adapters/postgres/repositories/OutletRepository";
 import UserRepository from "../../adapters/postgres/repositories/UserRepository";
 import { TOutlet, TOutletCreate, TOutletUpdate, TOutletWithSettings } from "../entities/outlet/outlet";
+import { TOutletAssignmentWithRelations } from "../entities/outlet/assignment";
 import { TUser, TUserCreate } from "../entities/user/user";
 import { Service } from "./Service";
 
-export default class OutletService extends Service<TOutlet|TOutletCreate|TOutletWithSettings> {
+export default class OutletService extends Service<TOutlet> {
 	declare repository: OutletRepository;
 	declare userRepository: UserRepository;
 
@@ -61,5 +62,36 @@ export default class OutletService extends Service<TOutlet|TOutletCreate|TOutlet
 
 	const updatedOutlet = await this.repository.update(id.toString(), sanitized);
 	return updatedOutlet;
+  }
+
+  async assignEmployeeToOutletForDates(
+    outletId: number,
+    employeeId: number,
+    startDate: Date,
+    isForOneWeek: boolean
+  ): Promise<TOutletAssignmentWithRelations[]> {
+    const assignments: { outletId: number; employeeId: number; assignedAt: Date }[] = [];
+    
+    if (isForOneWeek) {
+      // Generate assignments for 7 days forward
+      for (let i = 0; i < 7; i++) {
+        const assignmentDate = new Date(startDate);
+        assignmentDate.setDate(startDate.getDate() + i);
+        assignments.push({
+          outletId,
+          employeeId,
+          assignedAt: assignmentDate,
+        });
+      }
+    } else {
+      // Generate assignment for 1 day only
+      assignments.push({
+        outletId,
+        employeeId,
+        assignedAt: startDate,
+      });
+    }
+
+    return await this.repository.bulkAssignEmployeeToOutlet(assignments);
   }
 }

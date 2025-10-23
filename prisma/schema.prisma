@@ -188,10 +188,10 @@ model Employee {
   religion        String
   birth_date      DateTime
   hire_date       DateTime
-  payroll         Payroll[]
   is_active       Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  payroll         Payroll[]
   outlet_employee OutletEmployee[]
   orders          Order[]
 

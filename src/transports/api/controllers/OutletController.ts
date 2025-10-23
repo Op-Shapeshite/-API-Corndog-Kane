@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
+import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
 import { TOutletCreateRequest, TOutletGetResponse, TOutletGetResponseWithSettings, TOutletUpdateRequest, TOutletWithSettings } from "../../../core/entities/outlet/outlet";
 import OutletService from "../../../core/services/OutletService";
+import EmployeeService from "../../../core/services/EmployeeService";
 import Controller from "./Controller";
 import { OutletResponseMapper } from "../../../mappers/response-mappers/OutletResponseMapper";
+import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
 
 export class OutletController extends Controller<
 	| TOutletGetResponse
@@ -14,13 +17,15 @@ export class OutletController extends Controller<
 	TMetadataResponse
 > {
 	private outletService: OutletService;
+	private employeeService: EmployeeService;
 
 	constructor() {
 		super();
 		this.outletService = new OutletService(new OutletRepository());
+		this.employeeService = new EmployeeService(new EmployeeRepository());
 	}
 
-	async findById(req: Request, res: Response): Promise<Response> {
+	findById = async (req: Request, res: Response): Promise<Response> => {
 		const { id } = req.params;
 		const outlet = (await this.outletService.findById(
 			id
@@ -36,7 +41,7 @@ export class OutletController extends Controller<
 			},
 			"Outlet retrieved successfully"
 		);
-	}
+	};
 	// overide create method
 
 	createOutlet = async (req: Request, res: Response): Promise<Response> => {
@@ -127,5 +132,67 @@ export class OutletController extends Controller<
         {} as TMetadataResponse
       );
     }
-  }
+	}
+
+	assignEmployeeToOutlet = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const outletId = parseInt(req.params.id);
+			const employeeId = parseInt(req.params.employeeid);
+			const { date, is_for_one_week } = req.body;
+
+			// Validate outlet exists
+			const outlet = await this.outletService.findById(outletId.toString());
+			if (!outlet) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					'Outlet not found',
+					404
+				);
+			}
+
+			// Validate employee exists
+			const employee = await this.employeeService.findById(employeeId.toString());
+			if (!employee) {
+				return this.getFailureResponse(
+					res,
+					{ data: {} as TOutletGetResponse, metadata: {} as TMetadataResponse },
+					[{ field: 'employeeid', message: 'Employee not found', type: 'not_found' }],
+					'Employee not found',
+					404
+				);
+			}
+
+			const assignments = await this.outletService.assignEmployeeToOutletForDates(
+				outletId,
+				employeeId,
+				new Date(date),
+				is_for_one_week
+			);
+
+			const responseData = assignments.map((assignment) =>
+				OutletAssignmentResponseMapper.toListResponse(assignment)
+			);
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: responseData as unknown as TOutletGetResponse,
+					metadata: {} as TMetadataResponse,
+				},
+				"Employee assigned to outlet successfully"
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to assign employee to outlet",
+				500,
+				{} as TOutletGetResponse,
+				{} as TMetadataResponse
+			);
+		}
+	};
+	
 }

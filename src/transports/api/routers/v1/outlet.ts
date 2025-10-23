@@ -3,9 +3,11 @@ import express from 'express';
 import { validate } from '../../validations/validate.middleware';
 import {
 	createOutletSchema,
+	deleteOutletSchema,
 	getOutletByIdSchema,
 	updateOutletSchema,
 } from "../../validations/outlet.validation";
+import { assignEmployeeToOutletSchema } from "../../validations/outlet-assignment.validation";
 import { OutletController } from '../../controllers/OutletController';
 import OutletService from '../../../../core/services/OutletService';
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
@@ -32,10 +34,17 @@ router.put(
 	validate(updateOutletSchema),
 	outletController.updateOutlet
 	)
-// router.delete(
-// 	"/:id",
-// 	validate(deleteOutletSchema),
-// 	outletController.delete(outletService, "User deleted successfully")
-// );
+router.delete(
+	"/:id",
+	validate(deleteOutletSchema),
+	outletController.delete(outletService, "User deleted successfully")
+);
+
+// Assign employee to outlet
+router.post(
+	"/:id/employee/:employeeid",
+	validate(assignEmployeeToOutletSchema),
+	outletController.assignEmployeeToOutlet
+);
 
 export default router;

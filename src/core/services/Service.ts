@@ -1,16 +1,16 @@
 import { TOutletAssignment } from "../entities/outlet/assignment";
-import { TOutlet, TOutletCreate, TOutletWithSettings } from "../entities/outlet/outlet";
+import { TOutlet, TOutletWithSettings } from "../entities/outlet/outlet";
 import { TRole } from "../entities/user/role";
 import { TUser } from "../entities/user/user";
+import { TEmployee } from "../entities/employee/employee";
 import Repository, { PaginationResult, SearchConfig } from "../repositories/Repository";
 
 export type TEntity =
 	| TUser
 	| TOutlet
 	| TRole
+	| TEmployee
 	| TOutletAssignment
-	| TOutletWithSettings
-	| TOutletCreate
 	| TOutletWithSettings;
 
 export class Service<T extends TEntity> {

@@ -184,7 +184,8 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const newEntity = await serviceClass.create(req.body as E);
+				const requestData = this.convertToCamelCase(req.body);
+				const newEntity = await serviceClass.create(requestData as E);
 				
 				return this.getSuccessResponse(
 					res,
@@ -205,6 +206,31 @@ export default class Controller<T, M> {
 				);
 			}
 		};
+	}
+
+	private convertToCamelCase(obj: Record<string, unknown>): Record<string, unknown> {
+		const result: Record<string, unknown> = {};
+		
+		for (const key in obj) {
+			if (Object.prototype.hasOwnProperty.call(obj, key)) {
+				const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+				const value = obj[key];
+				
+				if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+					result[camelKey] = this.convertToCamelCase(value as Record<string, unknown>);
+				} else if (Array.isArray(value)) {
+					result[camelKey] = value.map(item => 
+						item && typeof item === 'object' && !(item instanceof Date)
+							? this.convertToCamelCase(item as Record<string, unknown>)
+							: item
+					);
+				} else {
+					result[camelKey] = value;
+				}
+			}
+		}
+		
+		return result;
 	}
 
 	/**
@@ -238,7 +264,8 @@ export default class Controller<T, M> {
 		return async (req: Request, res: Response) => {
 			try {
 				const { id } = req.params;
-				const updatedEntity = await serviceClass.update(id, req.body);
+				const requestData = this.convertToCamelCase(req.body);
+				const updatedEntity = await serviceClass.update(id, requestData as Partial<E>);
 
 				if (!updatedEntity) {
 					return this.getFailureResponse(

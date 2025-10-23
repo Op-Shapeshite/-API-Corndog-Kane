@@ -97,3 +97,16 @@ export type TOutletUpdate = Omit<TOutlet, "id" | "createdAt" | "updatedAt"> & {
   salary?: number | null;
   userId?: number;
 };
+export type TOutletAssignmentResponse = {
+  outlet: {
+    id: string;
+    name: string;
+    location: string;
+  }
+  employee: {
+    id: string;
+    name: string;
+    nik: string;
+  }
+  assigned_at: Date;
+}

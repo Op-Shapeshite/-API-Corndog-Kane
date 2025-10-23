@@ -1,5 +1,6 @@
 import { TRole } from "../entities/user/role";
 import Repository from "./Repository";
 
-export type RoleService = Repository<TRole>
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RoleRepository extends Repository<TRole> {}
 

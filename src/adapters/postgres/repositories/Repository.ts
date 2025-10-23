@@ -1,13 +1,15 @@
 import RepositoryInterface from "../../../core/repositories/Repository";
-import { TUser, TUserCreate } from "../../../core/entities/user/user";
+import { TUser } from "../../../core/entities/user/user";
 import { TOutlet } from "../../../core/entities/outlet/outlet";
+import { TEmployee } from "../../../core/entities/employee/employee";
+import { TOutletAssignment } from "../../../core/entities/outlet/assignment";
 import { PrismaClient } from "@prisma/client"; 
 import PostgresAdapter from "../instance";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { getEntityMapper } from "../../../mappers/EntityMappers";
 import { TRole } from "../../../core/entities/user/role";
 
-export type TEntity = TUser | TOutlet | TRole | TUserCreate;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -65,12 +67,10 @@ export interface PaginationResult<T> {
   totalPages: number;
 }
 
-// Utility function to convert camelCase to snake_case
 function toSnakeCase(str: string): string {
   return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
-// Convert object keys from camelCase to snake_case
 function convertToSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   
@@ -79,8 +79,12 @@ function convertToSnakeCase(obj: Record<string, unknown>): Record<string, unknow
       const snakeKey = toSnakeCase(key);
       const value = obj[key];
       
+      // Convert string dates to Date objects
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+        result[snakeKey] = new Date(value);
+      }
       // Recursively convert nested objects
-      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      else if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
         result[snakeKey] = convertToSnakeCase(value as Record<string, unknown>);
       } else if (Array.isArray(value)) {
         // Handle arrays of objects
