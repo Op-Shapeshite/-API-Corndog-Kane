@@ -4,6 +4,7 @@ export type TUser = {
   id: string;
   name: string;
   username: string;
+  role_id?: number;
   password: string;
   role:TRole;
   lastestLogin?: Date | null;
@@ -16,7 +17,13 @@ export type TUser = {
   createdAt: Date;
   updatedAt: Date;
 }
-
+export type TUserCreate = {
+  name: string;
+  username: string;
+  password: string;
+  role_id?: number;
+  isActive: boolean;
+}
 export type TUserCreateRequest = {
   name: string;
   username: string;

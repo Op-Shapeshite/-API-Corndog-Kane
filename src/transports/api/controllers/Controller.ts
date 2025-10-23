@@ -2,13 +2,10 @@
 import { Request, Response } from "express";
 import { TErrorResponse, TMetadataResponse, TResponse } from "../../../core/entities/base/response";
 import { PrismaErrorHandler } from "../../../adapters/postgres/repositories/PrismaErrorHandler";
-import { Service } from "../../../core/services/Service";
-import { TUser } from "../../../core/entities/user/user";
-import { TRole } from "../../../core/entities/user/role";
-import { TOutlet } from "../../../core/entities/outlet/outlet";
+import { Service, TEntity } from "../../../core/services/Service";
 
 type TDataMetadataResponse<T, M> = {
-  data: T |T[];
+  data: T |T[] |null;
   metadata: M;
 };
 
@@ -16,9 +13,6 @@ type TDataMetadataResponse<T, M> = {
 interface ResponseMapper<TEntity, TResponse> {
   toListResponse(entity: TEntity): TResponse;
 }
-
-// Entity constraint type matching Service class
-type TEntity = TUser | TOutlet | TRole;
 export default class Controller<T, M> {
 	protected getSuccessResponse(
 		res: Response,

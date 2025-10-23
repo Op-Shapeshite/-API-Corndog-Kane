@@ -1,0 +1,41 @@
+
+import express from 'express';
+import { validate } from '../../validations/validate.middleware';
+import {
+	createOutletSchema,
+	getOutletByIdSchema,
+	updateOutletSchema,
+} from "../../validations/outlet.validation";
+import { OutletController } from '../../controllers/OutletController';
+import OutletService from '../../../../core/services/OutletService';
+import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
+import { OutletResponseMapper } from '../../../../mappers/response-mappers/OutletResponseMapper';
+import { getPaginationSchema } from '../../validations/pagination.validation';
+
+const router = express.Router();
+
+const outletController = new OutletController();
+const outletService = new OutletService(new OutletRepository());
+
+router.get('/', validate(getPaginationSchema), outletController.findAll(outletService, OutletResponseMapper));
+router.get('/:id',
+validate(getOutletByIdSchema),
+outletController.findById.bind(outletController)
+);
+router.post(
+	"/",
+	validate(createOutletSchema),
+	outletController.createOutlet
+);
+router.put(
+	"/:id",
+	validate(updateOutletSchema),
+	outletController.updateOutlet
+	)
+// router.delete(
+// 	"/:id",
+// 	validate(deleteOutletSchema),
+// 	outletController.delete(outletService, "User deleted successfully")
+// );
+
+export default router;

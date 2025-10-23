@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import UserRepository from "../../../adapters/postgres/repositories/UserRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TuserDetailGetResponse, TUserGetResponse } from "../../../core/entities/user/user";
+import { TUser, TuserDetailGetResponse, TUserGetResponse } from "../../../core/entities/user/user";
 import UserService from '../../../core/services/UserService';
 import { UserResponseMapper } from "../../../mappers/response-mappers";
 import Controller from "./Controller";
@@ -31,7 +31,7 @@ export class UserController extends Controller<TUserGetResponse | TuserDetailGet
 
       return this.getSuccessResponse(
         res,
-        { data: UserResponseMapper.toDetailResponse(user), metadata: {} as TMetadataResponse },
+        { data: UserResponseMapper.toDetailResponse(user as TUser), metadata: {} as TMetadataResponse },
         'User retrieved successfully'
       );
     } catch (error) {

@@ -12,6 +12,4 @@ export class RoleController extends Controller<TRoleGetResponse, TMetadataRespon
     this.roleService = new RoleService(new RoleRepository());
   }
 
-  // The findAll method is inherited from the parent Controller class
-  // It can be called from routes as: roleController.findAll(roleService, RoleResponseMapper)
 }

@@ -67,8 +67,9 @@ model Outlet {
   location       String
   pic_name       String
   pic_phone      String
-  check_in_time  DateTime
-  check_out_time DateTime
+  description    String?
+  check_in_time  String
+  check_out_time String
   salary         Int
   is_active      Boolean         @default(true)
   user_id        Int             @unique

@@ -1,5 +1,5 @@
 import RepositoryInterface from "../../../core/repositories/Repository";
-import { TUser } from "../../../core/entities/user/user";
+import { TUser, TUserCreate } from "../../../core/entities/user/user";
 import { TOutlet } from "../../../core/entities/outlet/outlet";
 import { PrismaClient } from "@prisma/client"; 
 import PostgresAdapter from "../instance";
@@ -7,7 +7,7 @@ import { EntityMapper } from "../../../mappers/EntityMapper";
 import { getEntityMapper } from "../../../mappers/EntityMappers";
 import { TRole } from "../../../core/entities/user/role";
 
-export type TEntity = TUser | TOutlet |TRole;
+export type TEntity = TUser | TOutlet | TRole | TUserCreate;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -63,6 +63,39 @@ export interface PaginationResult<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+// Utility function to convert camelCase to snake_case
+function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+// Convert object keys from camelCase to snake_case
+function convertToSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const snakeKey = toSnakeCase(key);
+      const value = obj[key];
+      
+      // Recursively convert nested objects
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        result[snakeKey] = convertToSnakeCase(value as Record<string, unknown>);
+      } else if (Array.isArray(value)) {
+        // Handle arrays of objects
+        result[snakeKey] = value.map(item => 
+          item && typeof item === 'object' && !(item instanceof Date)
+            ? convertToSnakeCase(item as Record<string, unknown>)
+            : item
+        );
+      } else {
+        result[snakeKey] = value;
+      }
+    }
+  }
+  
+  return result;
 }
 
 export default abstract class Repository<T extends TEntity> implements RepositoryInterface<T> {
@@ -160,9 +193,10 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 
 	async update(id: string, item: Partial<T>): Promise<T> {
 		const model = this.getModel();
+		const snakeCaseData = convertToSnakeCase(item as Record<string, unknown>);
 		const updated = await model.update({
 			where: { id: parseInt(id) },
-			data: item as unknown,
+			data: snakeCaseData,
 		});
 		return this.mapper.mapToEntity(updated);
 	}
@@ -174,7 +208,8 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 
 	async create(item: T): Promise<T> {
 		const model = this.getModel();
-		const created = await model.create({ data: item as unknown });
+		const snakeCaseData = convertToSnakeCase(item as Record<string, unknown>);
+		const created = await model.create({ data: snakeCaseData });
 		return this.mapper.mapToEntity(created);
 	}
 }

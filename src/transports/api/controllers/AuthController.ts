@@ -19,7 +19,6 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
     const userAgent = req.get('User-Agent') || '';
 
     try {
-      // console.log(this.authService)
       const loginResponse = await this.authService.login(
         { username, password },
         { ipAddress:ipAddress ||'', userAgent }
