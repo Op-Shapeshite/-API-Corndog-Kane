@@ -28,16 +28,15 @@ echo "✅ Verifying installations..."
 node --version
 npm --version
 
-# Install PostgreSQL (if not already installed)
-read -p "Do you want to install PostgreSQL? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "📦 Installing PostgreSQL..."
-    sudo apt install -y postgresql postgresql-contrib
-    sudo systemctl start postgresql
-    sudo systemctl enable postgresql
-    echo "✅ PostgreSQL installed and started"
-fi
+# Install PostgreSQL (required)
+echo "📦 Installing PostgreSQL..."
+sudo apt install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+echo "✅ PostgreSQL installed and started"
+
+# Display PostgreSQL version
+sudo -u postgres psql --version
 
 # Install Redis (if not already installed)
 read -p "Do you want to install Redis? (y/n) " -n 1 -r
