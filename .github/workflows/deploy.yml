@@ -27,13 +27,16 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Install production dependencies
+        run: npm install --omit=dev
+
       - name: Create deployment package
         run: |
           mkdir -p deploy-package
           cp -r dist deploy-package/
+          cp -r node_modules deploy-package/
           cp -r prisma deploy-package/
           cp package*.json deploy-package/
-          cp -r node_modules deploy-package/ 2>/dev/null || true
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -89,9 +92,6 @@ jobs:
             rm -rf Corndog-Kane-API-temp
             
             cd Corndog-Kane-API
-            
-            # Install production dependencies only
-            npm ci --production
             
             # Run Prisma migrations
             npx prisma generate
