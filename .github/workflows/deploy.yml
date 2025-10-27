@@ -6,14 +6,66 @@ on:
       - master
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build application
+        run: npm run build
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r dist deploy-package/
+          cp -r prisma deploy-package/
+          cp package*.json deploy-package/
+          cp -r node_modules deploy-package/ 2>/dev/null || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: deploy-package/
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: deploy-package/
+
       - name: Deploy to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "deploy-package/*"
+          target: "/home/kane/Corndog-Kane-API-temp"
+          strip_components: 1
+
+      - name: Deploy and restart service
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -21,16 +73,26 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            cd /home/kane/Corndog-Kane-API
+            cd /home/kane
             
-            # Pull latest changes
-            git pull origin master
+            # Backup current deployment
+            if [ -d "Corndog-Kane-API" ]; then
+              cp -r Corndog-Kane-API Corndog-Kane-API-backup-$(date +%Y%m%d-%H%M%S) || true
+            fi
             
-            # Install dependencies
-            npm install --production=false
+            # Move new build to production directory
+            rm -rf Corndog-Kane-API/dist
+            rm -rf Corndog-Kane-API/node_modules
+            mkdir -p Corndog-Kane-API
+            cp -r Corndog-Kane-API-temp/* Corndog-Kane-API/
             
-            # Run build
-            npm run build
+            # Cleanup temp directory
+            rm -rf Corndog-Kane-API-temp
+            
+            cd Corndog-Kane-API
+            
+            # Install production dependencies only
+            npm ci --production
             
             # Run Prisma migrations
             npx prisma generate
@@ -39,5 +101,12 @@ jobs:
             # Restart the application service
             sudo systemctl restart corndog-kane-api
             
+            # Wait for service to start
+            sleep 3
+            
             # Check service status
             sudo systemctl status corndog-kane-api --no-pager
+            
+            # Cleanup old backups (keep last 3)
+            cd /home/kane
+            ls -t Corndog-Kane-API-backup-* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
