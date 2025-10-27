@@ -1,0 +1,24 @@
+[Unit]
+Description=Corndog Kane API Service
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=kane
+WorkingDirectory=/home/kane/Corndog-Kane-API
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/corndog-kane-api/output.log
+StandardError=append:/var/log/corndog-kane-api/error.log
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/kane/Corndog-Kane-API/public
+
+[Install]
+WantedBy=multi-user.target

@@ -10,6 +10,17 @@ import categoryRouter from './category';
 import productRouter from './product';
 const router = express.Router();
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Corndog Kane API is running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 router.use("/auth", authRouter);
 router.use("/", testRouter);
 router.use('/users', userRouter);
