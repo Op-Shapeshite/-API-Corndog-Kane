@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm install
@@ -76,11 +76,6 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /home/kane
-            
-            # Backup current deployment
-            if [ -d "Corndog-Kane-API" ]; then
-              cp -r Corndog-Kane-API Corndog-Kane-API-backup-$(date +%Y%m%d-%H%M%S) || true
-            fi
             
             # Move new build to production directory
             rm -rf Corndog-Kane-API/dist
