@@ -21,7 +21,7 @@ export default class TransportRegistry {
 			try {
         const file = fs
 			.readdirSync(adaptersDir + "/" + dir)
-			.find((f: string) => f === "instance.ts");
+			.find((f: string) => f === "instance.js" || f === "instance.ts");
 				if (file) {
 					const module = require(path.join(
 						`${adaptersDir}/${dir}`,

@@ -3,25 +3,15 @@
 # Corndog Kane API - Server Setup Script for Ubuntu
 # This script sets up the VPS for the first time
 
-set -e  # Exit on any error
-
 echo "=========================================="
 echo "Corndog Kane API - Server Setup"
 echo "=========================================="
 
-# Update system packages
-echo "📦 Updating system packages..."
-sudo apt update > /dev/null
-sudo apt upgrade -y > /dev/null
-
-# Install essential tools
-echo "🔧 Installing essential tools..."
-sudo apt install -y curl wget git build-essential > /dev/null
 
 # Install Node.js (using NodeSource repository for latest LTS)
 echo "📦 Installing Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - > /dev/null
-sudo apt install -y nodejs > /dev/null
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - 
+sudo apt install -y nodejs 
 
 # Verify installations
 echo "✅ Verifying installations..."
@@ -30,21 +20,58 @@ npm --version
 
 # Install PostgreSQL (required)
 echo "📦 Installing PostgreSQL..."
-sudo apt install -y postgresql postgresql-contrib > /dev/null
+sudo apt install -y postgresql postgresql-contrib 
 sudo systemctl start postgresql 2>&1 | grep -v "^$" || true
-sudo systemctl enable postgresql > /dev/null 2>&1
+sudo systemctl enable postgresql  2>&1
 echo "✅ PostgreSQL installed and started"
 
 # Display PostgreSQL version
 sudo -u postgres psql --version
 
+# Configure PostgreSQL database and user
+echo ""
+echo "📝 PostgreSQL Configuration"
+read -p "Enter PostgreSQL username (default: corndog_user): " PG_USER
+PG_USER=${PG_USER:-corndog_user}
+
+read -p "Enter PostgreSQL password: " PG_PASSWORD
+while [ -z "$PG_PASSWORD" ]; do
+    echo "⚠️  Password cannot be empty!"
+    read -p "Enter PostgreSQL password: " PG_PASSWORD
+done
+
+read -p "Enter PostgreSQL database name (default: corndog_kane): " PG_DATABASE
+PG_DATABASE=${PG_DATABASE:-corndog_kane}
+
+# Create PostgreSQL user and database
+echo "🔧 Setting up PostgreSQL user and database..."
+sudo -u postgres psql  2>&1 << EOF
+-- Create user if not exists
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_user WHERE usename = '$PG_USER') THEN
+        CREATE USER $PG_USER WITH PASSWORD '$PG_PASSWORD';
+    END IF;
+END
+\$\$;
+
+-- Create database if not exists
+SELECT 'CREATE DATABASE $PG_DATABASE OWNER $PG_USER'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$PG_DATABASE')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE $PG_DATABASE TO $PG_USER;
+EOF
+
+echo "✅ PostgreSQL user '$PG_USER' and database '$PG_DATABASE' configured"
+
 # Install Redis (if not already installed)
 read -p "Do you want to install Redis? (y/n) " REPLY
 if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
     echo "📦 Installing Redis..."
-    sudo apt install -y redis-server > /dev/null
+    sudo apt install -y redis-server 
     sudo systemctl start redis-server 2>&1 | grep -v "^$" || true
-    sudo systemctl enable redis-server > /dev/null 2>&1
+    sudo systemctl enable redis-server  2>&1
     echo "✅ Redis installed and started"
 fi
 
@@ -64,15 +91,25 @@ cd /home/kane/Corndog-Kane-API
 
 # Install dependencies
 echo "📦 Installing Node.js dependencies..."
-npm install > /dev/null
+if npm install --verbose; then
+    echo "✅ Dependencies installed successfully"
+else
+    echo "❌ npm install failed! Retrying with --legacy-peer-deps..."
+    if npm install --legacy-peer-deps --verbose; then
+        echo "✅ Dependencies installed successfully with --legacy-peer-deps"
+    else
+        echo "❌ Failed to install dependencies. Please check the errors above."
+        exit 1
+    fi
+fi 
 
 # Setup environment file
 echo "📝 Setting up environment file..."
 if [ ! -f .env ]; then
     echo "Creating .env file..."
-    cat > .env << 'EOF'
+    cat > .env << EOF
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/corndog_kane"
+DATABASE_URL="postgresql://$PG_USER:$PG_PASSWORD@localhost:5432/$PG_DATABASE"
 
 # Server
 PORT=3000
@@ -80,14 +117,14 @@ NODE_ENV=production
 
 # Add your other environment variables here
 EOF
-    echo "⚠️  Please edit /home/kane/Corndog-Kane-API/.env with your actual values!"
+    echo "✅ .env file created with PostgreSQL credentials"
 else
     echo ".env file already exists, skipping..."
 fi
 
 # Create systemd service
 echo "🔧 Creating systemd service..."
-sudo tee /etc/systemd/system/corndog-kane-api.service > /dev/null << 'EOF'
+sudo tee /etc/systemd/system/corndog-kane-api.service  << 'EOF'
 [Unit]
 Description=Corndog Kane API Service
 After=network.target postgresql.service
@@ -120,22 +157,14 @@ sudo chown -R kane:kane /var/log/corndog-kane-api 2>&1 | grep -v "^$" || true
 read -p "Do you want to install and configure Nginx as reverse proxy? (y/n) " REPLY
 if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
     echo "📦 Installing Nginx..."
-    sudo apt install -y nginx > /dev/null
+    sudo apt install -y nginx 
     
-    echo ""
-    echo "Choose Nginx configuration:"
-    echo "1) Domain name (e.g., api.example.com)"
-    echo "2) IP address with custom port"
-    read -p "Enter your choice (1/2): " NGINX_CHOICE
+    read -p "Enter the port number for Nginx (e.g., 8080): " NGINX_PORT
+    NGINX_PORT=${NGINX_PORT:-8080}  # Default to 8080 if empty
     
-    if [ "$NGINX_CHOICE" = "2" ]; then
-        read -p "Enter the port number for Nginx (e.g., 8080): " NGINX_PORT
-        SERVER_NAME="_"
-        LISTEN_PORT="$NGINX_PORT"
-        
-        sudo tee /etc/nginx/sites-available/corndog-kane-api > /dev/null << EOF
+    sudo tee /etc/nginx/sites-available/corndog-kane-api  << EOF
 server {
-    listen $LISTEN_PORT;
+    listen $NGINX_PORT;
     server_name _;
 
     client_max_body_size 10M;
@@ -153,65 +182,48 @@ server {
     }
 }
 EOF
-        
-        echo "✅ Nginx configured to listen on port $NGINX_PORT"
-        echo "💡 Access your API at: http://YOUR_SERVER_IP:$NGINX_PORT"
-    else
-        read -p "Enter your domain name (e.g., api.example.com): " DOMAIN_NAME
-        
-        sudo tee /etc/nginx/sites-available/corndog-kane-api > /dev/null << EOF
-server {
-    listen 80;
-    server_name $DOMAIN_NAME;
-
-    client_max_body_size 10M;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-EOF
-        
-        echo "✅ Nginx configured for $DOMAIN_NAME"
-        echo "💡 To enable HTTPS, run: sudo certbot --nginx -d $DOMAIN_NAME"
-    fi
+    
+    echo "✅ Nginx configured to listen on port $NGINX_PORT"
+    echo "💡 Access your API at: http://YOUR_SERVER_IP:$NGINX_PORT"
     
     sudo ln -sf /etc/nginx/sites-available/corndog-kane-api /etc/nginx/sites-enabled/ 2>&1 | grep -v "^$" || true
     sudo nginx -t 2>&1 | grep -E "failed|error" || echo "✓ Nginx configuration valid"
     sudo systemctl restart nginx 2>&1 | grep -v "^$" || true
-    sudo systemctl enable nginx > /dev/null 2>&1
+    sudo systemctl enable nginx  2>&1
 fi
 
 # Setup firewall
 echo "🔥 Configuring firewall..."
-sudo ufw allow OpenSSH > /dev/null 2>&1
+sudo ufw allow OpenSSH  2>&1
 
 # Allow Nginx ports
 if [ -n "$NGINX_PORT" ] && [ "$NGINX_PORT" != "80" ]; then
-    sudo ufw allow $NGINX_PORT > /dev/null 2>&1
+    sudo ufw allow $NGINX_PORT  2>&1
     echo "✓ Firewall: Allowed port $NGINX_PORT"
 else
-    sudo ufw allow 'Nginx Full' > /dev/null 2>&1 || sudo ufw allow 80 > /dev/null 2>&1
-    sudo ufw allow 443 > /dev/null 2>&1
+    sudo ufw allow 'Nginx Full'  2>&1 || sudo ufw allow 80  2>&1
+    sudo ufw allow 443  2>&1
 fi
 
-sudo ufw --force enable > /dev/null 2>&1
+sudo ufw --force enable  2>&1
 
 # Build the application
 echo "🔨 Building application..."
-npm run build > /dev/null
+if npm run build; then
+    echo "✅ Build completed successfully"
+else
+    echo "❌ Build failed! Check the errors above."
+    exit 1
+fi
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."
-npx prisma generate > /dev/null
+if npx prisma generate; then
+    echo "✅ Prisma client generated successfully"
+else
+    echo "❌ Prisma generate failed! Check the errors above."
+    exit 1
+fi 
 
 # Run migrations (optional, requires DB to be configured)
 read -p "Do you want to run database migrations now? (y/n) " REPLY
@@ -222,7 +234,7 @@ fi
 # Reload systemd and start service
 echo "🚀 Starting application service..."
 sudo systemctl daemon-reload 2>&1 | grep -v "^$" || true
-sudo systemctl enable corndog-kane-api > /dev/null 2>&1
+sudo systemctl enable corndog-kane-api  2>&1
 sudo systemctl start corndog-kane-api 2>&1 | grep -v "^$" || true
 
 # Check service status

@@ -27,7 +27,7 @@ export default class AdapterRegistry {
 		for (const dir of dirs) {
 			try {
 				const file = fs.readdirSync(adaptersDir + "/" + dir)[0];
-				if (file === "instance.ts") {
+				if (file === "instance.js" || file === "instance.ts") {
 					const module = require(path.join(`${adaptersDir}/${dir}`, file));
 					if (!module?.default) throw new Error("No default export found");
 					
