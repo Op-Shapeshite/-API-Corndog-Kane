@@ -6,3 +6,6 @@
 export { UserResponseMapper } from './UserResponseMapper';
 export * from './RoleResponseMapper';
 export * from './SupplierResponseMapper'
+
+export * from './MaterialResponseMapper';
+

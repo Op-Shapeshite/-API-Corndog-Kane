@@ -6,6 +6,7 @@ import { TEmployee } from "../entities/employee/employee";
 import Repository, { PaginationResult, SearchConfig } from "../repositories/Repository";
 import { TCategory } from "../entities/product/category";
 import { TSupplier, TSupplierWithID } from "../entities/suplier/suplier";
+import { TMaterial, TMaterialWithID } from "../entities/material/material";
 
 export type TEntity =
 	| TUser
@@ -17,6 +18,8 @@ export type TEntity =
 	| TCategory
 	| TSupplier 
 	| TSupplierWithID
+	| TMaterial
+	| TMaterialWithID
 	;
 
 export class Service<T extends TEntity> {

@@ -8,7 +8,9 @@ import outletRouter from './outlet';
 import employeeRouter from './employee';
 import categoryRouter from './category';
 import productRouter from './product';
-import supplierRouter from './supplier'
+import supplierRouter from './supplier';
+import materialRouter from './material';
+
 const router = express.Router();
 
 // Health check endpoint
@@ -30,5 +32,7 @@ router.use('/outlets', outletRouter );
 router.use('/employees', employeeRouter);
 router.use('/categories', categoryRouter);
 router.use('/products', productRouter);
-router.use('/suppliers',supplierRouter)
+router.use('/suppliers', supplierRouter);
+router.use('/materials', materialRouter);
+
 export default router;
