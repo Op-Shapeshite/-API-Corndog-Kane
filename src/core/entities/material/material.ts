@@ -88,6 +88,26 @@ export type TMaterialStockOutUpdateRequest = Partial<TMaterialStockOutCreateRequ
 // INVENTORY TYPES
 // ============================================================================
 
+/**
+ * TMaterialStockInventory - Entity type untuk inventory view (camelCase)
+ */
+export type TMaterialStockInventory = {
+  id: number;
+  date: string;
+  name: string;
+  firstStockCount: number;
+  stockInCount: number;
+  stockOutCount: number;
+  currentStock: number;
+  unitQuantity: string;
+  updatedAt: Date;
+  outTimes: string;
+  inTimes: string;
+}
+
+/**
+ * TMaterialInventoryGetResponse - API response type (snake_case)
+ */
 export type TMaterialInventoryGetResponse = {
   id: number;
   date: string;
@@ -105,6 +125,11 @@ export type TMaterialInventoryGetResponse = {
 // ============================================================================
 // RAW DATA TYPES (untuk mappers - dari database layer)
 // ============================================================================
+
+/**
+ * @deprecated Use TMaterialStockInventory instead
+ */
+export type MaterialInventoryRawData = TMaterialStockInventory;
 
 // Helper type untuk suplier info (menghindari circular dependency)
 type SuplierBasicInfo = {
@@ -125,20 +150,6 @@ export type MaterialStockInRawData = {
     suplier_id: number;
     suplier: SuplierBasicInfo;
   };
-}
-
-export type MaterialInventoryRawData = {
-  id: number;
-  date: string;
-  name: string;
-  firstStockCount: number;
-  stockInCount: number;
-  stockOutCount: number;
-  currentStock: number;
-  unitQuantity: string;
-  updatedAt: Date;
-  outTimes: string;
-  inTimes: string;
 }
 
 // ============================================================================

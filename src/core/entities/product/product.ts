@@ -47,7 +47,7 @@ export type TProductGetResponse = {
 }
 
 // ============================================================================
-// PRODUCT STOCK INVENTORY TYPES
+// PRODUCT STOCK INVENTORY TYPES - ENTITY LAYER (camelCase)
 // ============================================================================
 
 /**
@@ -58,6 +58,40 @@ export type TProductStockInRequest = {
   quantity: number;
   unit_quantity: string;
 }
+
+/**
+ * Product Stock In Entity - Domain entity for stock in records
+ */
+export type TProductStockIn = {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitQuantity: string;
+  currentStock: number;
+  date: Date;
+}
+
+/**
+ * Product Stock Inventory Entity - Domain entity for inventory view
+ */
+export type TProductStockInventory = {
+  id: number;
+  date: string;
+  name: string;
+  firstStockCount: number;
+  stockInCount: number;
+  stockOutCount: number;
+  currentStock: number;
+  unitQuantity: string;
+  updatedAt: Date;
+  inTimes: string;
+  outTimes: string;
+}
+
+// ============================================================================
+// RESPONSE TYPES (snake_case for API)
+// ============================================================================
 
 /**
  * Product stock in response
@@ -91,19 +125,8 @@ export type TProductInventoryGetResponse = {
 }
 
 /**
+ * @deprecated Use TProductStockInventory instead
  * Product stock inventory raw data (internal - camelCase)
  */
-export type ProductInventoryRawData = {
-  id: number;
-  date: string;
-  name: string;
-  firstStockCount: number;
-  stockInCount: number;
-  stockOutCount: number;
-  currentStock: number;
-  unitQuantity: string;
-  updatedAt: Date;
-  inTimes: string;
-  outTimes: string;
-}
+export type ProductInventoryRawData = TProductStockInventory;
 

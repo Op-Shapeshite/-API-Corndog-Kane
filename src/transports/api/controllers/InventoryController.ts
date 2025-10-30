@@ -1,58 +1,52 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import InventoryService from "../../../core/services/InventoryService";
-import { TInventoryStockInRequest, TInventoryStockInUpdateRequest } from "../../../core/entities/inventory/inventory";
-import { TResponse, TMetadataResponse } from "../../../core/entities/base/response";
+import { TInventoryStockInRequest, TInventoryStockInUpdateRequest, TInventoryStockInResponse, TInventoryBuyListResponse, TInventoryStockInItemResponse } from "../../../core/entities/inventory/inventory";
+import { TMetadataResponse } from "../../../core/entities/base/response";
 import Controller from "./Controller";
+import { InventoryStockInBatchResponseMapper, InventoryBuyListResponseMapper, InventoryStockInResponseMapper } from "../../../mappers/response-mappers";
 
 /**
  * InventoryController
  * Handles HTTP requests for unified inventory management (Material & Product)
  */
-export class InventoryController extends Controller<unknown, TMetadataResponse> {
+export class InventoryController extends Controller<TInventoryStockInResponse | TInventoryBuyListResponse | TInventoryStockInItemResponse, TMetadataResponse> {
 	/**
 	 * POST /inventory/in
 	 * Handle stock in for both Material and Product
 	 */
 	stockIn(inventoryService: InventoryService) {
-		return async (req: Request, res: Response, next: NextFunction) => {
+		return async (req: Request, res: Response) => {
 			try {
 				const requestData: TInventoryStockInRequest = req.body;
 
-				// Call service
+				// Call service - returns entity
 				const result = await inventoryService.stockIn(requestData);
 
-				// Determine status code and message based on results
-				const statusCode = result.failed_count === 0 ? 201 : 207; // 207 Multi-Status if partial success
-				const message = result.failed_count === 0
-					? `All ${result.success_count} items recorded successfully`
-					: `${result.success_count} items recorded, ${result.failed_count} failed`;
+				// Map entity to response
+				const responseData = InventoryStockInBatchResponseMapper.toResponse(result);
 
-				// Send success response with empty metadata
+				// Determine status code and message based on results
+				const statusCode = result.failedCount === 0 ? 201 : 207; // 207 Multi-Status if partial success
+				const message = result.failedCount === 0
+					? `All ${result.successCount} items recorded successfully`
+					: `${result.successCount} items recorded, ${result.failedCount} failed`;
+
+				// Send success response
 				return res.status(statusCode).json({
 					status: "success",
 					message,
-					data: result,
+					data: responseData,
 					metadata: {} as TMetadataResponse,
-				} as TResponse<typeof result, TMetadataResponse>);
+				});
 			} catch (error) {
-				// Handle errors
-				if (error instanceof Error) {
-					// Business logic errors (e.g., supplier not found, product not found)
-					if (
-						error.message.includes("not found") ||
-						error.message.includes("must be provided")
-					) {
-						return res.status(400).json({
-							status: "error",
-							message: error.message,
-							data: null,
-							metadata: {} as TMetadataResponse,
-						});
-					}
-				}
-
-				// Pass to error handler middleware
-				next(error);
+				return this.handleError(
+					res,
+					error,
+					"Failed to process inventory stock in",
+					500,
+					{} as TInventoryStockInResponse,
+					{} as TMetadataResponse
+				);
 			}
 		};
 	}
@@ -62,13 +56,19 @@ export class InventoryController extends Controller<unknown, TMetadataResponse> 
 	 * Get unified buy list (Material purchases + Product PURCHASE)
 	 */
 	getBuyList(inventoryService: InventoryService) {
-		return async (req: Request, res: Response, next: NextFunction) => {
+		return async (req: Request, res: Response) => {
 			try {
 				const page = parseInt(req.query.page as string) || 1;
 				const limit = parseInt(req.query.limit as string) || 10;
 
-				// Call service
+				// Call service - returns entity
 				const { data, total } = await inventoryService.getBuyList(page, limit);
+
+				// Map entities to response
+				const responseData: TInventoryBuyListResponse = {
+					data: InventoryBuyListResponseMapper.toResponseArray(data),
+					total
+				};
 
 				// Build metadata for pagination
 				const metadata: TMetadataResponse = {
@@ -79,15 +79,20 @@ export class InventoryController extends Controller<unknown, TMetadataResponse> 
 				};
 
 				// Send success response
-				return this.getCustomSuccessResponse(
+				return this.getSuccessResponse(
 					res,
-					data,
-					metadata,
+					{ data: responseData, metadata },
 					"Buy list retrieved successfully"
 				);
 			} catch (error) {
-				// Pass to error handler middleware
-				next(error);
+				return this.handleError(
+					res,
+					error,
+					"Failed to retrieve buy list",
+					500,
+					{ data: [], total: 0 } as TInventoryBuyListResponse,
+					{} as TMetadataResponse
+				);
 			}
 		};
 	}
@@ -97,80 +102,60 @@ export class InventoryController extends Controller<unknown, TMetadataResponse> 
 	 * Update stock in record
 	 */
 	updateStockIn(inventoryService: InventoryService) {
-		return async (req: Request, res: Response, next: NextFunction) => {
+		return async (req: Request, res: Response) => {
 			try {
 				const { item_type, id } = req.params;
 				const requestData: TInventoryStockInUpdateRequest = req.body;
 
 				// Validate item_type
 				if (item_type !== "MATERIAL" && item_type !== "PRODUCT") {
-					return res.status(400).json({
-						status: "error",
-						message: "Invalid item_type. Must be MATERIAL or PRODUCT",
-						data: null,
-						metadata: {} as TMetadataResponse,
-					});
+					return this.getFailureResponse(
+						res,
+						{ data: null, metadata: {} as TMetadataResponse },
+						[{ field: 'item_type', message: "Invalid item_type. Must be MATERIAL or PRODUCT", type: 'invalid' }],
+						"Validation failed",
+						400
+					);
 				}
 
 				// Validate id
 				const recordId = parseInt(id);
 				if (isNaN(recordId)) {
-					return res.status(400).json({
-						status: "error",
-						message: "Invalid ID. Must be a number",
-						data: null,
-						metadata: {} as TMetadataResponse,
-					});
+					return this.getFailureResponse(
+						res,
+						{ data: null, metadata: {} as TMetadataResponse },
+						[{ field: 'id', message: "Invalid ID. Must be a number", type: 'invalid' }],
+						"Validation failed",
+						400
+					);
 				}
 
-				// Call service
+				// Call service - returns entity
 				const result = await inventoryService.updateStockIn(
 					item_type as "MATERIAL" | "PRODUCT",
 					recordId,
 					requestData
 				);
 
-				// Send success response
-				return res.status(200).json({
-					status: "success",
-					message: "Stock in record updated successfully",
-					data: result,
-					metadata: {} as TMetadataResponse,
-				} as TResponse<typeof result, TMetadataResponse>);
-			} catch (error) {
-				// Handle errors
-				if (error instanceof Error) {
-					// Business logic errors
-					if (
-						error.message.includes("not found") ||
-						error.message.includes("must be provided")
-					) {
-						return res.status(400).json({
-							status: "error",
-							message: error.message,
-							data: null,
-							metadata: {} as TMetadataResponse,
-						});
-					}
-				}
+				// Map entity to response
+				const responseData = InventoryStockInResponseMapper.toResponse(result);
 
-				// Pass to error handler middleware
-				next(error);
+				// Send success response
+				return this.getSuccessResponse(
+					res,
+					{ data: responseData, metadata: {} as TMetadataResponse },
+					"Stock in record updated successfully"
+				);
+			} catch (error) {
+				return this.handleError(
+					res,
+					error,
+					"Failed to update stock in record",
+					500,
+					{} as TInventoryStockInItemResponse,
+					{} as TMetadataResponse
+				);
 			}
 		};
-	}
-
-	private getCustomSuccessResponse<T>(
-		res: Response,
-		data: T,
-		metadata: TMetadataResponse,
-		message?: string
-	): Response<TResponse<T, TMetadataResponse>> {
-		return res.status(200).json({
-			status: "success",
-			message: message || "Request was successful",
-			data,
-			metadata,
-		} as TResponse<T, TMetadataResponse>);
 	}
 }

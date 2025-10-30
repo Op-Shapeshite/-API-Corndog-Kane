@@ -1,11 +1,10 @@
 import { 
 	TInventoryStockInRequest,
 	TInventoryStockInItem,
-	TInventoryStockInResponse,
-	TInventoryStockInItemResponse,
+	TInventoryStockInBatchEntity,
+	TInventoryStockInEntity,
 	TInventoryStockInUpdateRequest,
-	TInventoryBuyListResponse,
-	TInventoryBuyListItem,
+	TInventoryBuyListItemEntity,
 	ItemType
 } from "../entities/inventory/inventory";
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
@@ -39,10 +38,11 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 
 	/**
 	 * Main stock in handler (batch processing)
-	 * Processes multiple items and returns batch results
+	 * Processes multiple items and returns batch entity
+	 * @returns TInventoryStockInBatchEntity
 	 */
-	async stockIn(data: TInventoryStockInRequest): Promise<TInventoryStockInResponse> {
-		const results: TInventoryStockInItemResponse[] = [];
+	async stockIn(data: TInventoryStockInRequest): Promise<TInventoryStockInBatchEntity> {
+		const results: TInventoryStockInEntity[] = [];
 		const errors: Array<{ index: number; item: TInventoryStockInItem; error: string }> = [];
 
 		// Process each item
@@ -62,11 +62,11 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			}
 		}
 
-		// Return batch response
+		// Return batch entity (camelCase)
 		return {
-			success_count: results.length,
-			failed_count: errors.length,
-			total_count: data.items.length,
+			successCount: results.length,
+			failedCount: errors.length,
+			totalCount: data.items.length,
 			items: results,
 			...(errors.length > 0 && { errors }),
 		};
@@ -74,8 +74,9 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 
 	/**
 	 * Process single stock in item
+	 * @returns TInventoryStockInEntity
 	 */
-	private async processStockInItem(data: TInventoryStockInItem): Promise<TInventoryStockInItemResponse> {
+	private async processStockInItem(data: TInventoryStockInItem): Promise<TInventoryStockInEntity> {
 		// Validate supplier exists
 		const supplierRecord = await this.supplierRepository.getById(data.supplier_id.toString());
 		if (!supplierRecord) {
@@ -106,7 +107,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	private async handleMaterialStockIn(
 		data: Extract<TInventoryStockInItem, { item_type: "MATERIAL" }>,
 		supplier: { id: number; name: string }
-	): Promise<TInventoryStockInItemResponse> {
+	): Promise<TInventoryStockInEntity> {
 		let materialId: number;
 
 		// Create new material if needed
@@ -142,20 +143,20 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		const totalStockOut = material.materialOut.reduce((sum, item) => sum + item.quantity, 0);
 		const currentStock = totalStockIn - totalStockOut;
 
-		// Return response
+		// Return entity with camelCase
 		return {
 			id: stockInRecord.id,
-			item_type: ItemType.MATERIAL,
-			item_name: material.name,
+			itemType: ItemType.MATERIAL,
+			itemName: material.name,
 			quantity: data.quantity,
-			unit_quantity: data.unit_quantity,
+			unitQuantity: data.unit_quantity,
 			price: data.price, // Total price (not per unit)
 			supplier: {
 				id: supplier.id,
 				name: supplier.name,
 			},
-			current_stock: currentStock,
-			created_at: stockInRecord.createdAt.toISOString(),
+			currentStock: currentStock,
+			createdAt: stockInRecord.createdAt,
 		};
 	}
 
@@ -165,7 +166,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	private async handleProductStockIn(
 		data: Extract<TInventoryStockInItem, { item_type: "PRODUCT" }>,
 		supplier: { id: number; name: string }
-	): Promise<TInventoryStockInItemResponse> {
+	): Promise<TInventoryStockInEntity> {
 		// Validate product exists
 		const product = await this.productRepository.getById(data.product_id.toString());
 		if (!product) {
@@ -193,20 +194,20 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			.filter((stock: StockItem) => stock.sourceFrom === "PURCHASE")
 			.reduce((sum: number, stock: StockItem) => sum + stock.quantity, 0);
 
-		// Return response
+		// Return entity with camelCase
 		return {
 			id: stockInRecord.id,
-			item_type: ItemType.PRODUCT,
-			item_name: product.name,
+			itemType: ItemType.PRODUCT,
+			itemName: product.name,
 			quantity: data.quantity,
-			unit_quantity: data.unit_quantity,
+			unitQuantity: data.unit_quantity,
 			price: data.price, // Total price (not per unit)
 			supplier: {
 				id: supplier.id,
 				name: supplier.name,
 			},
-			current_stock: currentStock,
-			created_at: stockInRecord.date.toISOString(),
+			currentStock: currentStock,
+			createdAt: stockInRecord.date,
 		};
 	}
 
@@ -217,7 +218,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	 * Strategy: Fetch ALL data, combine, sort, then paginate
 	 * For very large datasets, consider using database-level UNION query
 	 */
-	async getBuyList(page = 1, limit = 10): Promise<TInventoryBuyListResponse> {
+	async getBuyList(page = 1, limit = 10): Promise<{ data: TInventoryBuyListItemEntity[], total: number }> {
 		// Calculate skip for final pagination
 		const skip = (page - 1) * limit;
 
@@ -228,24 +229,24 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			this.productRepository.getProductPurchaseList(0, Number.MAX_SAFE_INTEGER),
 		]);
 
-		// Combine and map to unified format
-		const combinedItems: TInventoryBuyListItem[] = [];
+		// Combine and map to unified entity format (camelCase)
+		const combinedItems: TInventoryBuyListItemEntity[] = [];
 
 		// Map Material purchases
 		for (const materialIn of materialData.data) {
 			combinedItems.push({
 				id: materialIn.id,
-				item_type: ItemType.MATERIAL,
-				item_id: materialIn.materialId,
-				item_name: materialIn.material.name,
+				itemType: ItemType.MATERIAL,
+				itemId: materialIn.materialId,
+				itemName: materialIn.material.name,
 				quantity: materialIn.quantity,
-				unit_quantity: materialIn.quantityUnit,
+				unitQuantity: materialIn.quantityUnit,
 				price: materialIn.price, // Total price (not per unit)
 				supplier: {
 					id: materialIn.material.suplier?.id || 0,
 					name: materialIn.material.suplier?.name || "Unknown",
 				},
-				purchased_at: materialIn.receivedAt.toISOString(),
+				purchasedAt: materialIn.receivedAt,
 			});
 		}
 
@@ -254,24 +255,24 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			if (productStock.detail && productStock.detail.supplier) {
 				combinedItems.push({
 					id: productStock.id,
-					item_type: ItemType.PRODUCT,
-					item_id: productStock.product_id,
-					item_name: productStock.products.name,
+					itemType: ItemType.PRODUCT,
+					itemId: productStock.product_id,
+					itemName: productStock.products.name,
 					quantity: productStock.quantity,
-					unit_quantity: "pcs", // Default unit for products
+					unitQuantity: "pcs", // Default unit for products
 					price: productStock.detail.price, // Total price (not per unit)
 					supplier: {
 						id: productStock.detail.supplier.id,
 						name: productStock.detail.supplier.name,
 					},
-					purchased_at: productStock.date.toISOString(),
+					purchasedAt: productStock.date,
 				});
 			}
 		}
 
-		// Sort combined results by purchased_at (newest first)
+		// Sort combined results by purchasedAt (newest first)
 		combinedItems.sort((a, b) => 
-			new Date(b.purchased_at).getTime() - new Date(a.purchased_at).getTime()
+			b.purchasedAt.getTime() - a.purchasedAt.getTime()
 		);
 
 		// Get total count
@@ -295,7 +296,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		pathItemType: "MATERIAL" | "PRODUCT",
 		id: number,
 		data: TInventoryStockInUpdateRequest
-	): Promise<TInventoryStockInItemResponse> {
+	): Promise<TInventoryStockInEntity> {
 		// Case 1: item_type berubah (MATERIAL -> PRODUCT atau sebaliknya)
 		if (pathItemType !== data.item_type) {
 			// Delete old record
@@ -326,7 +327,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	private async updateMaterialStockIn(
 		id: number,
 		data: Extract<TInventoryStockInUpdateRequest, { item_type: "MATERIAL" }>
-	): Promise<TInventoryStockInItemResponse> {
+	): Promise<TInventoryStockInEntity> {
 		let materialId: number;
 
 		// Handle material creation if needed
@@ -379,20 +380,20 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		const totalStockOut = material.materialOut.reduce((sum, item) => sum + item.quantity, 0);
 		const currentStock = totalStockIn - totalStockOut;
 
-		// Return response (same format as POST)
+		// Return entity (camelCase)
 		return {
 			id: id,
-			item_type: ItemType.MATERIAL,
-			item_name: material.name,
+			itemType: ItemType.MATERIAL,
+			itemName: material.name,
 			quantity: data.quantity,
-			unit_quantity: data.unit_quantity,
+			unitQuantity: data.unit_quantity,
 			price: data.price,
 			supplier: {
 				id: supplier.id,
 				name: supplier.name,
 			},
-			current_stock: currentStock,
-			created_at: updatedRecord.createdAt.toISOString(),
+			currentStock: currentStock,
+			createdAt: updatedRecord.createdAt,
 		};
 	}
 
@@ -402,7 +403,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	private async updateProductStockIn(
 		id: number,
 		data: Extract<TInventoryStockInUpdateRequest, { item_type: "PRODUCT" }>
-	): Promise<TInventoryStockInItemResponse> {
+	): Promise<TInventoryStockInEntity> {
 		// Validate product exists
 		const product = await this.productRepository.getById(data.product_id.toString());
 		if (!product) {
@@ -446,20 +447,20 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			.filter((stock: StockItem) => stock.sourceFrom === "PURCHASE")
 			.reduce((sum: number, stock: StockItem) => sum + stock.quantity, 0);
 
-		// Return response (same format as POST)
+		// Return entity (camelCase)
 		return {
 			id: id,
-			item_type: ItemType.PRODUCT,
-			item_name: product.name,
+			itemType: ItemType.PRODUCT,
+			itemName: product.name,
 			quantity: data.quantity,
-			unit_quantity: data.unit_quantity,
+			unitQuantity: data.unit_quantity,
 			price: data.price,
 			supplier: {
 				id: supplier.id,
 				name: supplier.name,
 			},
-			current_stock: currentStock,
-			created_at: updatedRecord.date.toISOString(),
+			currentStock: currentStock,
+			createdAt: updatedRecord.date,
 		};
 	}
 }

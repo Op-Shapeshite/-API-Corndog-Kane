@@ -56,6 +56,67 @@ export type TInventoryStockInRequest = {
  */
 export type TInventoryStockInUpdateRequest = TInventoryStockInItem;
 
+// ============================================================================
+// ENTITY TYPES (camelCase - for Service layer)
+// ============================================================================
+
+/**
+ * Inventory Stock In Item Entity - Domain entity (camelCase)
+ * What service returns for single stock in operation
+ */
+export type TInventoryStockInEntity = {
+	id: number;
+	itemType: "MATERIAL" | "PRODUCT";
+	itemName: string;
+	quantity: number;
+	unitQuantity: string;
+	price: number;
+	supplier: {
+		id: number;
+		name: string;
+	};
+	currentStock: number;
+	createdAt: Date;
+};
+
+/**
+ * Batch Inventory Stock In Entity - Domain entity (camelCase)
+ * What service returns for batch operations
+ */
+export type TInventoryStockInBatchEntity = {
+	successCount: number;
+	failedCount: number;
+	totalCount: number;
+	items: TInventoryStockInEntity[];
+	errors?: Array<{
+		index: number;
+		item: TInventoryStockInItem;
+		error: string;
+	}>;
+};
+
+/**
+ * Inventory Buy List Item Entity - Domain entity (camelCase)
+ */
+export type TInventoryBuyListItemEntity = {
+	id: number;
+	itemType: "MATERIAL" | "PRODUCT";
+	itemId: number;
+	itemName: string;
+	quantity: number;
+	unitQuantity: string;
+	price: number;
+	supplier: {
+		id: number;
+		name: string;
+	};
+	purchasedAt: Date;
+};
+
+// ============================================================================
+// RESPONSE TYPES (snake_case - for API/Controller layer)
+// ============================================================================
+
 /**
  * Single inventory stock in response (API layer - snake_case)
  * Used for both POST and PUT endpoints
@@ -89,6 +150,10 @@ export type TInventoryStockInResponse = {
 		error: string;
 	}>;
 };
+
+// ============================================================================
+// INTERNAL ENTITY TYPES (for repository operations)
+// ============================================================================
 
 /**
  * Material stock in entity (internal - camelCase)

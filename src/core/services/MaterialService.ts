@@ -4,7 +4,7 @@ import {
 	TMaterialWithID, 
 	TMaterialStockInCreateRequest,
 	TMaterialStockOutCreateRequest,
-	MaterialInventoryRawData,
+	TMaterialStockInventory,
 	PaginatedMaterialStockIn
 } from "../entities/material/material";
 import { Service } from "./Service";
@@ -16,7 +16,11 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		super(repository);
 	}
 
-	async stockIn(data: TMaterialStockInCreateRequest): Promise<MaterialInventoryRawData> {
+	/**
+	 * Stock in material
+	 * @returns TMaterialStockInventory entity
+	 */
+	async stockIn(data: TMaterialStockInCreateRequest): Promise<TMaterialStockInventory> {
 		// Ensure material_id is provided
 		if (!data.material_id) {
 			throw new Error("Material ID is required");
@@ -76,7 +80,11 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		};
 	}
 
-	async stockOut(data: TMaterialStockOutCreateRequest): Promise<MaterialInventoryRawData> {
+	/**
+	 * Stock out material
+	 * @returns TMaterialStockInventory entity
+	 */
+	async stockOut(data: TMaterialStockOutCreateRequest): Promise<TMaterialStockInventory> {
 		// Create stock out record through repository
 		await this.repository.createStockOut({
 			materialId: data.material_id,
@@ -135,7 +143,11 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		return await this.repository.getMaterialInList(skip, limit);
 	}
 
-	async getStocksList(page: number = 1, limit: number = 10): Promise<{ data: MaterialInventoryRawData[], total: number }> {
+	/**
+	 * Get stocks inventory list
+	 * @returns Array of TMaterialStockInventory entities
+	 */
+	async getStocksList(page: number = 1, limit: number = 10): Promise<{ data: TMaterialStockInventory[], total: number }> {
 		// Format time as HH:MM:SS
 		const formatTime = (date: Date | null): string => {
 			if (!date) return "00:00:00";
@@ -232,7 +244,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 
 		// Calculate running stock for each material
 		const materialStocksMap = new Map<number, number>(); // materialId -> running stock
-		const data: MaterialInventoryRawData[] = [];
+		const data: TMaterialStockInventory[] = [];
 
 		dailyStocks.forEach(daily => {
 			const previousStock = materialStocksMap.get(daily.materialId) || 0;

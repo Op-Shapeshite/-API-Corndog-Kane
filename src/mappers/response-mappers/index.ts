@@ -8,4 +8,8 @@ export * from './RoleResponseMapper';
 export * from './SupplierResponseMapper'
 
 export * from './MaterialResponseMapper';
+export * from './ProductStockInResponseMapper';
+export * from './InventoryStockInResponseMapper';
+export * from './InventoryStockInBatchResponseMapper';
+export * from './InventoryBuyListResponseMapper';
 

@@ -6,11 +6,12 @@ import ProductService from "../../../core/services/ProductService";
 import Controller from "./Controller";
 import { ProductResponseMapper } from "../../../mappers/response-mappers/ProductResponseMapper";
 import { ProductStockResponseMapper } from "../../../mappers/response-mappers/ProductStockResponseMapper";
+import { ProductStockInResponseMapper } from "../../../mappers/response-mappers/ProductStockInResponseMapper";
 
 import fs from "fs";
 import path from "path";
 
-export class ProductController extends Controller<TProductGetResponse, TMetadataResponse> {
+export class ProductController extends Controller<TProductGetResponse | TProductStockInResponse | TProductInventoryGetResponse, TMetadataResponse> {
   private productService: ProductService;
 
   constructor() {
@@ -159,10 +160,12 @@ export class ProductController extends Controller<TProductGetResponse, TMetadata
         total_pages: Math.ceil(total / limit),
       };
       
-      return this.getCustomSuccessResponse(
+      return this.getSuccessResponse(
         res,
-        mappedResults,
-        metadata,
+        {
+          data: mappedResults,
+          metadata,
+        },
         "Product stocks inventory retrieved successfully"
       );
     };
@@ -172,40 +175,34 @@ export class ProductController extends Controller<TProductGetResponse, TMetadata
     try {
       const { product_id, quantity, unit_quantity } = req.body;
 
-      const result: TProductStockInResponse = await this.productService.addStockIn({
+      // Service returns entity (TProductStockIn)
+      const entity = await this.productService.addStockIn({
         product_id,
         quantity,
         unit_quantity,
       });
 
-      return res.status(200).json({
-        status: "success",
-        message: "Product stock in added successfully",
-        data: result,
-        metadata: {} as TMetadataResponse,
-      });
+      // Map entity to response using mapper
+      const responseData = ProductStockInResponseMapper.toResponse(entity);
+
+      return this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        "Product stock in added successfully"
+      );
     } catch (error) {
       console.error("Error adding product stock in:", error);
-      return res.status(500).json({
-        status: "error",
-        message: error instanceof Error ? error.message : "Failed to add product stock in",
-        data: null,
-        metadata: {} as TMetadataResponse,
-      });
+      return this.handleError(
+        res,
+        error,
+        "Failed to add product stock in",
+        500,
+        {} as TProductStockInResponse,
+        {} as TMetadataResponse
+      );
     }
-  }
-
-  private getCustomSuccessResponse<T>(
-    res: Response,
-    data: T,
-    metadata: TMetadataResponse,
-    message?: string
-  ) {
-    return res.status(200).json({
-      status: "success",
-      message: message || "Request was successful",
-      data,
-      metadata,
-    });
   }
 }

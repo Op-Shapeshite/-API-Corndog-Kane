@@ -1,4 +1,4 @@
-import { TProduct, TProductWithID, ProductInventoryRawData, TProductStockInRequest, TProductStockInResponse } from "../entities/product/product";
+import { TProduct, TProductWithID, TProductStockInventory, TProductStockInRequest, TProductStockIn } from "../entities/product/product";
 import { ProductRepository } from "../../adapters/postgres/repositories/ProductRepository";
 import { Service } from "./Service";
 
@@ -11,8 +11,9 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
 
   /**
    * Add product stock with PRODUCTION source
+   * @returns TProductStockIn entity
    */
-  async addStockIn(data: TProductStockInRequest): Promise<TProductStockInResponse> {
+  async addStockIn(data: TProductStockInRequest): Promise<TProductStockIn> {
     // Validate product exists
     const product = await this.repository.getById(data.product_id.toString());
     if (!product) {
@@ -35,19 +36,23 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     const currentStock = productWithStocks.stocks
       .reduce((sum, stock) => sum + stock.quantity, 0);
 
-    // Return response
+    // Return entity (camelCase)
     return {
       id: stockInRecord.id,
-      item_type: "PRODUCT",
-      item_name: product.name,
+      productId: data.product_id,
+      productName: product.name,
       quantity: data.quantity,
-      unit_quantity: data.unit_quantity,
-      current_stock: currentStock,
-      created_at: stockInRecord.date.toISOString(),
+      unitQuantity: data.unit_quantity,
+      currentStock: currentStock,
+      date: stockInRecord.date,
     };
   }
 
-  async getStocksList(page: number = 1, limit: number = 10): Promise<{ data: ProductInventoryRawData[], total: number }> {
+  /**
+   * Get stocks inventory list
+   * @returns Array of TProductStockInventory entities
+   */
+  async getStocksList(page: number = 1, limit: number = 10): Promise<{ data: TProductStockInventory[], total: number }> {
     // Format time as HH:MM:SS
     const formatTime = (date: Date | null): string => {
       if (!date) return "00:00:00";
@@ -116,7 +121,7 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
 
     // Calculate running stock for each product
     const productStocksMap = new Map<number, number>(); // productId -> running stock
-    const data: ProductInventoryRawData[] = [];
+    const data: TProductStockInventory[] = [];
 
     dailyStocks.forEach(daily => {
       const previousStock = productStocksMap.get(daily.productId) || 0;
