@@ -108,6 +108,7 @@ export type TMaterialInventoryGetResponse = {
 
 // Helper type untuk suplier info (menghindari circular dependency)
 type SuplierBasicInfo = {
+  id: number;
   name: string;
 }
 

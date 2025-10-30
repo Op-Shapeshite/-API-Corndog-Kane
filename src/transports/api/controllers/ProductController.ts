@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import {ProductRepository} from "../../../adapters/postgres/repositories/ProductRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TProductGetResponse, TProductWithID } from "../../../core/entities/product/product";
+import { TProductGetResponse, TProductWithID, TProductInventoryGetResponse, TProductStockInResponse } from "../../../core/entities/product/product";
 import ProductService from "../../../core/services/ProductService";
 import Controller from "./Controller";
 import { ProductResponseMapper } from "../../../mappers/response-mappers/ProductResponseMapper";
+import { ProductStockResponseMapper } from "../../../mappers/response-mappers/ProductStockResponseMapper";
 
 import fs from "fs";
 import path from "path";
@@ -141,4 +142,70 @@ export class ProductController extends Controller<TProductGetResponse, TMetadata
     }
   };
 
+  getStocksList = () => {
+    return async (req: Request, res: Response) => {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const { data, total } = await this.productService.getStocksList(page, limit);
+      const mappedResults: TProductInventoryGetResponse[] = data.map(item => 
+        ProductStockResponseMapper.toResponse(item)
+      );
+      
+      const metadata: TMetadataResponse = {
+        page,
+        limit,
+        total_records: total,
+        total_pages: Math.ceil(total / limit),
+      };
+      
+      return this.getCustomSuccessResponse(
+        res,
+        mappedResults,
+        metadata,
+        "Product stocks inventory retrieved successfully"
+      );
+    };
+  }
+
+  addStockIn = async (req: Request, res: Response) => {
+    try {
+      const { product_id, quantity, unit_quantity } = req.body;
+
+      const result: TProductStockInResponse = await this.productService.addStockIn({
+        product_id,
+        quantity,
+        unit_quantity,
+      });
+
+      return res.status(200).json({
+        status: "success",
+        message: "Product stock in added successfully",
+        data: result,
+        metadata: {} as TMetadataResponse,
+      });
+    } catch (error) {
+      console.error("Error adding product stock in:", error);
+      return res.status(500).json({
+        status: "error",
+        message: error instanceof Error ? error.message : "Failed to add product stock in",
+        data: null,
+        metadata: {} as TMetadataResponse,
+      });
+    }
+  }
+
+  private getCustomSuccessResponse<T>(
+    res: Response,
+    data: T,
+    metadata: TMetadataResponse,
+    message?: string
+  ) {
+    return res.status(200).json({
+      status: "success",
+      message: message || "Request was successful",
+      data,
+      metadata,
+    });
+  }
 }

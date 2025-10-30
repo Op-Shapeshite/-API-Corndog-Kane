@@ -21,11 +21,12 @@ export const MaterialStockInMapperEntity: EntityMapConfig = {
       entityField: 'material',
       isArray: false,
       mapper: (material: unknown) => {
-        const mat = material as { name: string; suplier_id: number; suplier?: { name: string } };
+        const mat = material as { name: string; suplier_id: number; suplier?: { id: number; name: string } };
         return {
           name: mat.name,
           suplierId: mat.suplier_id,
           suplier: mat.suplier ? {
+            id: mat.suplier.id,
             name: mat.suplier.name
           } : undefined
         };

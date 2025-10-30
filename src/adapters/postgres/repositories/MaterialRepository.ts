@@ -68,6 +68,24 @@ export default class MaterialRepository
 		return this.stockInMapper.mapToEntity(dbRecord);
 	}
 
+	async updateStockIn(id: number, data: CreateStockInInput): Promise<void> {
+		await this.prisma.materialIn.update({
+			where: { id },
+			data: {
+				material_id: data.materialId,
+				price: data.price,
+				quantity_unit: data.quantityUnit,
+				quantity: data.quantity,
+			},
+		});
+	}
+
+	async deleteStockIn(id: number): Promise<void> {
+		await this.prisma.materialIn.delete({
+			where: { id },
+		});
+	}
+
 	async createMaterial(data: CreateMaterialInput): Promise<{ id: number }> {
 		return await this.prisma.material.create({
 			data: {

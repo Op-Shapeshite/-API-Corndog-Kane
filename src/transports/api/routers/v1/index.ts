@@ -10,6 +10,7 @@ import categoryRouter from './category';
 import productRouter from './product';
 import supplierRouter from './supplier';
 import materialRouter from './material';
+import inventoryRouter from './inventory';
 
 const router = express.Router();
 
@@ -34,5 +35,6 @@ router.use('/categories', categoryRouter);
 router.use('/products', productRouter);
 router.use('/suppliers', supplierRouter);
 router.use('/materials', materialRouter);
+router.use('/inventory', inventoryRouter);
 
 export default router;
