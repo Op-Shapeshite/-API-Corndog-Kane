@@ -35,7 +35,6 @@ export const EntityMappers: Record<string, EntityMapConfig> = {
 export function getEntityMapper(entityName: string): EntityMapConfig {
   const mapper = EntityMappers[entityName];
   if (!mapper) {
-    console.log("Mapper for", entityName, ":", mapper);
     throw new Error(`No mapper configuration found for entity: ${entityName}`);
   }
   return mapper;
