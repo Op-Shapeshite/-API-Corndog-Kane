@@ -28,7 +28,7 @@ export class AuthService extends Service<TUser> {
       id: user.id ,
       name: user.name,
       username: user.username,
-      role: user.role.name, // TODO: Replace with actual role from database
+      role: user.role.name,
     };
   }
 
