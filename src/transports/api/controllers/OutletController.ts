@@ -3,17 +3,29 @@ import OutletRepository from "../../../adapters/postgres/repositories/OutletRepo
 import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
-import { TOutletCreateRequest, TOutletGetResponse, TOutletGetResponseWithSettings, TOutletUpdateRequest, TOutletWithSettings } from "../../../core/entities/outlet/outlet";
+import { 
+	TOutletCreateRequest, 
+	TOutletGetResponse, 
+	TOutletGetResponseWithSettings, 
+	TOutletUpdateRequest, 
+	TOutletWithSettings,
+	TOutletStockItem,
+	TMaterialStockItem
+} from "../../../core/entities/outlet/outlet";
 import OutletService from "../../../core/services/OutletService";
 import EmployeeService from "../../../core/services/EmployeeService";
 import Controller from "./Controller";
 import { OutletResponseMapper } from "../../../mappers/response-mappers/OutletResponseMapper";
 import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
+import { OutletProductStockResponseMapper } from "../../../mappers/response-mappers/OutletProductStockResponseMapper";
+import { OutletMaterialStockResponseMapper } from "../../../mappers/response-mappers/OutletMaterialStockResponseMapper";
 
 export class OutletController extends Controller<
 	| TOutletGetResponse
 	| TOutletGetResponseWithSettings
-	| TOutletAssignmentGetResponse,
+	| TOutletAssignmentGetResponse
+	| TOutletStockItem
+	| TMaterialStockItem,
 	TMetadataResponse
 > {
 	private outletService: OutletService;
@@ -252,5 +264,125 @@ export class OutletController extends Controller<
 			);
 		}
 	};
-	
+
+	/**
+	 * Get outlet product stock movements with pagination
+	 */
+	getOutletProductStocks = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const { id } = req.params;
+			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			
+			// Optional date filters
+			let startDate: Date | undefined;
+			let endDate: Date | undefined;
+
+			if (req.query.start_date) {
+				startDate = new Date(req.query.start_date as string);
+			}
+			if (req.query.end_date) {
+				endDate = new Date(req.query.end_date as string);
+			}
+
+			// Verify outlet exists
+			const outlet = await this.outletService.findById(id);
+			if (!outlet) {
+				return this.getFailureResponse(
+					res,
+					{ data: [], metadata: {} as TMetadataResponse },
+					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					'Outlet not found',
+					404
+				);
+			}
+
+			const result = await this.outletService.getOutletProductStocks(
+				parseInt(id),
+				page,
+				limit,
+				startDate,
+				endDate
+			);
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: result.data.map(item => OutletProductStockResponseMapper.toListResponse(item)),
+					metadata: result.metadata,
+				},
+				"Outlet product stocks retrieved successfully"
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to retrieve outlet product stocks",
+				500,
+				[],
+				{} as TMetadataResponse
+			);
+		}
+	};
+
+	/**
+	 * Get outlet material stock movements with pagination
+	 */
+	getOutletMaterialStocks = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const { id } = req.params;
+			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			
+			// Optional date filters
+			let startDate: Date | undefined;
+			let endDate: Date | undefined;
+
+			if (req.query.start_date) {
+				startDate = new Date(req.query.start_date as string);
+			}
+			if (req.query.end_date) {
+				endDate = new Date(req.query.end_date as string);
+			}
+
+			// Verify outlet exists
+			const outlet = await this.outletService.findById(id);
+			if (!outlet) {
+				return this.getFailureResponse(
+					res,
+					{ data: [], metadata: {} as TMetadataResponse },
+					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					'Outlet not found',
+					404
+				);
+			}
+
+			const result = await this.outletService.getOutletMaterialStocks(
+				parseInt(id),
+				page,
+				limit,
+				startDate,
+				endDate
+			);
+
+			return this.getSuccessResponse(
+				res,
+				{
+					data: result.data.map(item => OutletMaterialStockResponseMapper.toListResponse(item)),
+					metadata: result.metadata,
+				},
+				"Outlet material stocks retrieved successfully"
+			);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to retrieve outlet material stocks",
+				500,
+				[],
+				{} as TMetadataResponse
+			);
+		}
+	};
+
 }

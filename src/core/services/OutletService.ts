@@ -1,6 +1,6 @@
 import OutletRepository from "../../adapters/postgres/repositories/OutletRepository";
 import UserRepository from "../../adapters/postgres/repositories/UserRepository";
-import { TOutlet, TOutletCreate, TOutletUpdate, TOutletWithSettings } from "../entities/outlet/outlet";
+import { TOutlet, TOutletCreate, TOutletUpdate, TOutletWithSettings, TOutletProductStockResponse, TOutletMaterialStockResponse } from "../entities/outlet/outlet";
 import { TOutletAssignmentWithRelations } from "../entities/outlet/assignment";
 import { TUser, TUserCreate } from "../entities/user/user";
 import { Service } from "./Service";
@@ -93,5 +93,61 @@ export default class OutletService extends Service<TOutlet> {
     }
 
     return await this.repository.bulkAssignEmployeeToOutlet(assignments);
+  }
+
+  async getOutletProductStocks(
+    outletId: number,
+    page: number = 1,
+    limit: number = 10,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<TOutletProductStockResponse> {
+    const { stocks, total } = await this.repository.getOutletProductStocks(
+      outletId,
+      page,
+      limit,
+      startDate,
+      endDate
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: stocks,
+      metadata: {
+        page,
+        limit,
+        total_records: total,
+        total_pages: totalPages,
+      },
+    };
+  }
+
+  async getOutletMaterialStocks(
+    outletId: number,
+    page: number = 1,
+    limit: number = 10,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<TOutletMaterialStockResponse> {
+    const { stocks, total } = await this.repository.getOutletMaterialStocks(
+      outletId,
+      page,
+      limit,
+      startDate,
+      endDate
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: stocks,
+      metadata: {
+        page,
+        limit,
+        total_records: total,
+        total_pages: totalPages,
+      },
+    };
   }
 }
