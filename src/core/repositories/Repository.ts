@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 // Search configuration for LIKE queries
 export interface SearchConfig {
