@@ -50,11 +50,14 @@ export class EmployeeController extends Controller<TEmployeeGetResponse, TMetada
       // This endpoint returns all employee-outlet assignments (schedules)
       const schedules = await employeeService.getSchedules();
       
-      return res.status(200).json({
-        success: true,
-        message: 'Employee schedules retrieved successfully',
-        data: schedules,
-      });
+      return this.getSuccessResponse(
+        res,
+        {
+          data: schedules as unknown as TEmployeeGetResponse,
+          metadata: {} as TMetadataResponse
+        },
+        'Employee schedules retrieved successfully'
+      );
     } catch (error) {
       return this.handleError(
         res,

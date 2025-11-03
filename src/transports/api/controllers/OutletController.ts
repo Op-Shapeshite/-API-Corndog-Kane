@@ -1,14 +1,14 @@
-import { Request, Response } from "express";
-import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
-import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
-import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
-import { TOutletCreateRequest, TOutletGetResponse, TOutletGetResponseWithSettings, TOutletUpdateRequest, TOutletWithSettings } from "../../../core/entities/outlet/outlet";
-import OutletService from "../../../core/services/OutletService";
-import EmployeeService from "../../../core/services/EmployeeService";
-import Controller from "./Controller";
-import { OutletResponseMapper } from "../../../mappers/response-mappers/OutletResponseMapper";
-import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
+import { Request, Response } from 'express';
+import OutletRepository from '../../../adapters/postgres/repositories/OutletRepository';
+import EmployeeRepository from '../../../adapters/postgres/repositories/EmployeeRepository';
+import { TMetadataResponse } from '../../../core/entities/base/response';
+import { TOutletAssignmentGetResponse } from '../../../core/entities/outlet/assignment';
+import { TOutletCreateRequest, TOutletGetResponse, TOutletGetResponseWithSettings, TOutletUpdateRequest, TOutletWithSettings } from '../../../core/entities/outlet/outlet';
+import OutletService from '../../../core/services/OutletService';
+import EmployeeService from '../../../core/services/EmployeeService';
+import Controller from './Controller';
+import { OutletResponseMapper } from '../../../mappers/response-mappers/OutletResponseMapper';
+import { OutletAssignmentResponseMapper } from '../../../mappers/response-mappers/OutletAssignmentResponseMapper';
 
 export class OutletController extends Controller<
 	| TOutletGetResponse
@@ -276,13 +276,16 @@ export class OutletController extends Controller<
 			// Verify outlet exists
 			const outlet = await this.outletService.findById(id);
 			if (!outlet) {
-				return res.status(404).json({
-					success: false,
-					message: 'Outlet not found',
-					errors: [{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-					data: [],
-					metadata: { page: 1, limit: 10, total_records: 0, total_pages: 0 }
-				});
+				return this.getFailureResponse(
+					res,
+					{
+						data: [] as unknown as TOutletGetResponse,
+						metadata: { page: 1, limit: 10, total_records: 0, total_pages: 0 } as unknown as TMetadataResponse
+					},
+					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					'Outlet not found',
+					404
+				);
 			}
 
 			const result = await this.outletService.getOutletProductStocks(
@@ -293,12 +296,19 @@ export class OutletController extends Controller<
 				endDate
 			);
 
-			return res.status(200).json(result);
+			return this.getSuccessResponse(
+				res,
+				{
+					data: result.data as unknown as TOutletGetResponse,
+					metadata: result.metadata as unknown as TMetadataResponse
+				},
+				'Successfully retrieved outlet product stocks'
+			);
 		} catch (error) {
 			return this.handleError(
 				res,
 				error,
-				"Failed to retrieve outlet product stocks",
+				'Failed to retrieve outlet product stocks',
 				500,
 				[] as unknown as TOutletGetResponse,
 				{} as TMetadataResponse
@@ -329,13 +339,16 @@ export class OutletController extends Controller<
 			// Verify outlet exists
 			const outlet = await this.outletService.findById(id);
 			if (!outlet) {
-				return res.status(404).json({
-					success: false,
-					message: 'Outlet not found',
-					errors: [{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
-					data: [],
-					metadata: { page: 1, limit: 10, total_records: 0, total_pages: 0 }
-				});
+				return this.getFailureResponse(
+					res,
+					{
+						data: [] as unknown as TOutletGetResponse,
+						metadata: { page: 1, limit: 10, total_records: 0, total_pages: 0 } as unknown as TMetadataResponse
+					},
+					[{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					'Outlet not found',
+					404
+				);
 			}
 
 			const result = await this.outletService.getOutletMaterialStocks(
@@ -346,7 +359,14 @@ export class OutletController extends Controller<
 				endDate
 			);
 
-			return res.status(200).json(result);
+			return this.getSuccessResponse(
+				res,
+				{
+					data: result.data as unknown as TOutletGetResponse,
+					metadata: result.metadata as unknown as TMetadataResponse
+				},
+				'Successfully retrieved outlet material stocks'
+			);
 		} catch (error) {
 			return this.handleError(
 				res,

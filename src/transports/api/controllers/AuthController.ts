@@ -1,11 +1,11 @@
-import UserRepository from "../../../adapters/postgres/repositories/UserRepository";
-import { AuthService } from "../../../core/services/AuthService";
-import { Request,Response } from "express";
-import Controller from "./Controller";
-import { TLoginMetadataResponse, TLoginResponse } from "../../../core/entities/user/auth";
-import { sign } from "jsonwebtoken";
-import env from "../../../configs/env";
-export class AuthController extends Controller<TLoginResponse,TLoginMetadataResponse> {
+import UserRepository from '../../../adapters/postgres/repositories/UserRepository';
+import { AuthService } from '../../../core/services/AuthService';
+import { Request, Response } from 'express';
+import Controller from './Controller';
+import { TLoginMetadataResponse, TLoginResponse } from '../../../core/entities/user/auth';
+import { sign } from 'jsonwebtoken';
+import env from '../../../configs/env';
+export class AuthController extends Controller<TLoginResponse, TLoginMetadataResponse> {
   private authService: AuthService;
   
   constructor() {
@@ -21,8 +21,8 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
     try {
       const loginResponse = await this.authService.login(
         { username, password },
-        { ipAddress:ipAddress ||'', userAgent }
-      ) as TLoginResponse ;
+        { ipAddress: ipAddress || '', userAgent }
+      ) as TLoginResponse;
 
       if (!loginResponse) {
         return this.getFailureResponse(res,
@@ -30,7 +30,7 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
             data: {} as TLoginResponse, metadata: {} as TLoginMetadataResponse
           },
           [
-            { field: 'username/password', message: 'Invalid credentials', type:'not_found'}
+            { field: 'username/password', message: 'Invalid credentials', type: 'not_found'}
           ],
           'Invalid credentials',
           401
@@ -50,15 +50,22 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
 
     } catch (error) {
       console.error('Login error:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+      return this.handleError(
+        res,
+        error,
+        'Internal server error',
+        500,
+        {} as TLoginResponse,
+        {} as TLoginMetadataResponse
+      );
     }
   }
 
-  createToken(data: TLoginResponse): string{
+  createToken(data: TLoginResponse): string {
     
     return sign(data, env.app.key, {
-      expiresIn: "24h",
+      expiresIn: '24h',
       issuer: data.username,
-    })
+    });
   }
 }

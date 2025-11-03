@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Request, Response } from "express";
-import { TErrorResponse, TMetadataResponse, TResponse } from "../../../core/entities/base/response";
-import { PrismaErrorHandler } from "../../../adapters/postgres/repositories/PrismaErrorHandler";
-import { Service, TEntity } from "../../../core/services/Service";
+import { Request, Response } from 'express';
+import { TErrorResponse, TMetadataResponse, TResponse } from '../../../core/entities/base/response';
+import { PrismaErrorHandler } from '../../../adapters/postgres/repositories/PrismaErrorHandler';
+import { Service, TEntity } from '../../../core/services/Service';
 
 type TDataMetadataResponse<T, M> = {
-  data: T |T[] |null;
+  data: T | T[] | null;
   metadata: M;
 };
 
