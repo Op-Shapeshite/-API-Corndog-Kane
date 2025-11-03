@@ -1,4 +1,3 @@
-import { MapperUtil } from "../MapperUtil";
 import { EntityMapConfig } from "../../adapters/postgres/repositories/Repository";
 
 export const MaterialMapperEntity: EntityMapConfig = {
