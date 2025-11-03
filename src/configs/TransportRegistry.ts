@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
 
 
-type Trnasport = {
+type Transport = {
   name: string;
 }
 export default class TransportRegistry {
-	static transports: { [key: string]: Trnasport } = {};
+	static transports: { [key: string]: Transport } = {};
 
 	registerTransport(adapter: any): void {
 		TransportRegistry.transports[adapter.name] = adapter;

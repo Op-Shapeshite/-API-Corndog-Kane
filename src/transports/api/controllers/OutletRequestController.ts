@@ -17,9 +17,14 @@ import { TOutletProductRequest, TOutletMaterialRequest } from '../../../core/ent
 import { StockEventEmitter } from '../../websocket/events/StockEventEmitter';
 import { StockCalculationService } from '../../websocket/services/StockCalculationService';
 import PostgresAdapter from '../../../adapters/postgres/instance';
+import Controller from './Controller';
+import { TMetadataResponse } from '../../../core/entities/base/response';
 
-export class OutletRequestController {
-  constructor(private outletRequestService: OutletRequestService) {}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class OutletRequestController extends Controller<any, TMetadataResponse> {
+  constructor(private outletRequestService: OutletRequestService) {
+    super();
+  }
 
   /**
    * Create a new batch request (products and/or materials)
@@ -83,13 +88,12 @@ export class OutletRequestController {
 
       // Response with aggregated data
       const response = {
-        success: true,
-        message: 'Requests retrieved successfully',
         data: result.data,
-        pagination: result.pagination,
+        metadata: result.pagination,
       };
 
-      res.status(200).json(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.getSuccessResponse(res, response as any, 'Requests retrieved successfully');
     } catch (error) {
       next(error);
     }

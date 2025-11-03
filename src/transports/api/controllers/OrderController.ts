@@ -30,100 +30,130 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
 
       const result = await this.orderService.getAllOrders(page, limit);
 
-      // Map each order to list response format
-      const data = result.orders.map(order => 
-        OrderResponseMapper.toOrderListResponse(order)
-      );
+    // Map each order to list response format
+    const data = result.orders.map(order => 
+      OrderResponseMapper.toOrderListResponse(order)
+    );
 
-      return res.status(200).json({
-        data,
+    return this.getSuccessResponse(
+      res,
+      {
+        data: data as unknown as TOrderGetResponse,
         metadata: {
           page: result.page,
           limit: result.limit,
           total: result.total,
           totalPages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch orders';
-      return res.status(500).json({
-        metadata: {
-          message: errorMessage,
-        },
-      });
-    }
+        } as unknown as TMetadataResponse
+      },
+      'Orders retrieved successfully'
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch orders';
+    return this.handleError(
+      res,
+      new Error(errorMessage),
+      errorMessage,
+      500,
+      [] as unknown as TOrderGetResponse,
+      {} as TMetadataResponse
+    );
   }
+}
 
   /**
    * Get order by ID
    */
   async getOrderById(req: Request, res: Response) {
     try {
-      const orderId = parseInt(req.params.id);
+    const orderId = parseInt(req.params.id);
 
-      if (isNaN(orderId)) {
-        return res.status(400).json({
-          metadata: {
-            message: 'Invalid order ID',
-          },
-        });
-      }
-
-      const order = await this.orderService.getOrderById(orderId);
-      const data = OrderResponseMapper.toOrderDetailResponse(order);
-
-      return res.status(200).json({
-        data,
-        metadata: {
-          message: 'Order retrieved successfully',
+    if (isNaN(orderId)) {
+      return this.getFailureResponse(
+        res,
+        {
+          data: null as unknown as TOrderGetResponse,
+          metadata: {} as TMetadataResponse
         },
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch order';
-      const statusCode = error instanceof Error && error.message === 'Order not found' ? 404 : 500;
-      
-      return res.status(statusCode).json({
-        metadata: {
-          message: errorMessage,
-        },
-      });
+        [{ field: 'id', message: 'Invalid order ID', type: 'invalid' }],
+        'Invalid order ID',
+        400
+      );
     }
+
+    const order = await this.orderService.getOrderById(orderId);
+    const data = OrderResponseMapper.toOrderDetailResponse(order);
+
+    return this.getSuccessResponse(
+      res,
+      {
+        data: data as unknown as TOrderGetResponse,
+        metadata: {} as TMetadataResponse
+      },
+      'Order retrieved successfully'
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch order';
+    const statusCode = error instanceof Error && error.message === 'Order not found' ? 404 : 500;
+    
+    return this.handleError(
+      res,
+      error,
+      errorMessage,
+      statusCode,
+      null as unknown as TOrderGetResponse,
+      {} as TMetadataResponse
+    );
   }
+}
 
   /**
    * Create new order
    */
   async createOrder(req: AuthRequest, res: Response) {
     try {
-      const { payment_method, items } = req.body as TOrderCreateRequest;
-      const outletId = req.user?.outlet_id;
+    const { payment_method, items } = req.body as TOrderCreateRequest;
+    const outletId = req.user?.outlet_id;
 
-      if (!outletId) {
-        return res.status(400).json({
-          metadata: {
-            message: 'Outlet ID not found in authentication token',
-          },
-        });
-      }
+    if (!outletId) {
+      return this.getFailureResponse(
+        res,
+        {
+          data: null as unknown as TOrderGetResponse,
+          metadata: {} as TMetadataResponse
+        },
+        [{ field: 'outlet_id', message: 'Outlet ID not found in authentication token', type: 'required' }],
+        'Outlet ID not found in authentication token',
+        400
+      );
+    }
 
-      // Validate required fields
-      if (!payment_method) {
-        return res.status(400).json({
-          metadata: {
-            message: 'payment_method is required',
-          },
-        });
-      }
+    // Validate required fields
+    if (!payment_method) {
+      return this.getFailureResponse(
+        res,
+        {
+          data: null as unknown as TOrderGetResponse,
+          metadata: {} as TMetadataResponse
+        },
+        [{ field: 'payment_method', message: 'payment_method is required', type: 'required' }],
+        'payment_method is required',
+        400
+      );
+    }
 
-      if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({
-          metadata: {
-            message: 'items array is required and must not be empty',
-          },
-        });
-      }
-
-      // Convert items format
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return this.getFailureResponse(
+        res,
+        {
+          data: null as unknown as TOrderGetResponse,
+          metadata: {} as TMetadataResponse
+        },
+        [{ field: 'items', message: 'items array is required and must not be empty', type: 'required' }],
+        'items array is required and must not be empty',
+        400
+      );
+    }      // Convert items format
       const orderItems = items.map(item => ({
         productId: item.product_id,
         qty: item.qty,
@@ -173,20 +203,25 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
         // Don't fail the request if WebSocket fails
       }
 
-      return res.status(201).json({
-        data: response,
-        metadata: {
-          message: 'Order created successfully',
+      return this.getSuccessResponse(
+        res,
+        {
+          data: response as unknown as TOrderGetResponse,
+          metadata: {} as TMetadataResponse
         },
-      });
+        'Order created successfully'
+      );
     } catch (error) {
       console.error('Error creating order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
-      return res.status(400).json({
-        metadata: {
-          message: errorMessage,
-        },
-      });
+      return this.handleError(
+        res,
+        error,
+        errorMessage,
+        400,
+        null as unknown as TOrderGetResponse,
+        {} as TMetadataResponse
+      );
     }
   }
 }
