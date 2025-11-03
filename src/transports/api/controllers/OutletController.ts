@@ -252,5 +252,111 @@ export class OutletController extends Controller<
 			);
 		}
 	};
-	
+
+	/**
+	 * Get outlet product stock movements with pagination
+	 */
+	getOutletProductStocks = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const { id } = req.params;
+			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			
+			// Optional date filters
+			let startDate: Date | undefined;
+			let endDate: Date | undefined;
+
+			if (req.query.start_date) {
+				startDate = new Date(req.query.start_date as string);
+			}
+			if (req.query.end_date) {
+				endDate = new Date(req.query.end_date as string);
+			}
+
+			// Verify outlet exists
+			const outlet = await this.outletService.findById(id);
+			if (!outlet) {
+				return res.status(404).json({
+					success: false,
+					message: 'Outlet not found',
+					errors: [{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					data: [],
+					metadata: { page: 1, limit: 10, total_records: 0, total_pages: 0 }
+				});
+			}
+
+			const result = await this.outletService.getOutletProductStocks(
+				parseInt(id),
+				page,
+				limit,
+				startDate,
+				endDate
+			);
+
+			return res.status(200).json(result);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to retrieve outlet product stocks",
+				500,
+				[] as unknown as TOutletGetResponse,
+				{} as TMetadataResponse
+			);
+		}
+	};
+
+	/**
+	 * Get outlet material stock movements with pagination
+	 */
+	getOutletMaterialStocks = async (req: Request, res: Response): Promise<Response> => {
+		try {
+			const { id } = req.params;
+			const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+			const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+			
+			// Optional date filters
+			let startDate: Date | undefined;
+			let endDate: Date | undefined;
+
+			if (req.query.start_date) {
+				startDate = new Date(req.query.start_date as string);
+			}
+			if (req.query.end_date) {
+				endDate = new Date(req.query.end_date as string);
+			}
+
+			// Verify outlet exists
+			const outlet = await this.outletService.findById(id);
+			if (!outlet) {
+				return res.status(404).json({
+					success: false,
+					message: 'Outlet not found',
+					errors: [{ field: 'id', message: 'Outlet not found', type: 'not_found' }],
+					data: [],
+					metadata: { page: 1, limit: 10, total_records: 0, total_pages: 0 }
+				});
+			}
+
+			const result = await this.outletService.getOutletMaterialStocks(
+				parseInt(id),
+				page,
+				limit,
+				startDate,
+				endDate
+			);
+
+			return res.status(200).json(result);
+		} catch (error) {
+			return this.handleError(
+				res,
+				error,
+				"Failed to retrieve outlet material stocks",
+				500,
+				[] as unknown as TOutletGetResponse,
+				{} as TMetadataResponse
+			);
+		}
+	};
+
 }

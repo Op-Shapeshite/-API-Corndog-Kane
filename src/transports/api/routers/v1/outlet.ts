@@ -46,4 +46,16 @@ router.post(
 	outletController.assignEmployeeToOutlet
 );
 
+// Get outlet product stock movements
+router.get(
+	"/:id/stocks/products",
+	outletController.getOutletProductStocks
+);
+
+// Get outlet material stock movements
+router.get(
+	"/:id/stocks/materials",
+	outletController.getOutletMaterialStocks
+);
+
 export default router;

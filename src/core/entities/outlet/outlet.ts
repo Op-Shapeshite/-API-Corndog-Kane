@@ -112,3 +112,43 @@ export type TOutletAssignmentResponse = {
   }
   assigned_at: Date;
 }
+
+export type TOutletStockItem = {
+  date: string;
+  product_id: number;
+  product_name: string;
+  first_stock: number;
+  stock_in: number;
+  sold_stock: number;
+  remaining_stock: number;
+}
+
+export type TMaterialStockItem = {
+  date: string;
+  material_id: number;
+  material_name: string;
+  first_stock: number;
+  stock_in: number;
+  used_stock: number;
+  remaining_stock: number;
+}
+
+export type TOutletProductStockResponse = {
+  data: TOutletStockItem[];
+  metadata: {
+    page: number;
+    limit: number;
+    total_records: number;
+    total_pages: number;
+  };
+}
+
+export type TOutletMaterialStockResponse = {
+  data: TMaterialStockItem[];
+  metadata: {
+    page: number;
+    limit: number;
+    total_records: number;
+    total_pages: number;
+  };
+}
