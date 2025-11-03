@@ -14,6 +14,9 @@ import {
 } from '../../../mappers/response-mappers';
 import { AuthRequest } from '../../../policies/authMiddleware';
 import { TOutletProductRequest, TOutletMaterialRequest } from '../../../core/entities/outlet/request';
+import { StockEventEmitter } from '../../websocket/events/StockEventEmitter';
+import { StockCalculationService } from '../../websocket/services/StockCalculationService';
+import PostgresAdapter from '../../../adapters/postgres/instance';
 
 export class OutletRequestController {
   constructor(private outletRequestService: OutletRequestService) {}
@@ -276,6 +279,40 @@ export class OutletRequestController {
       // Step 3: Combine results
       const allProductRequests = [...approvedProductRequests, ...newProductRequests];
       const allMaterialRequests = [...approvedMaterialRequests, ...newMaterialRequests];
+
+      // Step 4: Emit WebSocket events for stock changes
+      try {
+        const stockCalcService = new StockCalculationService(PostgresAdapter.client);
+        
+        // Emit events for approved product requests
+        for (const productRequest of approvedProductRequests) {
+          const stockData = await stockCalcService.calculateProductStock(
+            outlet_id,
+            productRequest.productId,
+            new Date()
+          );
+          
+          if (stockData) {
+            StockEventEmitter.emitProductStockChange(stockData);
+          }
+        }
+        
+        // Emit events for approved material requests
+        for (const materialRequest of approvedMaterialRequests) {
+          const stockData = await stockCalcService.calculateMaterialStock(
+            outlet_id,
+            materialRequest.materialId,
+            new Date()
+          );
+          
+          if (stockData) {
+            StockEventEmitter.emitMaterialStockChange(stockData);
+          }
+        }
+      } catch (wsError) {
+        console.error('⚠️  WebSocket emit failed:', wsError);
+        // Don't fail the request if WebSocket fails
+      }
 
       // Map responses
       const response = {

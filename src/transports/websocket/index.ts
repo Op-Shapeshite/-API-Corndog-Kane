@@ -14,6 +14,44 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
   io.on('connection', (socket) => {
     console.log(`✅ Client connected: ${socket.id}`);
 
+    // Join outlet-specific room
+    socket.on('join:outlet', (outletId: number) => {
+      const room = `outlet:${outletId}`;
+      socket.join(room);
+      console.log(`🏪 Socket ${socket.id} joined outlet room: ${room}`);
+    });
+
+    // Leave outlet-specific room
+    socket.on('leave:outlet', (outletId: number) => {
+      const room = `outlet:${outletId}`;
+      socket.leave(room);
+      console.log(`🚪 Socket ${socket.id} left outlet room: ${room}`);
+    });
+
+    // Join product stocks monitoring room (for admin)
+    socket.on('join:product:stocks', () => {
+      socket.join('product:stocks');
+      console.log(`📦 Socket ${socket.id} joined product stocks monitoring room`);
+    });
+
+    // Leave product stocks monitoring room
+    socket.on('leave:product:stocks', () => {
+      socket.leave('product:stocks');
+      console.log(`📦 Socket ${socket.id} left product stocks monitoring room`);
+    });
+
+    // Join material stocks monitoring room (for admin)
+    socket.on('join:material:stocks', () => {
+      socket.join('material:stocks');
+      console.log(`🧱 Socket ${socket.id} joined material stocks monitoring room`);
+    });
+
+    // Leave material stocks monitoring room
+    socket.on('leave:material:stocks', () => {
+      socket.leave('material:stocks');
+      console.log(`🧱 Socket ${socket.id} left material stocks monitoring room`);
+    });
+
     socket.on('disconnect', () => {
       console.log(`❌ Client disconnected: ${socket.id}`);
     });

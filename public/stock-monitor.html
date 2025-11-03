@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Stock Monitor - Corndog Kane API</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .control-group input {
+            width: 200px;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-connect {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-disconnect {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-join {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-leave {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f3f4f6;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.connected {
+            background: #10b981;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .panel-content {
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .event-item {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .event-item.product {
+            border-left-color: #3b82f6;
+        }
+        
+        .event-item.material {
+            border-left-color: #f59e0b;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .event-time {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        
+        .event-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .event-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+        }
+        
+        .detail-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .detail-value {
+            color: #1f2937;
+            font-weight: 600;
+        }
+        
+        .detail-value.positive {
+            color: #10b981;
+        }
+        
+        .detail-value.negative {
+            color: #ef4444;
+        }
+        
+        .log-item {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .log-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .log-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .log-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .panels {
+                grid-template-columns: 1fr;
+            }
+            
+            .event-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 WebSocket Stock Monitor - Corndog Kane API</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="serverUrl">Server URL:</label>
+                <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+            </div>
+            
+            <div class="control-group">
+                <label for="outletId">Outlet ID:</label>
+                <input type="number" id="outletId" value="1" placeholder="Enter outlet ID">
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-connect" onclick="connectWebSocket()">🔌 Connect</button>
+                <button class="btn-disconnect" onclick="disconnectWebSocket()">❌ Disconnect</button>
+                <button class="btn-join" onclick="joinOutletRoom()">🏪 Join Outlet Room</button>
+                <button class="btn-leave" onclick="leaveOutletRoom()">🚪 Leave Outlet Room</button>
+                <button class="btn-join" onclick="joinProductStocksRoom()">📦 Join Product Stocks</button>
+                <button class="btn-join" onclick="joinMaterialStocksRoom()">🧱 Join Material Stocks</button>
+                <button class="btn-clear" onclick="clearLogs()">🗑️ Clear Logs</button>
+            </div>
+            
+            <div class="status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <div id="statusText">Disconnected</div>
+            </div>
+        </div>
+        
+        <div class="panels">
+            <div class="panel">
+                <div class="panel-header">📦 Product Stock Events</div>
+                <div class="panel-content" id="productEvents">
+                    <div class="empty-state">No product stock events yet...</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">🧱 Material Stock Events</div>
+                <div class="panel-content" id="materialEvents">
+                    <div class="empty-state">No material stock events yet...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel" style="margin-top: 20px;">
+            <div class="panel-header">📋 Connection Logs</div>
+            <div class="panel-content" id="logs">
+                <div class="empty-state">No logs yet...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logs');
+            const emptyState = logsContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const logItem = document.createElement('div');
+            logItem.className = `log-item log-${type}`;
+            logItem.textContent = `[${timestamp}] ${message}`;
+            
+            logsContainer.insertBefore(logItem, logsContainer.firstChild);
+            
+            // Keep only last 50 logs
+            while (logsContainer.children.length > 50) {
+                logsContainer.removeChild(logsContainer.lastChild);
+            }
+        }
+
+        function updateStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                statusText.textContent = 'Connected';
+                statusText.style.color = '#10b981';
+            } else {
+                indicator.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+                statusText.style.color = '#ef4444';
+            }
+        }
+
+        function addProductEvent(data) {
+            const container = document.getElementById('productEvents');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item product';
+            eventItem.innerHTML = `
+                <div class="event-time">${new Date().toLocaleString()}</div>
+                <div class="event-title">🏪 Outlet #${data.outlet_id} - ${data.product_name}</div>
+                <div class="event-details">
+                    <div class="event-detail">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">${data.date}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Product ID:</span>
+                        <span class="detail-value">#${data.product_id}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">First Stock:</span>
+                        <span class="detail-value">${data.first_stock}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Stock In:</span>
+                        <span class="detail-value positive">+${data.stock_in}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Sold Stock:</span>
+                        <span class="detail-value negative">-${data.sold_stock}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Remaining:</span>
+                        <span class="detail-value" style="font-size: 16px;">${data.remaining_stock}</span>
+                    </div>
+                </div>
+            `;
+            
+            container.insertBefore(eventItem, container.firstChild);
+            
+            // Keep only last 20 events
+            while (container.children.length > 20) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function addMaterialEvent(data) {
+            const container = document.getElementById('materialEvents');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item material';
+            eventItem.innerHTML = `
+                <div class="event-time">${new Date().toLocaleString()}</div>
+                <div class="event-title">🏪 Outlet #${data.outlet_id} - ${data.material_name}</div>
+                <div class="event-details">
+                    <div class="event-detail">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">${data.date}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Material ID:</span>
+                        <span class="detail-value">#${data.material_id}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">First Stock:</span>
+                        <span class="detail-value">${data.first_stock}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Stock In:</span>
+                        <span class="detail-value positive">+${data.stock_in}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Used Stock:</span>
+                        <span class="detail-value negative">-${data.used_stock}</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="detail-label">Remaining:</span>
+                        <span class="detail-value" style="font-size: 16px;">${data.remaining_stock}</span>
+                    </div>
+                </div>
+            `;
+            
+            container.insertBefore(eventItem, container.firstChild);
+            
+            // Keep only last 20 events
+            while (container.children.length > 20) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function connectWebSocket() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            if (socket) {
+                addLog('Already connected!', 'warning');
+                return;
+            }
+            
+            try {
+                socket = io(serverUrl);
+                
+                socket.on('connect', () => {
+                    addLog(`Connected to ${serverUrl} with socket ID: ${socket.id}`, 'success');
+                    updateStatus(true);
+                });
+                
+                socket.on('disconnect', () => {
+                    addLog('Disconnected from server', 'error');
+                    updateStatus(false);
+                });
+                
+                socket.on('outlet:product:stock:changed', (data) => {
+                    addLog(`Product stock changed: ${data.product_name} at outlet ${data.outlet_id}`, 'info');
+                    addProductEvent(data);
+                });
+                
+                socket.on('outlet:material:stock:changed', (data) => {
+                    addLog(`Material stock changed: ${data.material_name} at outlet ${data.outlet_id}`, 'info');
+                    addMaterialEvent(data);
+                });
+                
+                socket.on('error', (error) => {
+                    addLog(`Error: ${error}`, 'error');
+                });
+                
+            } catch (error) {
+                addLog(`Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                updateStatus(false);
+                addLog('Manually disconnected', 'warning');
+            } else {
+                addLog('Not connected!', 'warning');
+            }
+        }
+
+        function joinOutletRoom() {
+            if (!socket) {
+                addLog('Please connect first!', 'warning');
+                return;
+            }
+            
+            const outletId = parseInt(document.getElementById('outletId').value);
+            socket.emit('join:outlet', outletId);
+            addLog(`Joining outlet room: ${outletId}`, 'info');
+        }
+
+        function leaveOutletRoom() {
+            if (!socket) {
+                addLog('Please connect first!', 'warning');
+                return;
+            }
+            
+            const outletId = parseInt(document.getElementById('outletId').value);
+            socket.emit('leave:outlet', outletId);
+            addLog(`Leaving outlet room: ${outletId}`, 'warning');
+        }
+
+        function joinProductStocksRoom() {
+            if (!socket) {
+                addLog('Please connect first!', 'warning');
+                return;
+            }
+            
+            socket.emit('join:product:stocks');
+            addLog('Joining product stocks monitoring room', 'info');
+        }
+
+        function joinMaterialStocksRoom() {
+            if (!socket) {
+                addLog('Please connect first!', 'warning');
+                return;
+            }
+            
+            socket.emit('join:material:stocks');
+            addLog('Joining material stocks monitoring room', 'info');
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '<div class="empty-state">No logs yet...</div>';
+            document.getElementById('productEvents').innerHTML = '<div class="empty-state">No product stock events yet...</div>';
+            document.getElementById('materialEvents').innerHTML = '<div class="empty-state">No material stock events yet...</div>';
+            addLog('Logs cleared', 'info');
+        }
+
+        // Auto-connect on load (optional)
+        // window.addEventListener('load', connectWebSocket);
+    </script>
+</body>
+</html>

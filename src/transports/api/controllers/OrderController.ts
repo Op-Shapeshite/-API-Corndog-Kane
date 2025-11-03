@@ -8,6 +8,9 @@ import Controller from "./Controller";
 import { AuthRequest } from '../../../policies/authMiddleware';
 import { Request } from 'express';
 import { getWebSocketInstance } from '../../websocket';
+import { StockEventEmitter } from '../../websocket/events/StockEventEmitter';
+import { StockCalculationService } from '../../websocket/services/StockCalculationService';
+import PostgresAdapter from '../../../adapters/postgres/instance';
 
 export class OrderController extends Controller<TOrderGetResponse, TMetadataResponse> {
   private orderService: OrderService;
@@ -134,7 +137,6 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
       );
 
       // Map response
-      console.log(order)
       const response = OrderResponseMapper.toCreateResponse(order);
       // Fetch full order detail for WebSocket broadcast
       const fullOrder = await this.orderService.getOrderById(parseInt(order.id));
@@ -147,6 +149,27 @@ export class OrderController extends Controller<TOrderGetResponse, TMetadataResp
         console.log(`📡 WebSocket: Broadcasted new order ${fullOrder.invoice_number}`);
       } catch (wsError) {
         console.error('⚠️  WebSocket emit failed:', wsError);
+        // Don't fail the request if WebSocket fails
+      }
+
+      // Emit product stock change events for each item in the order
+      try {
+        const stockCalcService = new StockCalculationService(PostgresAdapter.client);
+        
+        for (const item of items) {
+          const stockData = await stockCalcService.calculateProductStock(
+            outletId,
+            item.product_id,
+            new Date()
+          );
+          
+          if (stockData) {
+            StockEventEmitter.emitProductStockChange(stockData);
+            console.log(`📊 WebSocket: Emitted stock change for product ${item.product_id} at outlet ${outletId}`);
+          }
+        }
+      } catch (wsError) {
+        console.error('⚠️  WebSocket stock emit failed:', wsError);
         // Don't fail the request if WebSocket fails
       }
 
