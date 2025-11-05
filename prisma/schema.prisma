@@ -1,8 +1,36 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ============================================================================
+// PRISMA SCHEMA - CORNDOG-KANE API
+// ============================================================================
+// This schema is organized by business modules for better maintainability.
+// 
+// BUSINESS MODULE ORGANIZATION:
+// 
+// 📋 CORE MODULE (Lines ~30-145)
+//    - Enums: Shared business enums
+//    - Auth: User, Role, Login (Authentication & Authorization)
+//    - Products: Product, ProductCategory (Master catalog)
+//
+// 👥 HR MODULE (Lines ~146-195)
+//    - Employee: Employee profiles
+//    - Payroll: Employee payroll records
+//
+// 📦 WAREHOUSE MODULE (Lines ~196-285)
+//    - Suppliers: Supplier management
+//    - Materials: material, MaterialIn, MaterialOut (Raw materials)
+//    - Inventory: ProductStock, ProductStockDetail (Finished goods)
+//
+// 🏪 OUTLETS MODULE (Lines ~286-340)
+//    - Outlets: Outlet, OutletEmployee (Store management)
+//    - Attendance: Employee attendance tracking
+//
+// 💰 POS MODULE (Lines ~341-370)
+//    - Sales: Order, OrderItem (Point of sale transactions)
+//
+// 🚚 SCM MODULE (Lines ~371-388)
+//    - Requests: OutletProductRequest, OutletMaterialRequest (Supply chain)
+//
+// See SCHEMA_ORGANIZATION.md for detailed documentation.
+// ============================================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -12,7 +40,10 @@ datasource db {
   provider = "postgresql"
   url      = env("ADAPTER_PRISMA_POSTGRES_URL")
 }
-// Enums used across the schema
+
+// ============================================================================
+// CORE MODULE - Enums
+// ============================================================================
 
 enum MeritalStatus {
   SINGLE
@@ -20,7 +51,22 @@ enum MeritalStatus {
   DIVORCED
   WIDOWED
 }
-// User authentication and authorization models
+
+enum OUTLETREQUESTSTATUS {
+  PENDING
+  APPROVED
+  REJECTED
+  FULFILLED
+}
+
+enum PRODUCTSOURCE {
+  PRODUCTION
+  PURCHASE
+}
+
+// ============================================================================
+// CORE MODULE - Authentication & Authorization
+// ============================================================================
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -34,6 +80,7 @@ model User {
   logins    Login[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@map("users")
 }
 
@@ -44,136 +91,44 @@ model Role {
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
   @@map("roles")
 }
 
 model Login {
-  id        Int      @id @default(autoincrement())
-  user_id   Int
-  user      User     @relation(fields: [user_id], references: [id])
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id])
   ip_address String
   user_agent String
   login_at   DateTime @default(now())
   is_active  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   @@map("user_logins")
 }
-// Outlet management models
 
-model Outlet {
-  id             Int             @id @default(autoincrement())
-  name           String
-  location       String
-  code           String          @default(uuid()) @unique
-  pic_phone      String
-  description    String?
-  check_in_time  String
-  check_out_time String
-  salary         Int
-  is_active      Boolean         @default(true)
-  user_id        Int             @unique
-  user           User            @relation(fields: [user_id], references: [id])
-  outlet_employee OutletEmployee[]
-  orders         Order[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  product_requests       OutletProductRequest[]
-  material_requests      OutletMaterialRequest[]
-  attendances    Attendance[]
-  @@map("outlets")
-}
+// ============================================================================
+// CORE MODULE - Product Master Data
+// ============================================================================
 
-model OutletEmployee {
-  id          Int      @id @default(autoincrement())
-  outlet_id   Int
-  employee_id Int
-  assigned_at DateTime @default(now())
-  outlet      Outlet   @relation(fields: [outlet_id], references: [id])
-  employee    Employee @relation(fields: [employee_id], references: [id])
-  is_active   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("outlet_employees")
-}
-model OutletProductRequest{
-  id        Int      @id @default(autoincrement())
-  outlet_id Int
-  product_id Int
-  quantity   Int
-  approval_quantity Int?
-  outlet    Outlet   @relation(fields: [outlet_id], references: [id])
-  product   Product  @relation(fields: [product_id], references: [id])
-  status    String   @default("PENDING")
-
-  is_active Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("outlet_requests")
-}
-enum OUTLETREQUESTSTATUS {
-  PENDING
-  APPROVED
-  REJECTED
-  FULFILLED
-}
-model OutletMaterialRequest{
-  id        Int      @id @default(autoincrement())
-  outlet_id Int
-  material_id Int
-  quantity   Int
-  approval_quantity Int?
-  outlet    Outlet   @relation(fields: [outlet_id], references: [id])
-  material   material  @relation(fields: [material_id], references: [id])
-  status    OUTLETREQUESTSTATUS @default(PENDING)
-
-  is_active Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("outlet_material_requests")
-}
 model Product {
-  id              Int             @id @default(autoincrement())
-  name            String
-  image_path      String?
-  description     String?
-  price           Float
-  category_id     Int
-  category        ProductCategory @relation(fields: [category_id], references: [id])
-  is_active       Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  order_items     OrderItem[]
-  stocks          ProductStock[] 
-  requests       OutletProductRequest[]
-  @@map("products")
-}
-enum PRODUCTSOURCE  {
-  PRODUCTION
-  PURCHASE
-}
-model ProductStock{
-  id  Int @id @default(autoincrement())
-  product_id Int
-  products Product @relation(fields: [product_id], references: [id])
-  quantity Int @default(0)
-  date     DateTime
-  source_from PRODUCTSOURCE @default(PRODUCTION)
+  id          Int                    @id @default(autoincrement())
+  name        String
+  image_path  String?
+  description String?
+  price       Float
+  category_id Int
+  category    ProductCategory        @relation(fields: [category_id], references: [id])
+  is_active   Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  order_items OrderItem[]
+  stocks      ProductStock[]
+  requests    OutletProductRequest[]
 
-  detail   ProductStockDetail?
-  @@map("product_stocs")
-}
-model ProductStockDetail{
-  id  Int @id @default(autoincrement())
-  stock_id  Int @unique
-  price     Float
-  supplier_id Int
-  supplier   Supplier @relation(fields: [supplier_id], references: [id])
-  stock     ProductStock @relation(fields: [stock_id],references: [id])
-  @@map("product_stock_detail")
+  @@map("products")
 }
 
 model ProductCategory {
@@ -187,42 +142,9 @@ model ProductCategory {
   @@map("product_categories")
 }
 
-
-
-model Order {
-  id             Int         @id @default(autoincrement())
-  outlet_id      Int
-  outlet_location String
-  invoice_number  String      @unique
-  employee_id    Int
-  payment_method String
-  total_amount   Int
-  status         String      @default("PENDING")
-  is_active      Boolean     @default(true)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  items          OrderItem[]
-  outlet         Outlet      @relation(fields: [outlet_id], references: [id])
-  employee       Employee    @relation(fields: [employee_id], references: [id])
-
-  @@map("orders")
-}
-
-model OrderItem {
-  id         Int      @id @default(autoincrement())
-  order_id   Int
-  product_id Int
-  quantity   Int
-  price      Float
-  order      Order    @relation(fields: [order_id], references: [id])
-  product    Product  @relation(fields: [product_id], references: [id])
-  is_active  Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@map("order_items")
-}
-// Employee and human resource models
+// ============================================================================
+// HR MODULE - Employee Management & Payroll
+// ============================================================================
 
 model Employee {
   id              Int              @id @default(autoincrement())
@@ -248,28 +170,6 @@ model Employee {
 
   @@map("employees")
 }
-model Attendance {
-  id                   Int       @id @default(autoincrement())
-  employee_id          Int
-  outlet_id            Int
-  checkin_image_proof  String
-  checkout_image_proof String?
-  checkin_time         DateTime  @default(now())
-  checkout_time        DateTime?
-  is_active            Boolean   @default(true)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  
-  // Relations
-  employee             Employee  @relation(fields: [employee_id], references: [id])
-  outlet               Outlet    @relation(fields: [outlet_id], references: [id])
-  
-  // Indexes for common queries
-  @@index([employee_id, checkin_time])
-  @@index([outlet_id, checkin_time])
-  @@index([checkin_time])
-  @@map("attendances")
-}
 
 model Payroll {
   id          Int      @id @default(autoincrement())
@@ -285,32 +185,41 @@ model Payroll {
 
   @@map("employee_payrolls")
 }
-// Warehouse and material management models
+
+// ============================================================================
+// WAREHOUSE MODULE - Supplier Management
+// ============================================================================
 
 model Supplier {
-  id        Int        @id @default(autoincrement())
+  id        Int                  @id @default(autoincrement())
   name      String
-  phone     String     @unique
+  phone     String               @unique
   address   String?
-  is_active Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  materials  material[]
-  product ProductStockDetail[]
+  is_active Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  materials material[]
+  product   ProductStockDetail[]
+
   @@map("supliers")
 }
 
+// ============================================================================
+// WAREHOUSE MODULE - Raw Materials Management
+// ============================================================================
+
 model material {
-  id           Int           @id @default(autoincrement())
+  id           Int                     @id @default(autoincrement())
   suplier_id   Int
-  suplier      Supplier       @relation(fields: [suplier_id], references: [id])
+  suplier      Supplier                @relation(fields: [suplier_id], references: [id])
   name         String
-  is_active    Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  is_active    Boolean                 @default(true)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
   material_in  MaterialIn[]
   material_out MaterialOut[]
   requests     OutletMaterialRequest[]
+
   @@map("materials")
 }
 
@@ -339,4 +248,178 @@ model MaterialOut {
   updatedAt     DateTime @updatedAt
 
   @@map("material_outs")
+}
+
+// ============================================================================
+// WAREHOUSE MODULE - Finished Goods Inventory
+// ============================================================================
+
+model ProductStock {
+  id          Int           @id @default(autoincrement())
+  product_id  Int
+  products    Product       @relation(fields: [product_id], references: [id])
+  quantity    Int           @default(0)
+  date        DateTime
+  source_from PRODUCTSOURCE @default(PRODUCTION)
+
+  detail ProductStockDetail?
+
+  @@map("product_stocs")
+}
+
+model ProductStockDetail {
+  id          Int          @id @default(autoincrement())
+  stock_id    Int          @unique
+  price       Float
+  supplier_id Int
+  supplier    Supplier     @relation(fields: [supplier_id], references: [id])
+  stock       ProductStock @relation(fields: [stock_id], references: [id])
+
+  @@map("product_stock_detail")
+}
+
+// ============================================================================
+// OUTLETS MODULE - Store/Branch Management
+// ============================================================================
+
+model Outlet {
+  id                Int                     @id @default(autoincrement())
+  name              String
+  location          String
+  code              String                  @unique @default(uuid())
+  pic_phone         String
+  description       String?
+  check_in_time     String
+  check_out_time    String
+  salary            Int
+  is_active         Boolean                 @default(true)
+  user_id           Int                     @unique
+  user              User                    @relation(fields: [user_id], references: [id])
+  outlet_employee   OutletEmployee[]
+  orders            Order[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  product_requests  OutletProductRequest[]
+  material_requests OutletMaterialRequest[]
+  attendances       Attendance[]
+
+  @@map("outlets")
+}
+
+model OutletEmployee {
+  id          Int      @id @default(autoincrement())
+  outlet_id   Int
+  employee_id Int
+  assigned_at DateTime @default(now())
+  outlet      Outlet   @relation(fields: [outlet_id], references: [id])
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  is_active   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("outlet_employees")
+}
+
+// ============================================================================
+// OUTLETS MODULE - Employee Attendance Tracking
+// ============================================================================
+
+model Attendance {
+  id                   Int       @id @default(autoincrement())
+  employee_id          Int
+  outlet_id            Int
+  checkin_image_proof  String
+  checkout_image_proof String?
+  checkin_time         DateTime  @default(now())
+  checkout_time        DateTime?
+  is_active            Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  employee Employee @relation(fields: [employee_id], references: [id])
+  outlet   Outlet   @relation(fields: [outlet_id], references: [id])
+
+  // Indexes for common queries
+  @@index([employee_id, checkin_time])
+  @@index([outlet_id, checkin_time])
+  @@index([checkin_time])
+  @@map("attendances")
+}
+
+// ============================================================================
+// POS MODULE - Point of Sale & Sales Transactions
+// ============================================================================
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  outlet_id       Int
+  outlet_location String
+  invoice_number  String      @unique
+  employee_id     Int
+  payment_method  String
+  total_amount    Int
+  status          String      @default("PENDING")
+  is_active       Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+  outlet          Outlet      @relation(fields: [outlet_id], references: [id])
+  employee        Employee    @relation(fields: [employee_id], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order_id   Int
+  product_id Int
+  quantity   Int
+  price      Float
+  order      Order    @relation(fields: [order_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+  is_active  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("order_items")
+}
+
+// ============================================================================
+// SCM MODULE - Supply Chain Management & Distribution Requests
+// ============================================================================
+// Supply Chain Management - Outlet requests for products and materials
+
+model OutletProductRequest {
+  id                Int     @id @default(autoincrement())
+  outlet_id         Int
+  product_id        Int
+  quantity          Int
+  approval_quantity Int?
+  outlet            Outlet  @relation(fields: [outlet_id], references: [id])
+  product           Product @relation(fields: [product_id], references: [id])
+  status            String  @default("PENDING")
+
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("outlet_requests")
+}
+
+model OutletMaterialRequest {
+  id                Int                 @id @default(autoincrement())
+  outlet_id         Int
+  material_id       Int
+  quantity          Int
+  approval_quantity Int?
+  outlet            Outlet              @relation(fields: [outlet_id], references: [id])
+  material          material            @relation(fields: [material_id], references: [id])
+  status            OUTLETREQUESTSTATUS @default(PENDING)
+
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("outlet_material_requests")
 }
