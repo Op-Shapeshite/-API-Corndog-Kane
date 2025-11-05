@@ -17,7 +17,7 @@ export default class UserRepository
 		});
 
 		if (!user) return null;
-
+		console.log(this.mapper.mapToEntity(user));
 		return this.mapper.mapToEntity(user) as TUser;
 	}
 

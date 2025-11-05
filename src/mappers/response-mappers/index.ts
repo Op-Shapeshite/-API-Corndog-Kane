@@ -15,3 +15,5 @@ export * from './InventoryBuyListResponseMapper';
 
 export * from './OutletRequestResponseMapper';
 export * from './OrderResponseMapper';
+export * from './AttendanceResponseMapper';
+export * from './AttendanceListResponseMapper';

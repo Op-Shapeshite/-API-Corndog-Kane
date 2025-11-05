@@ -1,0 +1,95 @@
+/**
+ * Attendance Domain Types
+ * Entity types for employee check-in/check-out functionality
+ */
+
+// ============================================================================
+// BASE TYPES - Foundation for attendance domain
+// ============================================================================
+
+/**
+ * TAttendance - Base type for attendance domain
+ */
+export type TAttendance = {
+  employeeId: number;
+  outletId: number;
+  checkinImageProof: string;
+  checkoutImageProof?: string | null;
+  checkinTime: Date;
+  checkoutTime?: Date | null;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Derived types
+export type TAttendanceWithID = TAttendance & { id: number };
+export type TAttendanceCreate = Omit<TAttendance, 'createdAt' | 'updatedAt'>;
+
+// ============================================================================
+// API REQUEST TYPES (snake_case for API contract)
+// ============================================================================
+
+/**
+ * Request type for check-in
+ * Employee ID and Outlet ID come from JWT token
+ * Image is uploaded via multipart/form-data
+ */
+export type TAttendanceCheckinRequest = {
+  checkin_image_proof: string; // File path after upload
+}
+
+/**
+ * Request type for check-out
+ * Updates today's attendance record
+ * Image is uploaded via multipart/form-data
+ */
+export type TAttendanceCheckoutRequest = {
+  checkout_image_proof: string; // File path after upload
+}
+
+// ============================================================================
+// API RESPONSE TYPES (snake_case for API contract)
+// ============================================================================
+
+/**
+ * Response type for attendance endpoints
+ */
+export type TAttendanceGetResponse = Omit<TAttendanceWithID, 'isActive' | 'createdAt' | 'updatedAt' | 'employeeId' | 'outletId' | 'checkinImageProof' | 'checkoutImageProof' | 'checkinTime' | 'checkoutTime'> & {
+  employee_id: number;
+  outlet_id: number;
+  checkin_image_proof: string;
+  checkout_image_proof: string | null;
+  checkin_time: Date;
+  checkout_time: Date | null;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
+/**
+ * Response type for attendance list with employee and outlet details
+ */
+export type TAttendanceListResponse = {
+  id: number;
+  employee: {
+    id: number;
+    name: string;
+    nik: string;
+    phone: string;
+    address: string;
+  };
+  outlet: {
+    id: number;
+    name: string;
+    code: string;
+    location: string;
+  };
+  checkin_image_proof: string;
+  checkout_image_proof: string | null;
+  checkin_time: Date;
+  checkout_time: Date | null;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+};

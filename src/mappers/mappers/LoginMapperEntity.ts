@@ -14,4 +14,18 @@ export const LoginMapperEntity: EntityMapConfig = {
     { dbField: 'createdAt', entityField: 'createdAt' },
     { dbField: 'updatedAt', entityField: 'updatedAt' },
   ],
+  relations: [
+    {
+      dbField: "outlets",
+      entityField: "outlets",
+      mapper: (outlet: unknown) => {
+        const out = outlet as { id: number };
+        console.log(out)
+        return { id: out.id };
+
+      },
+      isArray: false,
+      
+    }
+  ],
 };

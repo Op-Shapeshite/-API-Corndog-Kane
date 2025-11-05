@@ -60,3 +60,62 @@ export const getEmployeesSchema = z.object({
     search_value: z.string().optional(),
   }),
 });
+
+/**
+ * Validation schema for employee check-in
+ * Note: File validation is handled by multer middleware
+ * This validates that the file was uploaded successfully
+ */
+export const checkinSchema = z.object({
+  file: z.object({
+    fieldname: z.string(),
+    originalname: z.string(),
+    encoding: z.string(),
+    mimetype: z.string().refine(
+      (type) => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(type),
+      { message: "Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed." }
+    ),
+    destination: z.string(),
+    filename: z.string().min(1, "Check-in image is required"),
+    path: z.string().min(1, "Check-in image path is required"),
+    size: z.number().max(5 * 1024 * 1024, "File size must not exceed 5MB"),
+  }),
+});
+
+/**
+ * Validation schema for employee checkout
+ * Note: File validation is handled by multer middleware
+ * This validates that the file was uploaded successfully
+ */
+export const checkoutSchema = z.object({
+  file: z.object({
+    fieldname: z.string(),
+    originalname: z.string(),
+    encoding: z.string(),
+    mimetype: z.string().refine(
+      (type) => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(type),
+      { message: "Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed." }
+    ),
+    destination: z.string(),
+    filename: z.string().min(1, "Checkout image is required"),
+    path: z.string().min(1, "Checkout image path is required"),
+    size: z.number().max(5 * 1024 * 1024, "File size must not exceed 5MB"),
+  }),
+});
+
+/**
+ * Validation schema for getting attendances by outlet
+ */
+export const getAttendancesByOutletSchema = z.object({
+  params: z.object({
+    outletId: z.string().min(1, "Outlet ID is required"),
+  }),
+  query: z.object({
+    date: z.string().optional().refine(
+      (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
+      { message: "Date must be in format YYYY-MM-DD" }
+    ),
+    page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
+    limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
+  }),
+});
