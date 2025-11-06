@@ -379,8 +379,11 @@ model OrderItem {
   product_id Int
   quantity   Int
   price      Float
+  order_item_root_id Int?
   order      Order    @relation(fields: [order_id], references: [id])
   product    Product  @relation(fields: [product_id], references: [id])
+  order_item_root OrderItem? @relation("OrderItemSelfRelation", fields: [order_item_root_id], references: [id])
+  sub_items       OrderItem[] @relation("OrderItemSelfRelation")
   is_active  Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

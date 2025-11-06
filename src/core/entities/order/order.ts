@@ -4,6 +4,8 @@ export type TOrderItem = {
   productId: number;
   quantity: number;
   price: number;
+  orderItemRootId?: number | null;
+  subItems?: TOrderItem[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +43,8 @@ export type TOrderItemCreate = {
   productId: number;
   quantity: number;
   price: number;
+  orderItemRootId?: number;
+  subItems?: TOrderItemCreate[];
 };
 
 export type TOrderCreateRequest = {
@@ -48,6 +52,10 @@ export type TOrderCreateRequest = {
   items: {
     product_id: number;
     qty: number;
+    product_items_ids?: {
+      product_id: number;
+      qty: number;
+    }[];
   }[];
 };
 
@@ -68,6 +76,15 @@ export type TOrderGetResponse = {
     product_id: number;
     quantity: number;
     price: number;
+    sub_total_price: number;
+    total_price: number;
+    product_items?: {
+      id: number;
+      product_id: number;
+      quantity: number;
+      price: number;
+      total_price: number;
+    }[];
   }[];
 };
 
@@ -104,4 +121,37 @@ export type TOrderDetailResponse = {
   created_at: Date;
   updated_at: Date;
   [categoryName: string]: unknown;
+};
+
+export type TMyOrderResponse = {
+  id: number;
+  invoice_number: string;
+  date: string;
+  payment_method: string;
+  total_price: number;
+  employee: {
+    id: number;
+    name: string;
+  };
+  outlet: {
+    id: number;
+    name: string;
+  };
+  items: {
+    id: number;
+    product_id: number;
+    quantity: number;
+    price: number;
+    sub_total_price: number;
+    total_price: number;
+    product_name?: string;
+    sub_items?: {
+      id: number;
+      product_id: number;
+      quantity: number;
+      price: number;
+      total_price: number;
+      product_name?: string;
+    }[];
+  }[];
 };

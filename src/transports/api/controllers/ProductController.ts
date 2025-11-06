@@ -62,8 +62,8 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
     try {
       //remove old image if new image is uploaded
+      const existingProduct = await this.productService.findById(productId);
       if(imagePath){
-        const existingProduct = await this.productService.findById(productId);
         if(existingProduct && existingProduct.imagePath){
           const oldImagePath = path.join(process.cwd(), 'public', 'products', existingProduct.imagePath);
           fs.unlink(oldImagePath, (err) => {
@@ -80,7 +80,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         description,
         price: price !== undefined ? parseFloat(price) : undefined,
         categoryId: category_id !== undefined ? parseInt(category_id, 10) : undefined,
-        imagePath,
+        imagePath: imagePath !== null ? imagePath : existingProduct?.imagePath,
         isActive: is_active !== undefined ? Boolean(is_active) : undefined,
       });
 

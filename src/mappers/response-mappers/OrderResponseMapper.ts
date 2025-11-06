@@ -1,4 +1,4 @@
-import { TOrderGetResponse, TOrder, TOrderWithItems, TOrderListResponse, TOrderDetailResponse } from "../../core/entities/order/order";
+import { TOrderGetResponse, TOrder, TOrderWithItems, TOrderListResponse, TOrderDetailResponse, TMyOrderResponse } from "../../core/entities/order/order";
 
 export class OrderResponseMapper {
   /**
@@ -36,12 +36,36 @@ export class OrderResponseMapper {
       payment_method: orderWithItems.paymentMethod,
       total_amount: orderWithItems.totalAmount,
       status: orderWithItems.status,
-      items: orderWithItems.items.map(item => ({
-        id: parseInt(item.id),
-        product_id: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-      })),
+      items: orderWithItems.items.map(item => {
+        // Map sub items (children) jika ada
+        const productItems = item.subItems?.map(subItem => {
+          const subItemPrice = subItem.price; // qty × unit_price (already calculated)
+          const subItemTotalPrice = subItemPrice; // For child: total_price = price (no sub_total_price)
+          
+          return {
+            id: parseInt(subItem.id),
+            product_id: subItem.productId,
+            quantity: subItem.quantity,
+            price: subItemPrice,
+            total_price: subItemTotalPrice,
+          };
+        }) || [];
+
+        // Calculate parent item prices
+        const itemPrice = item.price; // qty × unit_price (already calculated)
+        const subTotalPrice = productItems.reduce((sum, subItem) => sum + subItem.total_price, 0); // Sum of children's total_price
+        const totalPrice = itemPrice + subTotalPrice; // price + sub_total_price
+
+        return {
+          id: parseInt(item.id),
+          product_id: item.productId,
+          quantity: item.quantity,
+          price: itemPrice,
+          sub_total_price: subTotalPrice,
+          total_price: totalPrice,
+          product_items: productItems.length > 0 ? productItems : undefined,
+        };
+      }),
       is_active: orderWithItems.isActive ?? true,
       created_at: orderWithItems.createdAt ?? new Date(),
       updated_at: orderWithItems.updatedAt ?? new Date(),
@@ -182,5 +206,96 @@ export class OrderResponseMapper {
 
     return response;
   }
+
+  /**
+   * Map Order from Prisma to "My Orders" response with nested items
+   * Format: { id, invoice_number, date, employee, outlet, items: [...] }
+   */
+  static toMyOrderResponse(order: {
+    id: number;
+    invoice_number: string;
+    createdAt: Date;
+    payment_method: string;
+    employee: {
+      id: number;
+      name: string;
+    };
+    outlet: {
+      id: number;
+      name: string;
+    };
+    items: Array<{
+      id: number;
+      product_id: number;
+      quantity: number;
+      price: number;
+      product: {
+        name: string;
+      } | null;
+      sub_items?: Array<{
+        id: number;
+        product_id: number;
+        quantity: number;
+        price: number;
+        product: {
+          name: string;
+        } | null;
+      }>;
+    }>;
+  }): TMyOrderResponse {
+    const mappedItems = order.items.map(item => {
+      // Map sub items (children) jika ada
+      const subItems = item.sub_items?.map(subItem => {
+        const subItemPrice = subItem.price;
+        const subItemTotalPrice = subItemPrice;
+        
+        return {
+          id: subItem.id,
+          product_id: subItem.product_id,
+          quantity: subItem.quantity,
+          price: subItemPrice,
+          total_price: subItemTotalPrice,
+          product_name: subItem.product?.name,
+        };
+      }) || [];
+
+      // Calculate parent item prices
+      const itemPrice = item.price;
+      const subTotalPrice = subItems.reduce((sum, subItem) => sum + subItem.total_price, 0);
+      const totalPrice = itemPrice + subTotalPrice;
+
+      return {
+        id: item.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: itemPrice,
+        sub_total_price: subTotalPrice,
+        total_price: totalPrice,
+        product_name: item.product?.name,
+        sub_items: subItems.length > 0 ? subItems : undefined,
+      };
+    });
+
+    // Calculate total price (sum of all items total_price)
+    const orderTotalPrice = mappedItems.reduce((sum, item) => sum + item.total_price, 0);
+
+    return {
+      id: order.id,
+      invoice_number: order.invoice_number,
+      date: order.createdAt.toISOString().split('T')[0],
+      payment_method: order.payment_method,
+      total_price: orderTotalPrice,
+      employee: {
+        id: order.employee.id,
+        name: order.employee.name,
+      },
+      outlet: {
+        id: order.outlet.id,
+        name: order.outlet.name,
+      },
+      items: mappedItems,
+    };
+  }
 }
+
 

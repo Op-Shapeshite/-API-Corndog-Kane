@@ -15,7 +15,7 @@ export default class OrderService extends Service<TOrder> {
 	async createOrder(
 		outletId: number,
 		paymentMethod: string,
-		items: { productId: number; qty: number }[]
+		items: { productId: number; qty: number; productItemsIds?: { productId: number; qty: number }[] }[]
 	): Promise<TOrderWithItems> {
 		// 1. Get employee assigned today
 		const employeeId = await this.repository.getEmployeeAssignedToday(outletId);
@@ -58,15 +58,48 @@ export default class OrderService extends Service<TOrder> {
 			// 	);
 			// }
 
-			// Add to order items
+			// Calculate item price (qty × unit_price)
+			const itemPrice = item.qty * price;
+
+			// Process sub items (nested items) if exists
+			const subItems: TOrderItemCreate[] = [];
+			let subTotalPrice = 0;
+
+			if (item.productItemsIds && item.productItemsIds.length > 0) {
+				for (const subItem of item.productItemsIds) {
+					// Get sub item price
+					const subItemUnitPrice = await this.repository.getProductPrice(subItem.productId);
+					if (subItemUnitPrice === null) {
+						throw new Error(`Product with ID ${subItem.productId} not found`);
+					}
+
+					// Calculate child quantity: parent_qty × child_qty
+					const childQuantity = item.qty * subItem.qty;
+
+					// Calculate child price: childQuantity × unit_price
+					const childPrice = childQuantity * subItemUnitPrice;
+
+					subItems.push({
+						productId: subItem.productId,
+						quantity: childQuantity,
+						price: childPrice,
+					});
+
+					// Add to sub_total_price
+					subTotalPrice += childPrice;
+				}
+			}
+
+			// Add parent item to order items
 			orderItems.push({
 				productId: item.productId,
 				quantity: item.qty,
-				price: price,
+				price: itemPrice,
+				subItems: subItems.length > 0 ? subItems : undefined,
 			});
 
-			// Calculate total
-			totalAmount += item.qty * price;
+			// Calculate total: itemPrice + subTotalPrice
+			totalAmount += itemPrice + subTotalPrice;
 		}
 
 		// 5. Generate invoice number
@@ -93,6 +126,13 @@ export default class OrderService extends Service<TOrder> {
 	 */
 	async getAllOrders(page: number = 1, limit: number = 10) {
 		return await this.repository.getAllOrdersWithDetails(page, limit);
+	}
+
+	/**
+	 * Get orders by outlet with pagination
+	 */
+	async getOrdersByOutlet(outletId: number, page: number = 1, limit: number = 10) {
+		return await this.repository.getOrdersByOutlet(outletId, page, limit);
 	}
 
 	/**
