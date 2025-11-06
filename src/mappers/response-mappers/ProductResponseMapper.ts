@@ -1,7 +1,7 @@
 import {  TProductGetResponse, TProductWithID } from "../../core/entities/product/product";
 
 export class ProductResponseMapper {
-	static toListResponse(product: TProductWithID): TProductGetResponse {
+	static toListResponse(product: TProductWithID & { stock?: number }): TProductGetResponse {
 		return {
 			id: product.id,
       name: product.name,
@@ -14,6 +14,7 @@ export class ProductResponseMapper {
         is_active: product.category.isActive,
       } : null,
 			is_active: product.isActive,
+			stock: product.stock,
 			created_at: product.createdAt.toISOString(),
 			updated_at: product.updatedAt.toISOString(),
 		};

@@ -1,12 +1,56 @@
 import { TProduct, TProductWithID, TProductStockInventory, TProductStockInRequest, TProductStockIn } from "../entities/product/product";
 import { ProductRepository } from "../../adapters/postgres/repositories/ProductRepository";
 import { Service } from "./Service";
+import { PaginationResult, SearchConfig, FilterObject } from "../repositories/Repository";
 
 export default class ProductService extends Service<TProduct | TProductWithID> {
   declare repository: ProductRepository;
 
   constructor(repository: ProductRepository) {
     super(repository);
+  }
+
+  /**
+   * Override findAll to add outlet stock
+   */
+  async findAll(
+    page?: number,
+    limit?: number,
+    search?: SearchConfig[],
+    filters?: FilterObject,
+    orderBy?: Record<string, 'asc' | 'desc'>,
+    outletId?: number
+  ): Promise<PaginationResult<TProduct | TProductWithID>> {
+    const result = await super.findAll(page, limit, search, filters, orderBy);
+    
+    // If outletId is provided, add stock field
+    if (outletId) {
+      const today = new Date();
+      
+      // Add stock to each product
+      const dataWithStock = await Promise.all(
+        result.data.map(async (product) => {
+          const productWithId = product as TProductWithID;
+          const stock = await this.repository.getProductStockByOutlet(
+            productWithId.id,
+            outletId,
+            today
+          );
+          
+          return {
+            ...productWithId,
+            stock,
+          };
+        })
+      );
+      
+      return {
+        ...result,
+        data: dataWithStock as (TProduct | TProductWithID)[],
+      };
+    }
+    
+    return result;
   }
 
   /**

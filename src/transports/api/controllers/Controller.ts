@@ -98,9 +98,10 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { page, limit, search_key, search_value, ...filters } = req.query;
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
 				const pageNum = page ? parseInt(page as string) : 1;
 				const limitNum = limit ? parseInt(limit as string) : 10;
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
 				const search =
 					search_key && search_value
 						? [
@@ -111,12 +112,13 @@ export default class Controller<T, M> {
 						  ]
 						: undefined;
 				const filterObj = Object.keys(filters).length > 0 ? filters : undefined;
-							console.log('FindAll called with:', { pageNum, limitNum, search, filterObj });
 				const result = await serviceClass.findAll(
 					pageNum,
 					limitNum,
 					search,
-					filterObj as FilterObject
+					filterObj as FilterObject,
+					undefined,
+					outletId
 				);
 
 				const dataMapped = result.data.map((d: E) =>

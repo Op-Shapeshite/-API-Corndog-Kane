@@ -42,6 +42,7 @@ export type TProductGetResponse = {
   price: number;
   category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'>  | null;
   is_active: boolean;
+  stock?: number;
   created_at: string;
   updated_at: string;
 }
