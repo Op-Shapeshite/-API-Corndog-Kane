@@ -73,7 +73,7 @@ jobs:
             echo "Running database migrations..."
             chmod +x ./node_modules/@prisma/engines/schema-engine-debian-openssl-3.0.x
 
-            npx prisma migrate dev --name init --preview-feature
+            npm run prisma:migrate -- --name "auto-migration"
             echo "Building application..."
             npm run build
             echo "Restarting application with PM2..."
