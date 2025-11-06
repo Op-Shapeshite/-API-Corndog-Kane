@@ -177,34 +177,20 @@ export default class MaterialRepository
 
 	/**
 	 * Get material remaining stock from outlet for specific date
+	 * Optimized: Single aggregate query instead of recursive approach
 	 */
 	async getMaterialStockByOutlet(materialId: number, outletId: number, date: Date): Promise<number> {
-		// Start of day
-		const startOfDay = new Date(date);
-		startOfDay.setHours(0, 0, 0, 0);
-		
-		// End of day
+		// End of day for the given date
 		const endOfDay = new Date(date);
 		endOfDay.setHours(23, 59, 59, 999);
 
-		// Get previous day's date
-		const previousDate = new Date(date);
-		previousDate.setDate(previousDate.getDate() - 1);
-
-		// Calculate first_stock (remaining_stock from previous day) - recursive call
-		let firstStock = 0;
-		if (previousDate >= new Date('2024-01-01')) { // Prevent infinite recursion
-			firstStock = await this.getMaterialStockByOutlet(materialId, outletId, previousDate);
-		}
-
-		// Calculate stock_in (approved requests for today)
-		const stockInData = await this.prisma.outletMaterialRequest.aggregate({
+		// Single query: Get ALL stock_in up to and including this date
+		const totalStockInData = await this.prisma.outletMaterialRequest.aggregate({
 			where: {
 				outlet_id: outletId,
 				material_id: materialId,
 				status: 'APPROVED',
 				createdAt: {
-					gte: startOfDay,
 					lte: endOfDay,
 				},
 			},
@@ -212,14 +198,14 @@ export default class MaterialRepository
 				approval_quantity: true,
 			},
 		});
-		const stockIn = stockInData._sum?.approval_quantity || 0;
+		const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
 
-		// Calculate used_stock (global MaterialOut for today)
-		const usedStockData = await this.prisma.materialOut.aggregate({
+		// Single query: Get ALL used_stock up to and including this date
+		// Note: MaterialOut doesn't have outlet_id, so this is global usage
+		const totalUsedData = await this.prisma.materialOut.aggregate({
 			where: {
 				material_id: materialId,
 				used_at: {
-					gte: startOfDay,
 					lte: endOfDay,
 				},
 			},
@@ -227,10 +213,10 @@ export default class MaterialRepository
 				quantity: true,
 			},
 		});
-		const usedStock = usedStockData._sum?.quantity || 0;
+		const totalUsed = totalUsedData._sum?.quantity || 0;
 
-		// Calculate remaining_stock
-		const remainingStock = firstStock + stockIn - usedStock;
+		// Calculate remaining_stock: total received - total used
+		const remainingStock = totalStockIn - totalUsed;
 
 		return remainingStock;
 	}
