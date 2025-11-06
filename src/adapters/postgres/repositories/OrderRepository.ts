@@ -154,10 +154,11 @@ export default class OrderRepository
 				},
 			});
 
-			// Create order items
+			// Create order items with nested items
 			const orderItems = await Promise.all(
-				items.map((item) =>
-					tx.orderItem.create({
+				items.map(async (item) => {
+					// Create parent item
+					const parentItem = await tx.orderItem.create({
 						data: {
 							order_id: order.id,
 							product_id: item.productId,
@@ -165,8 +166,30 @@ export default class OrderRepository
 							price: item.price,
 							is_active: true,
 						},
-					})
-				)
+					});
+
+					// Create sub items (children) if exists
+					const subItemsData = [];
+					if (item.subItems && item.subItems.length > 0) {
+						const createdSubItems = await Promise.all(
+							item.subItems.map((subItem) =>
+								tx.orderItem.create({
+									data: {
+										order_id: order.id,
+										product_id: subItem.productId,
+										quantity: subItem.quantity,
+										price: subItem.price,
+										order_item_root_id: parentItem.id, // Link to parent
+										is_active: true,
+									},
+								})
+							)
+						);
+						subItemsData.push(...createdSubItems);
+					}
+
+					return { ...parentItem, sub_items: subItemsData };
+				})
 			);
 
 			// Return mapped entity with items
@@ -188,6 +211,18 @@ export default class OrderRepository
 					productId: item.product_id,
 					quantity: item.quantity,
 					price: item.price,
+					orderItemRootId: item.order_item_root_id,
+					subItems: item.sub_items?.map(subItem => ({
+						id: subItem.id.toString(),
+						orderId: subItem.order_id.toString(),
+						productId: subItem.product_id,
+						quantity: subItem.quantity,
+						price: subItem.price,
+						orderItemRootId: subItem.order_item_root_id,
+						isActive: subItem.is_active,
+						createdAt: subItem.createdAt,
+						updatedAt: subItem.updatedAt,
+					})),
 					isActive: item.is_active,
 					createdAt: item.createdAt,
 					updatedAt: item.updatedAt,
@@ -223,6 +258,56 @@ export default class OrderRepository
 				take: limit,
 			}),
 			this.getModel().count({ where: { is_active: true } }),
+		]);
+
+		return {
+			orders,
+			total,
+			page,
+			limit,
+			totalPages: Math.ceil(total / limit),
+		};
+	}
+
+	/**
+	 * Get orders by outlet with items and product details (for list)
+	 */
+	async getOrdersByOutlet(outletId: number, page: number = 1, limit: number = 10) {
+		const skip = (page - 1) * limit;
+
+		const [orders, total] = await Promise.all([
+			this.prisma.order.findMany({
+				where: { 
+					is_active: true,
+					outlet_id: outletId,
+				},
+				include: {
+					outlet: true,
+					employee: true,
+					items: {
+						where: {
+							order_item_root_id: null, // Only get parent items
+						},
+						include: {
+							product: true,
+							sub_items: {
+								include: {
+									product: true,
+								},
+							},
+						},
+					},
+				},
+				orderBy: { createdAt: 'desc' },
+				skip,
+				take: limit,
+			}),
+			this.getModel().count({ 
+				where: { 
+					is_active: true,
+					outlet_id: outletId,
+				},
+			}),
 		]);
 
 		return {

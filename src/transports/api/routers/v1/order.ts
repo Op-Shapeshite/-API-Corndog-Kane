@@ -8,6 +8,13 @@ const router = express.Router();
 
 const orderController = new OrderController();
 
+// GET my orders (filtered by outlet_id from token)
+router.get(
+	"/my",
+	authMiddleware,
+	(req, res) => orderController.getMyOrders(req, res)
+);
+
 // GET all orders (with pagination)
 router.get(
 	"/",
