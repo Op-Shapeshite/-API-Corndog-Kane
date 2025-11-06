@@ -41,7 +41,8 @@ export class Service<T extends TEntity> {
 		limit?: number,
 		search?: SearchConfig[],
 		filters?: FilterObject,
-		orderBy?: Record<string, 'asc' | 'desc'>
+		orderBy?: Record<string, 'asc' | 'desc'>,
+		outletId?: number
 	): Promise<PaginationResult<T>> {
 		return this.repository.getAll(page, limit, search, filters, orderBy);
 	}

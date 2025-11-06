@@ -8,12 +8,56 @@ import {
 	PaginatedMaterialStockIn
 } from "../entities/material/material";
 import { Service } from "./Service";
+import { PaginationResult, SearchConfig, FilterObject } from "../repositories/Repository";
 
 export default class MaterialService extends Service<TMaterial | TMaterialWithID> {
 	declare repository: MaterialRepository;
 
 	constructor(repository: MaterialRepository) {
 		super(repository);
+	}
+
+	/**
+	 * Override findAll to add outlet stock
+	 */
+	async findAll(
+		page?: number,
+		limit?: number,
+		search?: SearchConfig[],
+		filters?: FilterObject,
+		orderBy?: Record<string, 'asc' | 'desc'>,
+		outletId?: number
+	): Promise<PaginationResult<TMaterial | TMaterialWithID>> {
+		const result = await super.findAll(page, limit, search, filters, orderBy);
+		
+		// If outletId is provided, add stock field
+		if (outletId) {
+			const today = new Date();
+			
+			// Add stock to each material
+			const dataWithStock = await Promise.all(
+				result.data.map(async (material) => {
+					const materialWithId = material as TMaterialWithID;
+					const stock = await this.repository.getMaterialStockByOutlet(
+						materialWithId.id,
+						outletId,
+						today
+					);
+					
+					return {
+						...materialWithId,
+						stock,
+					};
+				})
+			);
+			
+			return {
+				...result,
+				data: dataWithStock as (TMaterial | TMaterialWithID)[],
+			};
+		}
+		
+		return result;
 	}
 
 	/**

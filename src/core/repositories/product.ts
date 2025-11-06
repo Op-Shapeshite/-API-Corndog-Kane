@@ -5,4 +5,5 @@ import { ProductStockInEntity, ProductWithStocks } from "../entities/inventory/i
 export interface ProductRepository extends Repository<TProduct> {
 	createStockIn(data: ProductStockInEntity): Promise<{ id: number; date: Date }>;
 	getProductWithStocks(productId: number): Promise<ProductWithStocks | null>;
+	getProductStockByOutlet(productId: number, outletId: number, date: Date): Promise<number>;
 }

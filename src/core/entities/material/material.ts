@@ -34,6 +34,7 @@ export type TMaterialUpdate = Partial<TMaterialCreate>;
 export type TMaterialGetResponse = Omit<TMaterialWithID, 'isActive' | 'createdAt' | 'updatedAt' | 'suplierId'> & {
   supplier_id: number;
   is_active: boolean;
+  stock?: number;
   created_at: Date;
   updated_at: Date;
 };

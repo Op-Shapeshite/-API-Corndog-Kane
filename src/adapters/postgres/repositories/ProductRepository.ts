@@ -177,13 +177,74 @@ export class ProductRepository
 			include: {
 				products: true,
 			},
-			orderBy: {
-				date: 'asc',
-			},
-		});
+		orderBy: {
+			date: 'asc',
+		},
+	});
 
-		return dbRecords;
-	}
+	return dbRecords;
 }
 
+/**
+ * Get product remaining stock from outlet for specific date
+ */
+async getProductStockByOutlet(productId: number, outletId: number, date: Date): Promise<number> {
+	// Start of day
+	const startOfDay = new Date(date);
+	startOfDay.setHours(0, 0, 0, 0);
+	
+	// End of day
+	const endOfDay = new Date(date);
+	endOfDay.setHours(23, 59, 59, 999);
 
+	// Get previous day's date
+	const previousDate = new Date(date);
+	previousDate.setDate(previousDate.getDate() - 1);
+
+	// Calculate first_stock (remaining_stock from previous day) - recursive call
+	let firstStock = 0;
+	if (previousDate >= new Date('2024-01-01')) { // Prevent infinite recursion
+		firstStock = await this.getProductStockByOutlet(productId, outletId, previousDate);
+	}
+
+	// Calculate stock_in (approved requests for today)
+	const stockInData = await this.prisma.outletProductRequest.aggregate({
+		where: {
+			outlet_id: outletId,
+			product_id: +productId,
+			status: 'APPROVED',
+			createdAt: {
+				gte: startOfDay,
+				lte: endOfDay,
+			},
+		},
+		_sum: {
+			approval_quantity: true,
+		},
+	});
+	const stockIn = stockInData._sum?.approval_quantity || 0;
+
+	// Calculate sold_stock (orders for today)
+	const soldStockData = await this.prisma.orderItem.aggregate({
+		where: {
+			product_id: +productId,
+			order: {
+				outlet_id: outletId,
+				createdAt: {
+					gte: startOfDay,
+					lte: endOfDay,
+				},
+			},
+		},
+		_sum: {
+			quantity: true,
+		},
+	});
+	const soldStock = soldStockData._sum?.quantity || 0;
+
+	// Calculate remaining_stock
+	const remainingStock = firstStock + stockIn - soldStock;
+
+	return remainingStock;
+}
+}

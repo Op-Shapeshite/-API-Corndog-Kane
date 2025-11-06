@@ -13,7 +13,7 @@ export const ProductCategoryMapperEntity: EntityMapConfig = {
       dbField: "products",
       entityField: "products",
       mapper: (rel) => {
-        const products = rel as Array<{
+        const product = rel as {
           id: number;
           name: string;
           image_path?: string | null;
@@ -22,8 +22,8 @@ export const ProductCategoryMapperEntity: EntityMapConfig = {
           is_active: boolean;
           createdAt: Date;
           updatedAt: Date;
-        }>;
-        return products.map((product) => ({
+        };
+        return {
           id: product.id,
           name: product.name,
           imagePath: product.image_path ?? null,
@@ -32,7 +32,7 @@ export const ProductCategoryMapperEntity: EntityMapConfig = {
           isActive: product.is_active,
           createdAt: product.createdAt,
           updatedAt: product.updatedAt,
-        }));
+        };
       } ,
       isArray: true,
 
