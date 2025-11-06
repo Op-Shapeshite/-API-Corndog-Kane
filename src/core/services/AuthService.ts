@@ -13,7 +13,7 @@ export class AuthService extends Service<TUser> {
 
   async login(credentials: TLoginRequest,metadata:{ipAddress:string,userAgent:string}): Promise<TLoginResponse | null> {
     const user = await this.repository.findByUsername(credentials.username);
-    
+    console.log('AuthService login - user found:', user);
     if (!user) {
       return null;
     }

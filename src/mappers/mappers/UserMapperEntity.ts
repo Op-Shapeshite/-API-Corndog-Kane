@@ -18,6 +18,15 @@ export const UserMapperEntity: EntityMapConfig = {
   ],
   relations: [
     {
+      dbField: 'outlets',
+      entityField: 'outlets',
+      mapper: (rel) => {
+        const outlet = rel as { id: number } | null;
+        if (!outlet) return null;
+        return { id: outlet.id };
+      }
+    },
+    {
       dbField: 'role',
       entityField: 'role',
       mapper: (rel) => {
