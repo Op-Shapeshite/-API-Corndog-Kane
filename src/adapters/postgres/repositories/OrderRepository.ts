@@ -329,6 +329,32 @@ export default class OrderRepository
 				outlet: true,
 				employee: true,
 				items: {
+					where: {
+						order_item_root_id: null, // Only get parent items
+					},
+					include: {
+						product: true,
+						sub_items: {
+							include: {
+								product: true,
+							},
+						},
+					},
+				},
+			},
+		});
+	}
+
+	/**
+	 * Get single order for WebSocket broadcast (with category for grouping)
+	 */
+	async getOrderForBroadcast(orderId: number) {
+		return await this.prisma.order.findUnique({
+			where: { id: orderId },
+			include: {
+				outlet: true,
+				employee: true,
+				items: {
 					include: {
 						product: {
 							include: {
