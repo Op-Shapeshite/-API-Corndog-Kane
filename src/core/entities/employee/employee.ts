@@ -66,10 +66,10 @@ export type TEmployeeUpdateRequest = Partial<TEmployeeCreateRequest>;
 
 export type TEmployeeGetResponse = Omit<TEmployee, "isActive" | "createdAt" | "updatedAt" | "provinceId" | "cityId" | "districtId" | "subdistrictId" | "meritalStatus" | "birthDate" | "birthPlace" | "bloodType" | "workType" | "imagePath" | "hireDate"> & {
   is_active: boolean;
-  province_id: bigint;
-  city_id: bigint;
-  district_id: bigint;
-  subdistrict_id: bigint;
+  province_id: string;
+  city_id: string;
+  district_id: string;
+  subdistrict_id: string;
   merital_status: MeritalStatus;
   birth_date: Date;
   birth_place: string;
