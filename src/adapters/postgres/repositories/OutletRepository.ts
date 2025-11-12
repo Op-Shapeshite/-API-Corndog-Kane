@@ -339,12 +339,7 @@ export default class OutletRepository
 
     for (const date of dates) {
       const currentDateObj = new Date(date);
-      const startOfDay = new Date(currentDateObj);
-      startOfDay.setHours(0, 0, 0, 0);
       
-      const endOfDay = new Date(currentDateObj);
-      endOfDay.setHours(23, 59, 59, 999);
-
       const previousDate = new Date(currentDateObj);
       previousDate.setDate(previousDate.getDate() - 1);
       const previousDateStr = previousDate.toISOString().split('T')[0];
@@ -357,42 +352,31 @@ export default class OutletRepository
         const firstStock = previousDayIndex >= 0 ? allRecords[previousDayIndex].remaining_stock : 0;
 
         // Calculate stock_in (approved outlet requests for this day)
-        const stockInData = await this.prisma.outletProductRequest.aggregate({
-          where: {
-            product_id: product.id,
-            outlet_id: outletId,
-            status: 'APPROVED',
-            createdAt: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-            is_active: true,
-          },
-          _sum: {
-            approval_quantity: true,
-          },
-        });
-        const stockIn = stockInData._sum.approval_quantity || 0;
+        // Use DATE(updatedAt) for timezone-safe date comparison
+        const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+          SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
+          FROM "outlet_requests"
+          WHERE "product_id" = ${product.id}
+            AND "outlet_id" = ${outletId}
+            AND "status" = 'APPROVED'
+            AND "is_active" = true
+            AND DATE("updatedAt") = ${date}::date
+        `;
+        const stockIn = Number(stockInResult[0]?.total || 0);
 
         // Calculate sold_stock (order items for this day)
-        const soldStockData = await this.prisma.orderItem.aggregate({
-          where: {
-            product_id: product.id,
-            order: {
-              outlet_id: outletId,
-              createdAt: {
-                gte: startOfDay,
-                lte: endOfDay,
-              },
-              is_active: true,
-            },
-            is_active: true,
-          },
-          _sum: {
-            quantity: true,
-          },
-        });
-        const soldStock = soldStockData._sum.quantity || 0;
+        // Use DATE(createdAt) for timezone-safe date comparison
+        const soldStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+          SELECT COALESCE(SUM(oi."quantity"), 0)::bigint as total
+          FROM "order_items" oi
+          INNER JOIN "orders" o ON oi."order_id" = o."id"
+          WHERE oi."product_id" = ${product.id}
+            AND o."outlet_id" = ${outletId}
+            AND o."is_active" = true
+            AND oi."is_active" = true
+            AND DATE(o."createdAt") = ${date}::date
+        `;
+        const soldStock = Number(soldStockResult[0]?.total || 0);
 
         
         // Calculate remaining_stock
@@ -469,11 +453,6 @@ export default class OutletRepository
 
     for (const date of dates) {
       const currentDateObj = new Date(date);
-      const startOfDay = new Date(currentDateObj);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(currentDateObj);
-      endOfDay.setHours(23, 59, 59, 999);
 
       const previousDate = new Date(currentDateObj);
       previousDate.setDate(previousDate.getDate() - 1);
@@ -487,39 +466,27 @@ export default class OutletRepository
         const firstStock = previousDayIndex >= 0 ? allRecords[previousDayIndex].remaining_stock : 0;
 
         // Calculate stock_in (approved outlet material requests for this day)
-        const stockInData = await this.prisma.outletMaterialRequest.aggregate({
-          where: {
-            material_id: material.id,
-            outlet_id: outletId,
-            status: 'APPROVED',
-            createdAt: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-            is_active: true,
-          },
-          _sum: {
-            approval_quantity: true,
-          },
-        });
-        const stockIn = stockInData._sum.approval_quantity || 0;
+        // Use DATE(updatedAt) for timezone-safe date comparison
+        const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+          SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
+          FROM "outlet_material_requests"
+          WHERE "material_id" = ${material.id}
+            AND "outlet_id" = ${outletId}
+            AND "status" = 'APPROVED'
+            AND "is_active" = true
+            AND DATE("updatedAt") = ${date}::date
+        `;
+        const stockIn = Number(stockInResult[0]?.total || 0);
 
         // Calculate used_stock (material out for this day)
-        // Note: MaterialOut doesn't have outlet_id, so we get all usage globally
-        // If you want outlet-specific tracking, the schema needs to be modified
-        const usedStockData = await this.prisma.materialOut.aggregate({
-          where: {
-            material_id: material.id,
-            used_at: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-          },
-          _sum: {
-            quantity: true,
-          },
-        });
-        const usedStock = usedStockData._sum.quantity || 0;
+        // Use DATE(used_at) for timezone-safe date comparison
+        const usedStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
+          SELECT COALESCE(SUM("quantity"), 0)::bigint as total
+          FROM "material_outs"
+          WHERE "material_id" = ${material.id}
+            AND DATE("used_at") = ${date}::date
+        `;
+        const usedStock = Number(usedStockResult[0]?.total || 0);
 
         // Calculate remaining_stock
         const remainingStock = firstStock + stockIn - usedStock;
