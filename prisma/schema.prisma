@@ -120,6 +120,7 @@ model Product {
   image_path  String?
   description String?
   price       Float
+  hpp        Float                   @default(0)
   category_id Int
   category    ProductCategory        @relation(fields: [category_id], references: [id])
   is_active   Boolean                @default(true)

@@ -817,5 +817,77 @@ export default class OutletRepository
 
     return result.count;
   }
+
+  /**
+   * Get outlet financial summary (income, profit, sold products)
+   */
+  async getOutletSummarize(
+    outletId: number,
+    fromDate?: Date,
+    toDate?: Date,
+    status?: string
+  ): Promise<{
+    outlet_id: number;
+    total_income: number;
+    total_expenses: number;
+    total_profit: number;
+    total_sold_quantity: number;
+  }> {
+    // Build where clause for orders
+    const whereOrder: Record<string, unknown> = {
+      outlet_id: outletId,
+    };
+
+    if (fromDate || toDate) {
+      whereOrder.createdAt = {};
+      if (fromDate) {
+        (whereOrder.createdAt as Record<string, Date>).gte = fromDate;
+      }
+      if (toDate) {
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        (whereOrder.createdAt as Record<string, Date>).lte = endOfDay;
+      }
+    }
+
+    if (status) {
+      whereOrder.status = status;
+    }
+
+    // Get all order items for this outlet with product details
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: {
+        order: whereOrder,
+      },
+      include: {
+        product: true,
+        order: true,
+      },
+    });
+
+    // Calculate totals
+    let totalIncome = 0;
+    let totalProfit = 0;
+    let totalSoldQuantity = 0;
+
+    for (const item of orderItems) {
+      const itemTotal = item.price * item.quantity;
+      // Access hpp from product - Product model includes this field
+      const productHpp = item.product.hpp as number || 0;
+      const itemProfit = ((item.price - productHpp) * item.quantity);
+
+      totalIncome += itemTotal;
+      totalProfit += itemProfit;
+      totalSoldQuantity += item.quantity;
+    }
+
+    return {
+      outlet_id: outletId,
+      total_income: Math.round(totalIncome),
+      total_expenses: 0,
+      total_profit: Math.round(totalProfit),
+      total_sold_quantity: totalSoldQuantity,
+    };
+  }
 }
 
