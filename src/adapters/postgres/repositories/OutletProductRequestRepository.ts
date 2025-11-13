@@ -17,24 +17,24 @@ export class OutletProductRequestRepository
   async findByOutletId(outletId: number): Promise<TOutletProductRequest[]> {
     const dbRecords = await this.prisma.outletProductRequest.findMany({
       where: {
-        outlet_id: outletId,
-        is_active: true,
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
+      outlet_id: outletId,
+      is_active: true,
+    },
+    include: {
+      product: {
+        include: {
+          product_master: {
+            select: {
+              name: true,
+            },
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    // Map to entity using EntityMapper
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });    // Map to entity using EntityMapper
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -50,10 +50,12 @@ export class OutletProductRequestRepository
       where: { id },
       include: {
         product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
+          include: {
+            product_master: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         outlet: {
@@ -88,10 +90,12 @@ export class OutletProductRequestRepository
       },
       include: {
         product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
+          include: {
+            product_master: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         outlet: {
@@ -123,10 +127,12 @@ export class OutletProductRequestRepository
       },
       include: {
         product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
+          include: {
+            product_master: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         outlet: {
@@ -172,10 +178,12 @@ export class OutletProductRequestRepository
       },
       include: {
         product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
+          include: {
+            product_master: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         outlet: {
@@ -210,12 +218,14 @@ export class OutletProductRequestRepository
         take,
         include: {
           product: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
+          include: {
+            product_master: {
+              select: {
+                name: true,
+              },
             },
           },
+        },
           outlet: {
             select: {
               id: true,
@@ -367,12 +377,12 @@ export class OutletProductRequestRepository
       },
       include: {
         product: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            description: true,
-            image_path: true,
+          include: {
+            product_master: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         outlet: {

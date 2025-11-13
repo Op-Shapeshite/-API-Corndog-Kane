@@ -2,25 +2,28 @@
 import {  TCategoryGetResponse } from "./category";
 
 export type TProduct = {
-  name: string;
   imagePath?: string | null;
   description?: string | null;
   price: number;
+  name: string;
   categoryId?: number;
   category?: {
     id: number;
     name: string;
     isActive: boolean;
-  };
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
   isActive: boolean;
-}
+};
 export type TProductWithID = TProduct & {
   id: number;
   createdAt: Date;
   updatedAt: Date;
 };
-export type TProductCreate = Omit<TProduct, 'isActive' | 'category' > & {
+export type TProductCreate = Omit<TProduct, 'isActive' | 'masterProduct' > & {
   isActive?: boolean;
+  name: string;
   categoryId: number;
 };
 

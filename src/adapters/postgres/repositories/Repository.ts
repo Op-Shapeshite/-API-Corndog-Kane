@@ -13,8 +13,9 @@ import { TSupplier, TSupplierWithID } from "../../../core/entities/suplier/supli
 import { TMaterial, TMaterialWithID } from "../../../core/entities/material/material";
 import { TOutletProductRequest, TOutletMaterialRequest } from "../../../core/entities/outlet/request";
 import { TOrder } from "../../../core/entities/order/order";
+import { TProduct, TProductWithID } from "../../../core/entities/product/product";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -50,6 +51,7 @@ export interface RelationMapping {
   entityField: string;
   isArray?: boolean;
   mapper: (dbRecord: unknown) => unknown;
+  include?: boolean | object; // Support nested includes
 }
 
 export interface EntityMapConfig {

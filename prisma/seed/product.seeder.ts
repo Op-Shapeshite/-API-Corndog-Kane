@@ -183,23 +183,47 @@ export async function seedProducts() {
   ];
 
   for (const product of products) {
-    const existingProduct = await prisma.product.findFirst({
-      where: { name: product.name }
+    // Check if ProductMaster already exists
+    const existingMaster = await prisma.productMaster.findFirst({
+      where: { 
+        name: product.name,
+        category_id: product.category_id
+      }
     });
 
-    if (existingProduct) {
-      await prisma.product.update({
-        where: { id: existingProduct.id },
+    let masterProductId: number;
+
+    if (existingMaster) {
+      masterProductId = existingMaster.id;
+    } else {
+      // Create new ProductMaster
+      const newMaster = await prisma.productMaster.create({
         data: {
+          name: product.name,
+          category_id: product.category_id,
+          is_active: product.is_active,
+        },
+      });
+      masterProductId = newMaster.id;
+    }
+
+    // Check if Product variant already exists for this master
+    const existingProduct = await prisma.product.findFirst({
+      where: { 
+        product_master_id: masterProductId,
+        description: product.description
+      }
+    });
+
+    if (!existingProduct) {
+      // Create Product variant
+      await prisma.product.create({
+        data: {
+          product_master_id: masterProductId,
           price: product.price,
           description: product.description,
           is_active: product.is_active,
-          category_id: product.category_id,
         },
-      });
-    } else {
-      await prisma.product.create({
-        data: product,
       });
     }
   }

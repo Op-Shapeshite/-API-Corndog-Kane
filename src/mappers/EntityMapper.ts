@@ -21,9 +21,10 @@ export class EntityMapper<T, TDbRecord = Record<string, unknown>> {
       return undefined;
     }
 
-    const includes: Record<string, boolean> = {};
+    const includes: Record<string, boolean | object> = {};
     for (const relation of this.mapConfig.relations) {
-      includes[relation.dbField] = true;
+      // Support nested includes if specified in relation config
+      includes[relation.dbField] = relation.include !== undefined ? relation.include : true;
     }
     
     return includes;

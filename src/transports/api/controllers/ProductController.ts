@@ -11,6 +11,10 @@ import { ProductStockInResponseMapper } from "../../../mappers/response-mappers/
 import fs from "fs";
 import path from "path";
 
+// Legacy interface for product create/update to maintain API compatibility
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LegacyProductInput = any;
+
 export class ProductController extends Controller<TProductGetResponse | TProductStockInResponse | TProductInventoryGetResponse, TMetadataResponse> {
   private productService: ProductService;
 
@@ -30,7 +34,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         categoryId: parseInt(category_id, 10),
         imagePath,
         isActive: true,
-      });
+      } as LegacyProductInput);
 
       return this.getSuccessResponse(
         res,
@@ -82,7 +86,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         categoryId: category_id !== undefined ? parseInt(category_id, 10) : undefined,
         imagePath: imagePath !== null ? imagePath : existingProduct?.imagePath,
         isActive: is_active !== undefined ? Boolean(is_active) : undefined,
-      });
+      } as LegacyProductInput);
 
       return this.getSuccessResponse(
         res,

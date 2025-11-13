@@ -311,11 +311,23 @@ export default class OutletRepository
     endDate?: Date
   ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
     // Get all products
-    const products = await this.prisma.product.findMany({
+    const productsRaw = await this.prisma.product.findMany({
       where: { is_active: true },
-      select: { id: true, name: true },
+      include: {
+        product_master: {
+          select: {
+            name: true,
+          },
+        },
+      },
       orderBy: { id: 'asc' },
     });
+
+    // Map products to include name field
+    const products = productsRaw.map(p => ({
+      ...p,
+      name: p.product_master.name,
+    }));
 
     // Set date range - default last 30 days if not provided
     const end = endDate || new Date();

@@ -113,23 +113,34 @@ model Login {
 // ============================================================================
 // CORE MODULE - Product Master Data
 // ============================================================================
+model ProductMaster {
+  id          Int                   @id @default(autoincrement())
+  name        String  
+  category_id Int
+  category    ProductCategory        @relation(fields: [category_id], references: [id])
+  is_active   Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  products    Product[]
+  inventories ProductInventory[]
+
+  @@map("product_masters")
+}
 
 model Product {
   id          Int                    @id @default(autoincrement())
-  name        String
   image_path  String?
   description String?
   price       Float
-  category_id Int
-  category    ProductCategory        @relation(fields: [category_id], references: [id])
+  product_master_id  Int
+  product_master ProductMaster @relation(fields: [product_master_id], references: [id])
   is_active   Boolean                @default(true)
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   order_items OrderItem[]
   stocks      ProductStock[]
   requests    OutletProductRequest[]
-  inventories ProductInventory[]
-  @@map("products")
+  @@map("product_menus")
 }
 
 model ProductInventory{
@@ -138,7 +149,7 @@ model ProductInventory{
   quantity   Int
   material_id Int
   material   material @relation(fields: [material_id], references: [id])
-  product    Product  @relation(fields: [product_id], references: [id])
+  product    ProductMaster  @relation(fields: [product_id], references: [id])
   createdAt   DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -151,7 +162,7 @@ model ProductCategory {
   is_active Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  products  Product[]
+  products  ProductMaster[]
 
   @@map("product_categories")
 }
