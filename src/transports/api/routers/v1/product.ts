@@ -28,6 +28,12 @@ router.get(
   )
 );
 
+// GET product detail with materials
+router.get(
+  "/:id",
+  productController.getProductDetail
+);
+
 // GET stocks inventory
 router.get(
   "/stock",

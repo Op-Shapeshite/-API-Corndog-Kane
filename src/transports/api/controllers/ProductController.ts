@@ -23,7 +23,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
     this.productService = new ProductService(new ProductRepository());
   }
   createProduct = async (req: Request, res: Response) => {
-    const { name, description, price, category_id } = req.body;
+    const { name, description, price, hpp, category_id } = req.body;
     const imagePath = req.file ? req.file.filename : null;
 
     try {
@@ -31,6 +31,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         name,
         description,
         price: parseFloat(price),
+        hpp: hpp ? parseFloat(hpp) : undefined,
         categoryId: parseInt(category_id, 10),
         imagePath,
         isActive: true,
@@ -177,13 +178,95 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
   addStockIn = async (req: Request, res: Response) => {
     try {
-      const { product_id, quantity, unit_quantity } = req.body;
+      const { product_id, master_product_id, quantity, unit_quantity, products } = req.body;
+      const productRepo = new ProductRepository();
 
-      // Service returns entity (TProductStockIn)
+      let finalProductId: number;
+      let finalMasterProductId: number;
+
+      // Case 1: Create new master product if products object provided
+      if (products && products.name && products.category_id) {
+        const prisma = productRepo['prisma'];
+        const newMasterProduct = await prisma.productMaster.create({
+          data: {
+            name: products.name,
+            category_id: products.category_id,
+            is_active: true,
+          },
+        });
+        finalMasterProductId = newMasterProduct.id;
+
+        // Create default product for this master
+        const newProduct = await prisma.product.create({
+          data: {
+            product_master_id: newMasterProduct.id,
+            price: 0, // Default price, can be updated later
+            is_active: true,
+          },
+        });
+        finalProductId = newProduct.id;
+      }
+      // Case 2: Use master_product_id to get product
+      else if (master_product_id) {
+        const prisma = productRepo['prisma'];
+        // Find any product with this master_product_id
+        const product = await prisma.product.findFirst({
+          where: { product_master_id: master_product_id },
+        });
+        
+        if (!product) {
+          throw new Error(`No product found for master_product_id ${master_product_id}`);
+        }
+        
+        finalProductId = product.id;
+        finalMasterProductId = master_product_id;
+      }
+      // Case 3: Use product_id directly
+      else if (product_id) {
+        const prisma = productRepo['prisma'];
+        const product = await prisma.product.findUnique({
+          where: { id: product_id },
+          select: { product_master_id: true },
+        });
+        
+        if (!product) {
+          throw new Error(`Product with ID ${product_id} not found`);
+        }
+        
+        finalProductId = product_id;
+        finalMasterProductId = product.product_master_id;
+      } else {
+        throw new Error('Either product_id, master_product_id, or products must be provided');
+      }
+
+      // Get product inventories for this master product
+      const prisma = productRepo['prisma'];
+      const inventories = await prisma.productInventory.findMany({
+        where: { product_id: finalMasterProductId },
+        include: {
+          material: true,
+        },
+      });
+
+      // Create material_out for each inventory
+      for (const inventory of inventories) {
+        const materialOutQuantity = quantity * inventory.quantity;
+        
+        await prisma.materialOut.create({
+          data: {
+            material_id: inventory.material_id,
+            quantity: materialOutQuantity,
+            quantity_unit: unit_quantity || 'pcs',
+            used_at: new Date(),
+          },
+        });
+      }
+
+      // Create product stock in record
       const entity = await this.productService.addStockIn({
-        product_id,
+        product_id: finalProductId,
         quantity,
-        unit_quantity,
+        unit_quantity: unit_quantity || 'pcs',
       });
 
       // Map entity to response using mapper
@@ -195,7 +278,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: responseData,
           metadata: {} as TMetadataResponse,
         },
-        "Product stock in added successfully"
+        "Product stock in added successfully and materials deducted"
       );
     } catch (error) {
       console.error("Error adding product stock in:", error);
@@ -205,6 +288,66 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Failed to add product stock in",
         500,
         {} as TProductStockInResponse,
+        {} as TMetadataResponse
+      );
+    }
+  }
+
+  /**
+   * Get product detail with materials
+   */
+  getProductDetail = async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const productRepo = new ProductRepository();
+      const productWithMaterials = await productRepo.getProductWithMaterials(productId);
+
+      if (!productWithMaterials) {
+        return this.handleError(
+          res,
+          new Error("Product not found"),
+          "Product not found",
+          404,
+          {} as TProductGetResponse,
+          {} as TMetadataResponse
+        );
+      }
+
+      // Map to response format
+      const responseData: TProductGetResponse = {
+        id: productWithMaterials.id,
+        name: productWithMaterials.product_master.name,
+        image_path: productWithMaterials.image_path,
+        description: productWithMaterials.description,
+        price: productWithMaterials.price,
+        hpp: productWithMaterials.hpp,
+        category: productWithMaterials.product_master.category ? {
+          id: productWithMaterials.product_master.category.id,
+          name: productWithMaterials.product_master.category.name,
+          is_active: productWithMaterials.product_master.category.is_active,
+        } : null,
+        is_active: productWithMaterials.is_active,
+        materials: productWithMaterials.materials,
+        created_at: productWithMaterials.createdAt.toISOString(),
+        updated_at: productWithMaterials.updatedAt.toISOString(),
+      };
+
+      return this.getSuccessResponse(
+        res,
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse,
+        },
+        "Product detail retrieved successfully"
+      );
+    } catch (error) {
+      console.error("Error getting product detail:", error);
+      return this.handleError(
+        res,
+        error,
+        "Failed to get product detail",
+        500,
+        {} as TProductGetResponse,
         {} as TMetadataResponse
       );
     }

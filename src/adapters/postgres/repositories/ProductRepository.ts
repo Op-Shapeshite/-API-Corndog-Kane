@@ -38,6 +38,7 @@ export class ProductRepository
 				description: productCreate.description,
 				image_path: productCreate.imagePath,
 				price: productCreate.price,
+				hpp: productCreate.hpp,
 				is_active: item.isActive ?? true,
 			},
 			include: {
@@ -88,6 +89,7 @@ export class ProductRepository
 				...(productUpdate.description !== undefined && { description: productUpdate.description }),
 				...(productUpdate.imagePath !== undefined && { image_path: productUpdate.imagePath }),
 				...(productUpdate.price !== undefined && { price: productUpdate.price }),
+				...(productUpdate.hpp !== undefined && { hpp: productUpdate.hpp }),
 				...(productUpdate.isActive !== undefined && { is_active: productUpdate.isActive }),
 			},
 			include: {
@@ -294,7 +296,49 @@ export class ProductRepository
 				category: record.products.product_master.category,
 			},
 		}));
-	}/**
+	}
+
+	/**
+	 * Get product by ID with materials
+	 */
+	async getProductWithMaterials(id: number): Promise<any> {
+		const product = await this.prisma.product.findUnique({
+			where: { id },
+			include: {
+				product_master: {
+					include: {
+						category: true,
+						inventories: {
+							include: {
+								material: {
+									select: {
+										id: true,
+										name: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		if (!product) return null;
+
+		// Map materials
+		const materials = product.product_master.inventories.map(inv => ({
+			material_id: inv.material_id,
+			material_name: inv.material.name,
+			quantity: inv.quantity,
+		}));
+
+		return {
+			...product,
+			materials,
+		};
+	}
+
+	/**
  * Get product remaining stock from outlet for specific date
  * Optimized: Single aggregate query instead of recursive approach
  */
