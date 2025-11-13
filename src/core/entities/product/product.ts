@@ -5,6 +5,7 @@ export type TProduct = {
   imagePath?: string | null;
   description?: string | null;
   price: number;
+  hpp?: number | null;
   name: string;
   categoryId?: number;
   category?: {
@@ -43,9 +44,15 @@ export type TProductGetResponse = {
   image_path?: string | null;
   description?: string | null;
   price: number;
+  hpp?: number | null;
   category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'>  | null;
   is_active: boolean;
   stock?: number;
+  materials?: Array<{
+    material_id: number;
+    material_name: string;
+    quantity: number;
+  }>;
   created_at: string;
   updated_at: string;
 }

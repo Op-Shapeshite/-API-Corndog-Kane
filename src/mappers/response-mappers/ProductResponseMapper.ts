@@ -8,6 +8,7 @@ export class ProductResponseMapper {
       image_path: product.imagePath,
       description: product.description,
       price: product.price,
+      hpp: product.hpp,
       category: product.category ? {
         id: product.category.id,
         name: product.category.name,

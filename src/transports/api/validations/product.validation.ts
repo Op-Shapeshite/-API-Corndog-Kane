@@ -12,6 +12,16 @@ export const createProductSchema = z.object({
         }
         return num;
       }),
+    hpp: z.string()
+      .optional()
+      .transform((val) => {
+        if (!val) return undefined;
+        const num = Number(val);
+        if (isNaN(num) || num < 0) {
+          throw new Error('HPP must be a positive number');
+        }
+        return num;
+      }),
     category_id: z.string()
       .min(1, 'Category ID is required')
       .transform((val) => {
@@ -67,8 +77,18 @@ export const deleteProductSchema = z.object({
 
 export const productStockInSchema = z.object({
   body: z.object({
-    product_id: z.number().int().positive('Product ID must be a positive integer'),
+    product_id: z.number().int().positive('Product ID must be a positive integer').optional(),
+    master_product_id: z.number().int().positive('Master Product ID must be a positive integer').optional(),
     quantity: z.number().positive('Quantity must be a positive number'),
-    unit_quantity: z.string().min(1, 'Unit quantity is required'),
-  }),
+    unit_quantity: z.string().min(1, 'Unit quantity is required').optional(),
+    products: z.object({
+      name: z.string().min(1, 'Product name is required'),
+      category_id: z.number().int().positive('Category ID must be a positive integer'),
+    }).optional(),
+  }).refine(
+    (data) => data.product_id || data.master_product_id || data.products,
+    {
+      message: 'Either product_id, master_product_id, or products must be provided',
+    }
+  ),
 });
