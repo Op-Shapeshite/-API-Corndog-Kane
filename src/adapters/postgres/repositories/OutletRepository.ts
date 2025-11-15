@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TOutlet, TOutletWithSettings, TOutletStockItem, TMaterialStockItem, TOutletSettingEntity } from "../../../core/entities/outlet/outlet";
 import { TOutletAssignmentWithRelations } from "../../../core/entities/outlet/assignment";
 import { OutletRepository as IOutletRepository } from "../../../core/repositories/outlet";
@@ -177,14 +178,17 @@ export default class OutletRepository
       });
       
       // Update or create settings
-      for (const setting of item.settings) {
+      console.log('Updating/Creating settings for outlet ID:', outletId);
+
+      for (const setting of item.settings as any) {
+        console.log('Processing setting:', setting);
         if (setting.id) {
           // Update existing
           await this.prisma.outletSetting.update({
             where: { id: setting.id },
             data: {
-              check_in_time: setting.checkinTime,
-              check_out_time: setting.checkoutTime,
+              check_in_time: setting.checkin_time,
+              check_out_time: setting.checkout_time,
               salary: setting.salary,
               day: { set: setting.days as DAY[] },
             },
@@ -192,14 +196,14 @@ export default class OutletRepository
         } else {
           // Create new
           await this.prisma.outletSetting.create({
-            data: {
-              outlet_id: outletId,
-              check_in_time: setting.checkinTime,
-              check_out_time: setting.checkoutTime,
-              salary: setting.salary,
-              day: { set: setting.days as DAY[] },
-            },
-          });
+			data: {
+				outlet_id: outletId,
+				check_in_time: setting.checkin_time,
+				check_out_time: setting.checkout_time,
+				salary: setting.salary,
+				day: { set: setting.days as DAY[] },
+			},
+		});
         }
       }
     }
