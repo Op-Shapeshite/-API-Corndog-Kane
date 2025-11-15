@@ -84,9 +84,8 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
 
   async updateProductInventory(
     masterProductId: number, 
-    materialId: number, 
     data: TProductInventoryUpdateRequest
   ): Promise<any> {
-    return await this.repository.updateProductInventory(masterProductId, materialId, data);
+    return await this.repository.updateProductInventory(masterProductId, data);
   }
 }
