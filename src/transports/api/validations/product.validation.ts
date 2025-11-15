@@ -2,7 +2,15 @@ import z from 'zod';
 
 export const createProductSchema = z.object({
   body: z.object({
-    name: z.string().min(1, 'Product name is required'),
+    master_product_id: z.string()
+      .min(1, 'Master Product ID is required')
+      .transform((val) => {
+        const num = Number(val);
+        if (isNaN(num) || num < 1) {
+          throw new Error('Invalid Master Product ID');
+        }
+        return num;
+      }),
     price: z.string()
       .min(1, 'Price is required')
       .transform((val) => {
@@ -22,15 +30,7 @@ export const createProductSchema = z.object({
         }
         return num;
       }),
-    category_id: z.string()
-      .min(1, 'Category ID is required')
-      .transform((val) => {
-        const num = Number(val);
-        if (isNaN(num) || num < 1) {
-          throw new Error('Invalid category ID');
-        }
-        return num;
-      }),
+    
     description: z.string().optional(),
   }),
 });
@@ -42,7 +42,16 @@ export const updateProductSchema = z.object({
       .transform(Number),
   }),
   body: z.object({
-    name: z.string().min(1, 'Product name is required').optional(),
+    master_product_id: z.union([
+      z.number().min(1, 'Invalid Master Product ID'),
+      z.string().transform((val) => {
+        const num = Number(val);
+        if (isNaN(num) || num < 1) {
+          throw new Error('Invalid Master Product ID');
+        }
+        return num;
+      })
+    ]).optional(),
     description: z.string().optional(),
     price: z.union([
       z.number().min(0, 'Price must be a positive number'),

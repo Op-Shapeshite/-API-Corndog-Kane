@@ -25,14 +25,16 @@ export class ProductRepository
 		let masterProduct;
 		
 		// Check if product_master_id is provided to link to existing master product
-		if (productCreate.product_master_id) {
+		if (productCreate.master_product_id) {
 			// Use existing master product
 			masterProduct = await this.prisma.productMaster.findUnique({
-				where: { id: productCreate.product_master_id }
+				where: { id: +productCreate.master_product_id },
 			});
 			
 			if (!masterProduct) {
-				throw new Error(`Master product with ID ${productCreate.product_master_id} not found`);
+				throw new Error(
+					`Master product with ID ${productCreate.master_product_id} not found`
+				);
 			}
 		} else {
 			// Create new ProductMaster
@@ -44,7 +46,8 @@ export class ProductRepository
 				},
 			});
 		}
-
+		console.log('Created or linked to Master Product:', masterProduct);
+		console.log('Creating Product with data:', productCreate);
 		// Then create Product linking to ProductMaster
 		const created = await this.prisma.product.create({
 			data: {

@@ -18,7 +18,8 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
 
   getAllMasterProducts = async (req: Request, res: Response) => {
     try {
-      const masterProducts = await this.masterProductService.getAll();
+      const {category_id} = req.query;
+      const masterProducts = await this.masterProductService.getAll({category_id:category_id ? parseInt(category_id as string, 10) : undefined});
 
       const mappedResults: TMasterProductGetResponse[] = masterProducts.map(item =>
         MasterProductResponseMapper.toResponse(item)
