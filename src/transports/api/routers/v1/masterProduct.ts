@@ -18,6 +18,6 @@ router.get('/:id/inventory', masterProductController.getProductInventory);
 
 // Create or update product inventory
 router.post('/inventory', validate(productInventoryCreateSchema), masterProductController.createProductInventory);
-router.put('/inventory', validate(productInventoryUpdateSchema), masterProductController.updateProductInventory);
+router.put('/inventory/:id', validate(productInventoryUpdateSchema), masterProductController.updateProductInventory);
 
 export default router;

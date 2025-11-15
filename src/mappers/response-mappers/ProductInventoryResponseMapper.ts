@@ -7,8 +7,6 @@ export class ProductInventoryResponseMapper {
       id: entity.id,
       quantity: entity.quantity,
       material: entity.materials ? entity.materials : [],
-      created_at: entity.createdAt.toString(),
-      updated_at: entity.updatedAt.toString(),
     };
   }
 }

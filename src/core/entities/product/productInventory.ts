@@ -22,14 +22,17 @@ export type TProductInventoryCreateRequest = {
 };
 
 export type TProductInventoryUpdateRequest = {
-  quantity?: number;
-  material_id?: number;
+	unit: string;
+	quantity: number;
+	materials: {
+		material_id: number;
+		quantity: number;
+		unit: string;
+	}[];
 };
 
 export type TProductInventoryGetResponse = {
   id: number;
   quantity: number;
   material: TMaterialGetResponse[];
-  created_at: string;
-  updated_at: string;
 };

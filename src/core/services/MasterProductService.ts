@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TMasterProduct, TMasterProductWithID } from "../entities/product/masterProduct";
 import { MasterProductRepository } from "../../adapters/postgres/repositories/MasterProductRepository";
 import { Service } from "./Service";
@@ -71,7 +72,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       }));
     })));
    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-entiere-file @typescript-eslint/no-explicit-any
     return {
       id: productId!,
       quantity: data.quantity,
@@ -86,6 +87,48 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     masterProductId: number, 
     data: TProductInventoryUpdateRequest
   ): Promise<any> {
-    return await this.repository.updateProductInventory(masterProductId, data);
+
+    const masterProduct = await this.repository.getById(masterProductId); 
+    if (!masterProduct) {
+      throw new Error(`Master product with ID ${masterProductId} not found`);
+    }
+
+    let materialsUpdated: any[] = (await this.repository
+      .getProductInventory(masterProductId))
+      .map(item =>
+      ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
+    );
+    
+    const materials: any[]= data.materials;
+    if (materials && materials.length > 0) {
+       materialsUpdated = materials.map(async (material:any) => new Promise((resolve) => {
+         const inventoryData: any = {
+          material_id: material.material_id,
+          quantity: material.quantity,
+          unit_quantity: material.unit,
+        };
+        resolve(this.repository.updateProductInventory(masterProductId,material.material_id, inventoryData));
+      }
+      ));
+    }
+    await this.productRepository.createStockInProduction(masterProductId, data.quantity, data.unit);
+
+    await Promise.all(
+		materialsUpdated.map(
+			async (material) =>
+				new Promise((resolve) => {
+					resolve(
+						this.materialRepository.createStockOut({
+							materialId: material.material_id,
+							quantityUnit: material.unit,
+							quantity: material.quantity * data.quantity,
+						})
+					);
+				})
+		)
+    );
+    return await Promise.all([...materialsUpdated]);
+
+    // return await this.repository.updateProductInventory(masterProductId, materialId, data);
   }
 }

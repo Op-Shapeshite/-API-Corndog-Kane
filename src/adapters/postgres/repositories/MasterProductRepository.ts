@@ -45,9 +45,9 @@ export class MasterProductRepository
 		});
 	}
 
-	async getById(id: string): Promise<TMasterProductWithID | null> {
+	async getById(id: string | number): Promise<TMasterProductWithID | null> {
 		const record = await this.prisma.productMaster.findUnique({
-			where: { id: parseInt(id, 10) },
+			where: { id: typeof id === "string" ? parseInt(id, 10) : id },
 			include: {
 				category: true,
 			},
@@ -81,6 +81,7 @@ export class MasterProductRepository
 		return inventories.map(inventory => ({
 			id: inventory.id,
 			productId: inventory.product_id,
+			unit_quantity: inventory.unit_quantity,
 			quantity: inventory.quantity,
 			materialId: inventory.material_id,
 			material: {
@@ -118,12 +119,13 @@ export class MasterProductRepository
 		};
 	}
 
-	async updateProductInventory(masterProductId: number, data: TProductInventoryUpdateRequest) {
+	async updateProductInventory(masterProductId: number,materialId:number, data: TProductInventoryUpdateRequest) {
 		// Find the existing product inventory record by product_id and material_id
 		const existing = await this.prisma.productInventory.findFirst({
 			where: {
 				product_id: masterProductId,
-			}
+				material_id: materialId,
+			},
 		});
 		
 		if (!existing) {
