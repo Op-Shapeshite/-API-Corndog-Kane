@@ -105,13 +105,11 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
 
   updateProductInventory = async (req: Request, res: Response) => {
     try {
-      const masterProductId = parseInt(req.params.id, 10);
-      const materialId = parseInt(req.params.materialId, 10);
       const data: TProductInventoryUpdateRequest = req.body;
+      const masterProductId = parseInt(req.params.id, 10);
 
       const inventory = await this.masterProductService.updateProductInventory(
         masterProductId,
-        materialId,
         data
       );
       const mappedResult = ProductInventoryResponseMapper.toResponse(inventory);
