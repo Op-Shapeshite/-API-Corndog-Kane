@@ -258,7 +258,7 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		const sanitizedWhere = sanitizeWhere(where);
 		// Get total count for pagination
 		const total = await model.count({ where: sanitizedWhere });
-		
+		console.log(where);
 		// Get records - if limit is undefined, get all data without skip/take
 		const records = await model.findMany({
 			where: sanitizedWhere,

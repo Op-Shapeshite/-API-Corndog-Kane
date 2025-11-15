@@ -39,16 +39,16 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
     this.productService = new ProductService(new ProductRepository());
   }
   createProduct = async (req: Request, res: Response) => {
-    const { name, description, price, category_id } = req.body;
+    const { description, price ,master_product_id} = req.body;
     const imagePath = req.file ? req.file.filename : null;
 
     try {
       const newProduct = await this.productService.create({
-        name,
+        master_product_id,
         description,
         price: parseFloat(price),
-        categoryId: parseInt(category_id, 10),
         imagePath,
+        hpp: req.body.hpp ? parseFloat(req.body.hpp) : 0,
         isActive: true,
       } as LegacyProductInput);
 

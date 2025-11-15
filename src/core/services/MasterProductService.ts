@@ -17,8 +17,14 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     
   }
 
-  async getAll(): Promise<TMasterProductWithID[]> {
-    const result = await this.repository.getAll();
+  async getAll({category_id}: {category_id?: number}): Promise<TMasterProductWithID[]> {
+    const result = await this.repository.getAll(
+		undefined,
+		undefined,
+      undefined,
+    category_id ? { category_id } : undefined,
+		{ id: "asc" }
+    );
     return result.data as TMasterProductWithID[];
   }
 
@@ -61,7 +67,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       resolve(this.materialRepository.createStockOut({
         materialId: material.material_id,
         quantityUnit: material.unit,
-        quantity: material.quantity,
+        quantity: material.quantity * data.quantity,
       }));
     })));
    
