@@ -2,14 +2,13 @@ import { TProductInventory, TProductInventoryGetResponse } from "../../core/enti
 
 export class ProductInventoryResponseMapper {
   static toResponse(entity: TProductInventory): TProductInventoryGetResponse {
+    console.log(entity);
     return {
       id: entity.id,
-      product_id: entity.productId,
       quantity: entity.quantity,
-      material_id: entity.materialId,
-      material: entity.material,
-      created_at: entity.createdAt.toISOString(),
-      updated_at: entity.updatedAt.toISOString(),
+      material: entity.materials ? entity.materials : [],
+      created_at: entity.createdAt.toString(),
+      updated_at: entity.updatedAt.toString(),
     };
   }
 }

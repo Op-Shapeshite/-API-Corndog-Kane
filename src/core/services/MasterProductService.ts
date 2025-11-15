@@ -2,12 +2,19 @@ import { TMasterProduct, TMasterProductWithID } from "../entities/product/master
 import { MasterProductRepository } from "../../adapters/postgres/repositories/MasterProductRepository";
 import { Service } from "./Service";
 import { TProductInventory, TProductInventoryCreateRequest, TProductInventoryUpdateRequest } from "../entities/product/productInventory";
+import { ProductRepository } from "../../adapters/postgres/repositories/ProductRepository";
+import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
 
 export default class MasterProductService extends Service<TMasterProduct | TMasterProductWithID> {
   declare repository: MasterProductRepository;
+  private productRepository: ProductRepository;
+  private materialRepository: MaterialRepository;
 
   constructor(repository: MasterProductRepository) {
     super(repository);
+    this.materialRepository = new MaterialRepository();
+    this.productRepository = new ProductRepository();
+    
   }
 
   async getAll(): Promise<TMasterProductWithID[]> {
@@ -15,19 +22,65 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     return result.data as TMasterProductWithID[];
   }
 
-  async getProductInventory(masterProductId: number): Promise<TProductInventory[]> {
+  async getProductInventory(masterProductId: number): Promise<any[]> {
     return await this.repository.getProductInventory(masterProductId);
   }
 
   async createProductInventory(data: TProductInventoryCreateRequest): Promise<TProductInventory> {
-    return await this.repository.createProductInventory(data);
+    let productId=data.product_id;
+    if (data.product_id === undefined) {
+      const pyaload: TMasterProduct = {
+        name: data.product_name || "Unnamed Product",
+        categoryId: data.category_id, // Default category, adjust as needed
+        isActive: true,
+      };
+      const createdMasterProduct = await this.repository.create(pyaload);
+      productId = createdMasterProduct.id;
+
+    }
+    data.product_id = productId!;
+    const materials = data.materials;
+    // Here you might want to create entries in a product inventory table for each material
+    // associated with the master product. This depends on your database schema.
+    const materialsCreaated = materials.map(async (material) => new Promise( (resolve) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inventoryData: any = {
+        product_id: productId!,
+        material_id: material.material_id,
+        quantity: material.quantity,
+        unit_quantity: material.unit,
+      };
+      resolve(this.repository.createProductInventory(inventoryData));
+    }));
+    this.productRepository.createStockInProduction(
+      productId!,
+      data.quantity,
+      data.unit,
+    )
+    await Promise.all(materials.map(async (material) => new Promise( (resolve) => {
+      resolve(this.materialRepository.createStockOut({
+        materialId: material.material_id,
+        quantityUnit: material.unit,
+        quantity: material.quantity,
+      }));
+    })));
+   
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return {
+      id: productId!,
+      quantity: data.quantity,
+      materials: (await Promise.all(materialsCreaated)).map((m:any) => (m.materials))as any[],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    // return await this.repository.createProductInventory(data);
   }
 
   async updateProductInventory(
     masterProductId: number, 
     materialId: number, 
     data: TProductInventoryUpdateRequest
-  ): Promise<TProductInventory> {
+  ): Promise<any> {
     return await this.repository.updateProductInventory(masterProductId, materialId, data);
   }
 }

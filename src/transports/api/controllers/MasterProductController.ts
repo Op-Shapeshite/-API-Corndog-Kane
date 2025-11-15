@@ -75,13 +75,11 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
 
   createProductInventory = async (req: Request, res: Response) => {
     try {
-      const masterProductId = parseInt(req.params.id, 10);
-      const data: TProductInventoryCreateRequest = {
-        ...req.body,
-        product_id: masterProductId,
-      };
+
+      const data: TProductInventoryCreateRequest = req.body;
 
       const inventory = await this.masterProductService.createProductInventory(data);
+      console.log(inventory)
       const mappedResult = ProductInventoryResponseMapper.toResponse(inventory);
 
       return this.getSuccessResponse(
