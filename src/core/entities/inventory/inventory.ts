@@ -168,6 +168,7 @@ export type ProductStockInEntity = {
 	productId: number;
 	quantity: number;
 	price: number;
+	quantityUnit: string;
 	supplierId: number;
 	sourceFrom: "PURCHASE";
 };

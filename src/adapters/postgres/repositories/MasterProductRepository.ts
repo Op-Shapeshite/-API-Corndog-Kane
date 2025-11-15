@@ -118,17 +118,16 @@ export class MasterProductRepository
 		};
 	}
 
-	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
+	async updateProductInventory(masterProductId: number, data: TProductInventoryUpdateRequest) {
 		// Find the existing product inventory record by product_id and material_id
 		const existing = await this.prisma.productInventory.findFirst({
 			where: {
 				product_id: masterProductId,
-				material_id: materialId,
 			}
 		});
 		
 		if (!existing) {
-			throw new Error(`Product inventory for product ${masterProductId} and material ${materialId} not found`);
+			throw new Error(`Product inventory for product ${masterProductId} and material not found`);
 		}
 		
 		const updated = await this.prisma.productInventory.update({
