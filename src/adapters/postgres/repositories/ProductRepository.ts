@@ -149,7 +149,7 @@ export class ProductRepository
 	/**
 	 * Create product stock in record (PRODUCTION - no detail)
 	 */
-	async createStockInProduction(productId: number, quantity: number): Promise<{ id: number; date: Date }> {
+	async createStockInProduction(productId: number, quantity: number,unit:string): Promise<{ id: number; date: Date }> {
 		const now = new Date();
 		
 		// Create stock record without detail (PRODUCTION source)
@@ -157,6 +157,7 @@ export class ProductRepository
 			data: {
 				product_id: productId,
 				quantity: quantity,
+				units: unit,
 				date: now,
 				source_from: "PRODUCTION",
 			},
@@ -209,12 +210,16 @@ export class ProductRepository
 		const product = await this.prisma.product.findUnique({
 			where: { id: productId },
 			include: {
-				product_master: true,
-				stocks: {
+				product_master: {
 					include: {
-						detail: true,
+						stocks: {
+							include: {
+								detail: true,
+							},
+						},
 					},
 				},
+				
 			},
 		});
 
@@ -229,7 +234,7 @@ export class ProductRepository
 			price: product.price,
 			categoryId: mappedProduct.categoryId || 0,
 			isActive: product.is_active,
-			stocks: product.stocks.map(stock => ({
+			stocks: product.product_master.stocks.map(stock => ({
 				id: stock.id,
 				quantity: stock.quantity,
 				date: stock.date,
@@ -287,11 +292,8 @@ export class ProductRepository
 			include: {
 				products: {
 					include: {
-						product_master: {
-							include: {
-								category: true,
-							},
-						},
+						category: true,
+						
 					},
 				},
 			},
@@ -305,9 +307,9 @@ export class ProductRepository
 			...record,
 			products: {
 				...record.products,
-				name: record.products.product_master.name,
-				categoryId: record.products.product_master.category_id,
-				category: record.products.product_master.category,
+				name: record.products.name,
+				categoryId: record.products.category_id,
+				category: record.products.category,
 			},
 		}));
 	}/**

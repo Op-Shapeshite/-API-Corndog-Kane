@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TMasterProduct, TMasterProductWithID } from "../../../core/entities/product/masterProduct";
 import { MasterProductRepository as IMasterProductRepository } from "../../../core/repositories/masterProduct";
 import Repository from "./Repository";
 import { ProductMaster, ProductCategory as Category} from "@prisma/client";
-import {  TProductInventoryCreateRequest, TProductInventoryUpdateRequest } from "../../../core/entities/product/productInventory";
+import {   TProductInventoryUpdateRequest } from "../../../core/entities/product/productInventory";
 
 export class MasterProductRepository
 	extends Repository<TMasterProduct | TMasterProductWithID>
@@ -95,11 +96,13 @@ export class MasterProductRepository
 		}));
 	}
 
-	async createProductInventory(data: TProductInventoryCreateRequest) {
+	async createProductInventory(data: any) {
+		console.log(data);
 		const created = await this.prisma.productInventory.create({
 			data: {
 				product_id: data.product_id,
 				quantity: data.quantity,
+				unit_quantity: data.unit_quantity,
 				material_id: data.material_id,
 			},
 			include: {
@@ -109,17 +112,7 @@ export class MasterProductRepository
 
 		return {
 			id: created.id,
-			productId: created.product_id,
-			quantity: created.quantity,
-			materialId: created.material_id,
-			material: {
-				id: created.material.id,
-				name: created.material.name,
-				supplier_id: created.material.suplier_id,
-				is_active: created.material.is_active,
-				created_at: created.material.createdAt,
-				updated_at: created.material.updatedAt,
-			},
+			materials:created.material,
 			createdAt: created.createdAt,
 			updatedAt: created.updatedAt,
 		};

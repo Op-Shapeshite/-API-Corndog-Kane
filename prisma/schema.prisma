@@ -123,6 +123,7 @@ model ProductMaster {
   updatedAt   DateTime               @updatedAt
   products    Product[]
   inventories ProductInventory[]
+  stocks      ProductStock[]
 
   @@map("product_masters")
 }
@@ -139,7 +140,6 @@ model Product {
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   order_items OrderItem[]
-  stocks      ProductStock[]
   requests    OutletProductRequest[]
   @@map("product_menus")
 }
@@ -149,6 +149,7 @@ model ProductInventory{
   product_id Int
   quantity   Int
   material_id Int
+  unit_quantity String
   material   material @relation(fields: [material_id], references: [id])
   product    ProductMaster  @relation(fields: [product_id], references: [id])
   createdAt   DateTime @default(now())
@@ -302,7 +303,9 @@ model MaterialOut {
 model ProductStock {
   id          Int           @id @default(autoincrement())
   product_id  Int
-  products    Product       @relation(fields: [product_id], references: [id])
+  products    ProductMaster @relation(fields: [product_id], references: [id])
+  is_active   Boolean      @default(true)
+  units       String       @default("pcs")
   quantity    Int           @default(0)
   date        DateTime
   source_from PRODUCTSOURCE @default(PRODUCTION)

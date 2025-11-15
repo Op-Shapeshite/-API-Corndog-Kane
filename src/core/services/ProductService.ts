@@ -89,7 +89,8 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     // Create stock in record with PRODUCTION source
     const stockInRecord = await this.repository.createStockInProduction(
       data.product_id,
-      data.quantity
+      data.quantity,
+      data.unit_quantity
     );
 
     // Get product with stocks to calculate current stock
