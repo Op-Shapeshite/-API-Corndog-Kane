@@ -17,20 +17,15 @@ export const productInventoryCreateSchema = z.object({
 });
 
 export const productInventoryUpdateSchema = z.object({
+  params: z.object({
+    id: z.string().min(1,"id must be required"),
+  }),
 	body: z.object({
-		product_id: z
-			.number()
-			.int()
-			.positive("Product ID must be a positive integer")
-			.optional(),
+		
 		quantity: z
 			.number("Quantity must be a integer"),
 		unit: z.string().min(1, "Unit is required"),
-		category_id: z
-			.number()
-			.int()
-			.positive("Category ID must be a positive integer"),
-
+		
 		materials: z.array(
 			z.object({
 				material_id: z
@@ -45,6 +40,6 @@ export const productInventoryUpdateSchema = z.object({
 					),
 				unit: z.string().min(1, "Material unit is required"),
 			})
-		),
+		).optional(),
 	}),
 });

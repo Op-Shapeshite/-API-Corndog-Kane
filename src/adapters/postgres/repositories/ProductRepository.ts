@@ -17,20 +17,22 @@ export class ProductRepository
 	/**
 	 * Override create to handle ProductMaster creation
 	 */
-	async create(item: TProduct | TProductWithID): Promise<TProduct | TProductWithID> {
+	async create(
+		item: TProduct | TProductWithID
+	): Promise<TProduct | TProductWithID> {
 		// Extract the fields that should be in ProductMaster
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productCreate = item as any; // Type assertion for legacy interface compatibility
 
 		let masterProduct;
-		
+
 		// Check if product_master_id is provided to link to existing master product
 		if (productCreate.master_product_id) {
 			// Use existing master product
 			masterProduct = await this.prisma.productMaster.findUnique({
 				where: { id: +productCreate.master_product_id },
 			});
-			
+
 			if (!masterProduct) {
 				throw new Error(
 					`Master product with ID ${productCreate.master_product_id} not found`
@@ -46,8 +48,8 @@ export class ProductRepository
 				},
 			});
 		}
-		console.log('Created or linked to Master Product:', masterProduct);
-		console.log('Creating Product with data:', productCreate);
+		console.log("Created or linked to Master Product:", masterProduct);
+		console.log("Creating Product with data:", productCreate);
 		// Then create Product linking to ProductMaster
 		const created = await this.prisma.product.create({
 			data: {
@@ -73,7 +75,10 @@ export class ProductRepository
 	/**
 	 * Override update to handle ProductMaster updates
 	 */
-	async update(id: string, item: Partial<TProduct | TProductWithID>): Promise<TProduct | TProductWithID> {
+	async update(
+		id: string,
+		item: Partial<TProduct | TProductWithID>
+	): Promise<TProduct | TProductWithID> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productUpdate = item as any; // Type assertion for legacy interface compatibility
 		const numericId = parseInt(id, 10);
@@ -89,12 +94,19 @@ export class ProductRepository
 		}
 
 		// Update ProductMaster if name or categoryId is provided
-		if (productUpdate.name !== undefined || productUpdate.categoryId !== undefined) {
+		if (
+			productUpdate.name !== undefined ||
+			productUpdate.categoryId !== undefined
+		) {
 			await this.prisma.productMaster.update({
 				where: { id: existing.product_master_id },
 				data: {
-					...(productUpdate.name !== undefined && { name: productUpdate.name }),
-					...(productUpdate.categoryId !== undefined && { category_id: productUpdate.categoryId }),
+					...(productUpdate.name !== undefined && {
+						name: productUpdate.name,
+					}),
+					...(productUpdate.categoryId !== undefined && {
+						category_id: productUpdate.categoryId,
+					}),
 				},
 			});
 		}
@@ -103,11 +115,21 @@ export class ProductRepository
 		const updated = await this.prisma.product.update({
 			where: { id: numericId },
 			data: {
-				...(productUpdate.description !== undefined && { description: productUpdate.description }),
-				...(productUpdate.imagePath !== undefined && { image_path: productUpdate.imagePath }),
-				...(productUpdate.price !== undefined && { price: productUpdate.price }),
-				...(productUpdate.hpp !== undefined && { hpp: productUpdate.hpp }), // Add HPP field
-				...(productUpdate.isActive !== undefined && { is_active: productUpdate.isActive }),
+				...(productUpdate.description !== undefined && {
+					description: productUpdate.description,
+				}),
+				...(productUpdate.imagePath !== undefined && {
+					image_path: productUpdate.imagePath,
+				}),
+				...(productUpdate.price !== undefined && {
+					price: productUpdate.price,
+				}),
+				...(productUpdate.hpp !== undefined && {
+					hpp: productUpdate.hpp,
+				}), // Add HPP field
+				...(productUpdate.isActive !== undefined && {
+					is_active: productUpdate.isActive,
+				}),
 			},
 			include: {
 				product_master: {
@@ -124,9 +146,11 @@ export class ProductRepository
 	/**
 	 * Create product stock in record (PURCHASE only)
 	 */
-	async createStockIn(data: ProductStockInEntity): Promise<{ id: number; date: Date }> {
+	async createStockIn(
+		data: ProductStockInEntity
+	): Promise<{ id: number; date: Date }> {
 		const now = new Date();
-		
+
 		// Create stock record
 		const stock = await this.prisma.productStock.create({
 			data: {
@@ -138,8 +162,8 @@ export class ProductRepository
 					create: {
 						price: data.price,
 						supplier_id: data.supplierId,
-					}
-				}
+					},
+				},
 			},
 		});
 
@@ -152,9 +176,13 @@ export class ProductRepository
 	/**
 	 * Create product stock in record (PRODUCTION - no detail)
 	 */
-	async createStockInProduction(productId: number, quantity: number,unit:string): Promise<{ id: number; date: Date }> {
+	async createStockInProduction(
+		productId: number,
+		quantity: number,
+		unit: string
+	): Promise<{ id: number; date: Date }> {
 		const now = new Date();
-		
+
 		// Create stock record without detail (PRODUCTION source)
 		const stock = await this.prisma.productStock.create({
 			data: {
@@ -175,7 +203,10 @@ export class ProductRepository
 	/**
 	 * Update product stock in record
 	 */
-	async updateStockIn(id: number, data: Omit<ProductStockInEntity, 'sourceFrom'>): Promise<void> {
+	async updateStockIn(
+		id: number,
+		data: Omit<ProductStockInEntity, "sourceFrom">
+	): Promise<void> {
 		await this.prisma.productStock.update({
 			where: { id },
 			data: {
@@ -186,9 +217,24 @@ export class ProductRepository
 					update: {
 						price: data.price,
 						supplier_id: data.supplierId,
-					}
-				}
+					},
+				},
 			},
+		});
+	}
+	async updateStock(
+		id: number,
+		data: Omit<ProductStockInEntity, "sourceFrom">
+	): Promise<void> {
+		await this.prisma.productStock.update({
+			where: { id },
+			data: {
+				product_id: data.productId,
+				quantity: data.quantity,
+				units: data.quantityUnit,
+			
+				},
+			
 		});
 	}
 
@@ -200,7 +246,7 @@ export class ProductRepository
 		await this.prisma.productStockDetail.deleteMany({
 			where: { stock_id: id },
 		});
-		
+
 		// Then delete stock
 		await this.prisma.productStock.delete({
 			where: { id },
@@ -210,7 +256,9 @@ export class ProductRepository
 	/**
 	 * Get product with all stock records
 	 */
-	async getProductWithStocks(productId: number): Promise<ProductWithStocks | null> {
+	async getProductWithStocks(
+		productId: number
+	): Promise<ProductWithStocks | null> {
 		const product = await this.prisma.product.findUnique({
 			where: { id: productId },
 			include: {
@@ -223,7 +271,6 @@ export class ProductRepository
 						},
 					},
 				},
-				
 			},
 		});
 
@@ -238,15 +285,17 @@ export class ProductRepository
 			price: product.price,
 			categoryId: mappedProduct.categoryId || 0,
 			isActive: product.is_active,
-			stocks: product.product_master.stocks.map(stock => ({
+			stocks: product.product_master.stocks.map((stock) => ({
 				id: stock.id,
 				quantity: stock.quantity,
 				date: stock.date,
 				sourceFrom: stock.source_from as "PURCHASE" | "PRODUCTION",
-				detail: stock.detail ? {
-					price: stock.detail.price,
-					supplierId: stock.detail.supplier_id,
-				} : null,
+				detail: stock.detail
+					? {
+							price: stock.detail.price,
+							supplierId: stock.detail.supplier_id,
+					  }
+					: null,
 			})),
 		};
 	}
@@ -272,7 +321,7 @@ export class ProductRepository
 					},
 				},
 				orderBy: {
-					date: 'desc', // Newest first
+					date: "desc", // Newest first
 				},
 			}),
 			this.prisma.productStock.count({
@@ -297,17 +346,16 @@ export class ProductRepository
 				products: {
 					include: {
 						category: true,
-						
 					},
 				},
 			},
 			orderBy: {
-				date: 'asc',
+				date: "asc",
 			},
 		});
 
 		// Map products to have name field from product_master
-		return dbRecords.map(record => ({
+		return dbRecords.map((record) => ({
 			...record,
 			products: {
 				...record.products,
@@ -316,104 +364,117 @@ export class ProductRepository
 				category: record.products.category,
 			},
 		}));
-	}/**
- * Get product remaining stock from outlet for specific date
- * Optimized: Single aggregate query instead of recursive approach
- */
-async getProductStockByOutlet(productId: number, outletId: number, date: Date): Promise<number> {
-	// End of day for the given date
-	const endOfDay = new Date(date);
-	endOfDay.setHours(23, 59, 59, 999);
+	}
+	/**
+	 * Get product remaining stock from outlet for specific date
+	 * Optimized: Single aggregate query instead of recursive approach
+	 */
+	async getProductStockByOutlet(
+		productId: number,
+		outletId: number,
+		date: Date
+	): Promise<number> {
+		// End of day for the given date
+		const endOfDay = new Date(date);
+		endOfDay.setHours(23, 59, 59, 999);
 
-	// Single query: Get ALL stock_in up to and including this date
-	const totalStockInData = await this.prisma.outletProductRequest.aggregate({
-		where: {
-			outlet_id: outletId,
-			product_id: +productId,
-			status: 'APPROVED',
-			createdAt: {
-				lte: endOfDay,
-			},
-		},
-		_sum: {
-			approval_quantity: true,
-		},
-	});
-	const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
+		// Single query: Get ALL stock_in up to and including this date
+		const totalStockInData =
+			await this.prisma.outletProductRequest.aggregate({
+				where: {
+					outlet_id: outletId,
+					product_id: +productId,
+					status: "APPROVED",
+					createdAt: {
+						lte: endOfDay,
+					},
+				},
+				_sum: {
+					approval_quantity: true,
+				},
+			});
+		const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
 
-	// Single query: Get ALL sold_stock up to and including this date
-	const totalSoldData = await this.prisma.orderItem.aggregate({
-		where: {
-			product_id: +productId,
-			order: {
-				outlet_id: outletId,
-				createdAt: {
-					lte: endOfDay,
+		// Single query: Get ALL sold_stock up to and including this date
+		const totalSoldData = await this.prisma.orderItem.aggregate({
+			where: {
+				product_id: +productId,
+				order: {
+					outlet_id: outletId,
+					createdAt: {
+						lte: endOfDay,
+					},
 				},
 			},
-		},
-		_sum: {
-			quantity: true,
-		},
-	});
-	const totalSold = totalSoldData._sum?.quantity || 0;
+			_sum: {
+				quantity: true,
+			},
+		});
+		const totalSold = totalSoldData._sum?.quantity || 0;
 
-	// Calculate remaining_stock: total received - total sold
-	const remainingStock = totalStockIn - totalSold;
+		// Calculate remaining_stock: total received - total sold
+		const remainingStock = totalStockIn - totalSold;
 
-	return remainingStock;
-}
+		return remainingStock;
+	}
 
-/**
- * Get detailed product with materials relation
- */
-async getDetailedProduct(productId: number) {
-	const product = await this.prisma.product.findUnique({
-		where: { id: productId },
-		include: {
-			product_master: {
-				include: {
-					category: true,
-					inventories: {
-						include: {
-							material: true,
+	/**
+	 * Get detailed product with materials relation
+	 */
+	async getDetailedProduct(productId: number) {
+		const product = await this.prisma.product.findUnique({
+			where: { id: productId },
+			include: {
+				product_master: {
+					include: {
+						category: true,
+						inventories: {
+							include: {
+								material: true,
+							},
 						},
 					},
 				},
 			},
-		},
-	});
+		});
 
-	if (!product) return null;
+		if (!product) return null;
 
-	// Map to entity format
-	return {
-		id: product.id,
-		name: product.product_master.name,
-		image_path: product.image_path,
-		description: product.description,
-		price: product.price,
-		hpp: product.hpp, // Include HPP field
-		category_id: product.product_master.category_id,
-		category: product.product_master.category ? {
-			id: product.product_master.category.id,
-			name: product.product_master.category.name,
-			is_active: product.product_master.category.is_active,
-			created_at: product.product_master.category.createdAt,
-			updated_at: product.product_master.category.updatedAt,
-		} : null,
-		is_active: product.is_active,
-		created_at: product.createdAt,
-		updated_at: product.updatedAt,
-		materials: product.product_master.inventories.map(inventory => ({
-			id: inventory.material.id,
-			name: inventory.material.name,
-			suplier_id: inventory.material.suplier_id,
-			is_active: inventory.material.is_active,
-			created_at: inventory.material.createdAt.toISOString(),
-			updated_at: inventory.material.updatedAt.toISOString(),
-			quantity: inventory.quantity
-		}))
-	};
-}
+		// Map to entity format
+		return {
+			id: product.id,
+			name: product.product_master.name,
+			image_path: product.image_path,
+			description: product.description,
+			price: product.price,
+			hpp: product.hpp, // Include HPP field
+			category_id: product.product_master.category_id,
+			category: product.product_master.category
+				? {
+						id: product.product_master.category.id,
+						name: product.product_master.category.name,
+						is_active:
+							product.product_master.category.is_active,
+						created_at:
+							product.product_master.category.createdAt,
+						updated_at:
+							product.product_master.category.updatedAt,
+				  }
+				: null,
+			is_active: product.is_active,
+			created_at: product.createdAt,
+			updated_at: product.updatedAt,
+			materials: product.product_master.inventories.map(
+				(inventory) => ({
+					id: inventory.material.id,
+					name: inventory.material.name,
+					suplier_id: inventory.material.suplier_id,
+					is_active: inventory.material.is_active,
+					created_at: inventory.material.createdAt.toISOString(),
+					updated_at: inventory.material.updatedAt.toISOString(),
+					quantity: inventory.quantity,
+				})
+			),
+		};
+	}
 }

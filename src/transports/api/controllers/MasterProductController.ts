@@ -106,8 +106,8 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
   updateProductInventory = async (req: Request, res: Response) => {
     try {
       const data: TProductInventoryUpdateRequest = req.body;
+      // console.log("Request body data:", data);
       const masterProductId = parseInt(req.params.id, 10);
-
       const inventory = await this.masterProductService.updateProductInventory(
         masterProductId,
         data
