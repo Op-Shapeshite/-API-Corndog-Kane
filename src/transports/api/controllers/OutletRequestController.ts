@@ -428,17 +428,17 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
       }
 
       const result = await this.outletRequestService.getDetailedByDateAndOutlet(date, outletId);
-
       // Map responses
       const responseData = {
         outlet_id: result.outlet_id,
         outlet_name: result.outlet_name,
         outlet_location: result.outlet_location,
         request_date: result.request_date,
+        employee_name: result.employee_name,
         product_requests: OutletProductRequestBatchResponseMapper(result.product_requests),
         material_requests: OutletMaterialRequestBatchResponseMapper(result.material_requests),
       };
-
+      // Debug logging removed for production
       this.getSuccessResponse(
         res,
         {

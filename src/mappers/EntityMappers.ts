@@ -27,6 +27,7 @@ export const EntityMappers: Record<string, EntityMapConfig> = {
   supplier: SupplierMapperEntity,
   outletProductRequest: OutletProductRequestMapperEntity,
   outletMaterialRequest: OutletMaterialRequestMapperEntity,
+  productMaster: ProductMapperEntity,
 };
 
 /**

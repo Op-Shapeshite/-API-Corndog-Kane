@@ -9,6 +9,8 @@ import { TSupplier, TSupplierWithID } from "../entities/suplier/suplier";
 import { TMaterial, TMaterialWithID } from "../entities/material/material";
 import { TOutletProductRequest, TOutletMaterialRequest } from "../entities/outlet/request";
 import { TOrder } from "../entities/order/order";
+import { TProduct, TProductWithID } from "../entities/product/product";
+import { TMasterProduct, TMasterProductWithID } from "../entities/product/masterProduct";
 
 export type TEntity =
 	| TUser
@@ -18,14 +20,17 @@ export type TEntity =
 	| TOutletAssignment
 	| TOutletWithSettings
 	| TCategory
-	| TSupplier 
+	| TSupplier
 	| TSupplierWithID
 	| TMaterial
 	| TMaterialWithID
 	| TOutletProductRequest
 	| TOutletMaterialRequest
 	| TOrder
-	;
+	| TProduct
+	| TProductWithID
+	| TMasterProduct
+	| TMasterProductWithID;
 
 export class Service<T extends TEntity> {
 	repository: Repository<T>;

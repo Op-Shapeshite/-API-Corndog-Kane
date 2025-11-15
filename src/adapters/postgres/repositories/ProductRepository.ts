@@ -2,6 +2,7 @@ import { TProduct, TProductWithID } from "../../../core/entities/product/product
 import { ProductRepository as IProductRepository } from "../../../core/repositories/product";
 import Repository from "./Repository";
 import { ProductStockInEntity, ProductWithStocks } from "../../../core/entities/inventory/inventory";
+import { ProductMapper } from "../../../mappers/mappers/ProductMapper";
 
 export class ProductRepository
 	extends Repository<TProduct | TProductWithID>
@@ -9,6 +10,112 @@ export class ProductRepository
 {
 	constructor() {
 		super("product");
+		// Override with custom mapper
+		this.mapper = new ProductMapper();
+	}
+
+	/**
+	 * Override create to handle ProductMaster creation
+	 */
+	async create(item: TProduct | TProductWithID): Promise<TProduct | TProductWithID> {
+		// Extract the fields that should be in ProductMaster
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const productCreate = item as any; // Type assertion for legacy interface compatibility
+
+		let masterProduct;
+		
+		// Check if product_master_id is provided to link to existing master product
+		if (productCreate.product_master_id) {
+			// Use existing master product
+			masterProduct = await this.prisma.productMaster.findUnique({
+				where: { id: productCreate.product_master_id }
+			});
+			
+			if (!masterProduct) {
+				throw new Error(`Master product with ID ${productCreate.product_master_id} not found`);
+			}
+		} else {
+			// Create new ProductMaster
+			masterProduct = await this.prisma.productMaster.create({
+				data: {
+					name: productCreate.name,
+					category_id: productCreate.categoryId,
+					is_active: true,
+				},
+			});
+		}
+
+		// Then create Product linking to ProductMaster
+		const created = await this.prisma.product.create({
+			data: {
+				product_master_id: masterProduct.id,
+				description: productCreate.description,
+				image_path: productCreate.imagePath,
+				price: productCreate.price,
+				hpp: productCreate.hpp, // Add HPP field
+				is_active: item.isActive ?? true,
+			},
+			include: {
+				product_master: {
+					include: {
+						category: true,
+					},
+				},
+			},
+		});
+
+		return this.mapper.mapToEntity(created);
+	}
+
+	/**
+	 * Override update to handle ProductMaster updates
+	 */
+	async update(id: string, item: Partial<TProduct | TProductWithID>): Promise<TProduct | TProductWithID> {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const productUpdate = item as any; // Type assertion for legacy interface compatibility
+		const numericId = parseInt(id, 10);
+
+		// Get existing product to find product_master_id
+		const existing = await this.prisma.product.findUnique({
+			where: { id: numericId },
+			select: { product_master_id: true },
+		});
+
+		if (!existing) {
+			throw new Error(`Product with ID ${id} not found`);
+		}
+
+		// Update ProductMaster if name or categoryId is provided
+		if (productUpdate.name !== undefined || productUpdate.categoryId !== undefined) {
+			await this.prisma.productMaster.update({
+				where: { id: existing.product_master_id },
+				data: {
+					...(productUpdate.name !== undefined && { name: productUpdate.name }),
+					...(productUpdate.categoryId !== undefined && { category_id: productUpdate.categoryId }),
+				},
+			});
+		}
+
+		// Update Product
+		const updated = await this.prisma.product.update({
+			where: { id: numericId },
+			data: {
+				...(productUpdate.description !== undefined && { description: productUpdate.description }),
+				...(productUpdate.imagePath !== undefined && { image_path: productUpdate.imagePath }),
+				...(productUpdate.price !== undefined && { price: productUpdate.price }),
+				...(productUpdate.hpp !== undefined && { hpp: productUpdate.hpp }), // Add HPP field
+				...(productUpdate.isActive !== undefined && { is_active: productUpdate.isActive }),
+			},
+			include: {
+				product_master: {
+					include: {
+						category: true,
+					},
+				},
+			},
+		});
+
+		return this.mapper.mapToEntity(updated);
 	}
 
 	/**
@@ -102,6 +209,7 @@ export class ProductRepository
 		const product = await this.prisma.product.findUnique({
 			where: { id: productId },
 			include: {
+				product_master: true,
 				stocks: {
 					include: {
 						detail: true,
@@ -112,12 +220,14 @@ export class ProductRepository
 
 		if (!product) return null;
 
-		// Map to entity
+		// Map to entity - use mapper to get name and categoryId from product_master
+		const mappedProduct = this.mapper.mapToEntity(product);
+
 		return {
 			id: product.id,
-			name: product.name,
+			name: mappedProduct.name,
 			price: product.price,
-			categoryId: product.category_id,
+			categoryId: mappedProduct.categoryId || 0,
 			isActive: product.is_active,
 			stocks: product.stocks.map(stock => ({
 				id: stock.id,
@@ -175,17 +285,32 @@ export class ProductRepository
 	async getAllProductStockRecords() {
 		const dbRecords = await this.prisma.productStock.findMany({
 			include: {
-				products: true,
+				products: {
+					include: {
+						product_master: {
+							include: {
+								category: true,
+							},
+						},
+					},
+				},
 			},
-		orderBy: {
-			date: 'asc',
-		},
-	});
+			orderBy: {
+				date: 'asc',
+			},
+		});
 
-	return dbRecords;
-}
-
-/**
+		// Map products to have name field from product_master
+		return dbRecords.map(record => ({
+			...record,
+			products: {
+				...record.products,
+				name: record.products.product_master.name,
+				categoryId: record.products.product_master.category_id,
+				category: record.products.product_master.category,
+			},
+		}));
+	}/**
  * Get product remaining stock from outlet for specific date
  * Optimized: Single aggregate query instead of recursive approach
  */
@@ -231,5 +356,58 @@ async getProductStockByOutlet(productId: number, outletId: number, date: Date): 
 	const remainingStock = totalStockIn - totalSold;
 
 	return remainingStock;
+}
+
+/**
+ * Get detailed product with materials relation
+ */
+async getDetailedProduct(productId: number) {
+	const product = await this.prisma.product.findUnique({
+		where: { id: productId },
+		include: {
+			product_master: {
+				include: {
+					category: true,
+					inventories: {
+						include: {
+							material: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (!product) return null;
+
+	// Map to entity format
+	return {
+		id: product.id,
+		name: product.product_master.name,
+		image_path: product.image_path,
+		description: product.description,
+		price: product.price,
+		hpp: product.hpp, // Include HPP field
+		category_id: product.product_master.category_id,
+		category: product.product_master.category ? {
+			id: product.product_master.category.id,
+			name: product.product_master.category.name,
+			is_active: product.product_master.category.is_active,
+			created_at: product.product_master.category.createdAt,
+			updated_at: product.product_master.category.updatedAt,
+		} : null,
+		is_active: product.is_active,
+		created_at: product.createdAt,
+		updated_at: product.updatedAt,
+		materials: product.product_master.inventories.map(inventory => ({
+			id: inventory.material.id,
+			name: inventory.material.name,
+			suplier_id: inventory.material.suplier_id,
+			is_active: inventory.material.is_active,
+			created_at: inventory.material.createdAt.toISOString(),
+			updated_at: inventory.material.updatedAt.toISOString(),
+			quantity: inventory.quantity
+		}))
+	};
 }
 }

@@ -2,6 +2,22 @@ import { TOrder, TOrderWithItems, TOrderCreate, TOrderItemCreate } from "../../.
 import { OrderRepository as IOrderRepository } from "../../../core/repositories/order";
 import Repository from "./Repository";
 
+/**
+ * Helper function to map Prisma product (with product_master) to flat product object
+ * This maintains backward compatibility with response mappers
+ */
+function mapProductFromPrisma(prismaProduct: any) {
+	if (!prismaProduct) return null;
+	
+	return {
+		...prismaProduct,
+		name: prismaProduct.product_master?.name || '',
+		category: prismaProduct.product_master?.category || null,
+		// Remove product_master from the result to avoid confusion
+		product_master: undefined,
+	};
+}
+
 export default class OrderRepository
 	extends Repository<TOrder>
 	implements IOrderRepository
@@ -247,7 +263,7 @@ export default class OrderRepository
 						include: {
 							product: {
 								include: {
-									category: true,
+									product_master: { include: { category: true } },
 								},
 							},
 						},
@@ -260,8 +276,17 @@ export default class OrderRepository
 			this.getModel().count({ where: { is_active: true } }),
 		]);
 
+		// Map products to flat structure
+		const mappedOrders = orders.map(order => ({
+			...order,
+			items: order.items.map(item => ({
+				...item,
+				product: mapProductFromPrisma(item.product),
+			})),
+		}));
+
 		return {
-			orders,
+			orders: mappedOrders,
 			total,
 			page,
 			limit,
@@ -289,10 +314,18 @@ export default class OrderRepository
 							order_item_root_id: null, // Only get parent items
 						},
 						include: {
-							product: true,
+							product: {
+								include: {
+									product_master: { include: { category: true } },
+								},
+							},
 							sub_items: {
 								include: {
-									product: true,
+									product: {
+										include: {
+											product_master: { include: { category: true } },
+										},
+									},
 								},
 							},
 						},
@@ -310,8 +343,21 @@ export default class OrderRepository
 			}),
 		]);
 
+		// Map products to flat structure
+		const mappedOrders = orders.map(order => ({
+			...order,
+			items: order.items.map(item => ({
+				...item,
+				product: mapProductFromPrisma(item.product),
+				sub_items: item.sub_items?.map(subItem => ({
+					...subItem,
+					product: mapProductFromPrisma(subItem.product),
+				})),
+			})),
+		}));
+
 		return {
-			orders,
+			orders: mappedOrders,
 			total,
 			page,
 			limit,
@@ -323,7 +369,7 @@ export default class OrderRepository
 	 * Get single order with full details (outlet, employee, items with products)
 	 */
 	async getOrderById(orderId: number) {
-		return await this.prisma.order.findUnique({
+		const order = await this.prisma.order.findUnique({
 			where: { id: orderId },
 			include: {
 				outlet: true,
@@ -333,23 +379,46 @@ export default class OrderRepository
 						order_item_root_id: null, // Only get parent items
 					},
 					include: {
-						product: true,
+						product: {
+							include: {
+								product_master: { include: { category: true } },
+							},
+						},
 						sub_items: {
 							include: {
-								product: true,
+								product: {
+									include: {
+										product_master: { include: { category: true } },
+									},
+								},
 							},
 						},
 					},
 				},
 			},
 		});
+
+		if (!order) return null;
+
+		// Map products to flat structure
+		return {
+			...order,
+			items: order.items.map(item => ({
+				...item,
+				product: mapProductFromPrisma(item.product),
+				sub_items: item.sub_items?.map(subItem => ({
+					...subItem,
+					product: mapProductFromPrisma(subItem.product),
+				})),
+			})),
+		};
 	}
 
 	/**
 	 * Get single order for WebSocket broadcast (with category for grouping)
 	 */
 	async getOrderForBroadcast(orderId: number) {
-		return await this.prisma.order.findUnique({
+		const order = await this.prisma.order.findUnique({
 			where: { id: orderId },
 			include: {
 				outlet: true,
@@ -358,12 +427,27 @@ export default class OrderRepository
 					include: {
 						product: {
 							include: {
-								category: true,
+								product_master: {
+									include: {
+										category: true,
+									},
+								},
 							},
 						},
 					},
 				},
 			},
 		});
+
+		if (!order) return null;
+
+		// Map products to flat structure
+		return {
+			...order,
+			items: order.items.map(item => ({
+				...item,
+				product: mapProductFromPrisma(item.product),
+			})),
+		};
 	}
 }
