@@ -160,7 +160,9 @@ export type TOutletProductRequestResponse = {
     id: number;
     name: string;
     price: number;
+    category_name?: string | null;
   };
+  employee_name?: string | null;
 };
 
 /**
@@ -180,6 +182,8 @@ export type TOutletMaterialRequestResponse = {
     id: number;
     name: string;
   };
+  employee_name?: string | null;
+  category_name?: string | null;
 };
 
 /**

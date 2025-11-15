@@ -21,7 +21,13 @@ export function OutletProductRequestResponseMapper(
     is_active: entity.isActive,
     created_at: entity.createdAt.toISOString(),
     updated_at: entity.updatedAt.toISOString(),
-    product: entity.product,
+    product: entity.product
+      ? {
+          ...entity.product,
+          category_name: (entity as any).product?.category?.name ?? null,
+        }
+      : undefined,
+    employee_name: (entity as any).outlet?.outlet_employee?.[0]?.employee?.name ?? null,
   };
 }
 
@@ -42,6 +48,8 @@ export function OutletMaterialRequestResponseMapper(
     created_at: entity.createdAt.toISOString(),
     updated_at: entity.updatedAt.toISOString(),
     material: entity.material,
+    employee_name: (entity as any).outlet?.outlet_employee?.[0]?.employee?.name ?? null,
+    category_name: (entity as any).material?.category?.name ?? null,
   };
 }
 

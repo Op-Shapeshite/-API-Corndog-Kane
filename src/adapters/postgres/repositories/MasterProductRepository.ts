@@ -1,7 +1,7 @@
 import { TMasterProduct, TMasterProductWithID } from "../../../core/entities/product/masterProduct";
 import { MasterProductRepository as IMasterProductRepository } from "../../../core/repositories/masterProduct";
 import Repository from "./Repository";
-import { ProductMaster } from "@prisma/client";
+import { ProductMaster, ProductCategory as Category} from "@prisma/client";
 import {  TProductInventoryCreateRequest, TProductInventoryUpdateRequest } from "../../../core/entities/product/productInventory";
 
 export class MasterProductRepository
@@ -85,10 +85,10 @@ export class MasterProductRepository
 			material: {
 				id: inventory.material.id,
 				name: inventory.material.name,
-				suplier_id: inventory.material.suplier_id,
+				supplier_id: inventory.material.suplier_id,
 				is_active: inventory.material.is_active,
-				created_at: inventory.material.createdAt.toISOString(),
-				updated_at: inventory.material.updatedAt.toISOString(),
+				created_at: inventory.material.createdAt,
+				updated_at: inventory.material.updatedAt,
 			},
 			createdAt: inventory.createdAt,
 			updatedAt: inventory.updatedAt,
@@ -115,10 +115,10 @@ export class MasterProductRepository
 			material: {
 				id: created.material.id,
 				name: created.material.name,
-				suplier_id: created.material.suplier_id,
+				supplier_id: created.material.suplier_id,
 				is_active: created.material.is_active,
-				created_at: created.material.createdAt.toISOString(),
-				updated_at: created.material.updatedAt.toISOString(),
+				created_at: created.material.createdAt,
+				updated_at: created.material.updatedAt,
 			},
 			createdAt: created.createdAt,
 			updatedAt: created.updatedAt,
@@ -158,17 +158,17 @@ export class MasterProductRepository
 			material: {
 				id: updated.material.id,
 				name: updated.material.name,
-				suplier_id: updated.material.suplier_id,
+				supplier_id: updated.material.suplier_id,
 				is_active: updated.material.is_active,
-				created_at: updated.material.createdAt.toISOString(),
-				updated_at: updated.material.updatedAt.toISOString(),
+				created_at: updated.material.createdAt,
+				updated_at: updated.material.updatedAt,
 			},
 			createdAt: updated.createdAt,
 			updatedAt: updated.updatedAt,
 		};
 	}
 
-	private mapToEntity(record: ProductMaster & { category?: any }): TMasterProductWithID {
+	private mapToEntity(record: ProductMaster & { category?: Category | null }): TMasterProductWithID {
 		return {
 			id: record.id,
 			name: record.name,
@@ -177,8 +177,8 @@ export class MasterProductRepository
 				id: record.category.id,
 				name: record.category.name,
 				is_active: record.category.is_active,
-				created_at: record.category.createdAt,
-				updated_at: record.category.updatedAt,
+				created_at: record.category.createdAt.toISOString(),
+				updated_at: record.category.updatedAt.toISOString(),
 			} : null,
 			isActive: record.is_active,
 			createdAt: record.createdAt,

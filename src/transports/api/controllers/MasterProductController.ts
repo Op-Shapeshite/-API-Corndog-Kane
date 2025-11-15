@@ -4,7 +4,7 @@ import { TMasterProductGetResponse } from "../../../core/entities/product/master
 import { TProductInventoryGetResponse, TProductInventoryCreateRequest, TProductInventoryUpdateRequest } from "../../../core/entities/product/productInventory";
 import MasterProductService from '../../../core/services/MasterProductService';
 import { MasterProductRepository } from "../../../adapters/postgres/repositories/MasterProductRepository";
-import Controller from "../Controller";
+import Controller from "./Controller";
 import { MasterProductResponseMapper } from "../../../mappers/response-mappers/MasterProductResponseMapper";
 import { ProductInventoryResponseMapper } from "../../../mappers/response-mappers/ProductInventoryResponseMapper";
 

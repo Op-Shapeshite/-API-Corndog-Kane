@@ -1,4 +1,4 @@
-import { TProductInventory, TProductInventoryGetResponse } from "../../../core/entities/product/productInventory";
+import { TProductInventory, TProductInventoryGetResponse } from "../../core/entities/product/productInventory";
 
 export class ProductInventoryResponseMapper {
   static toResponse(entity: TProductInventory): TProductInventoryGetResponse {

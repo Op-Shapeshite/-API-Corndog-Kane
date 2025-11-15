@@ -142,6 +142,7 @@ export type TProductDetailGetResponse = {
   image_path?: string | null;
   description?: string | null;
   price: number;
+  hpp?: number;
   category_id: number;
   category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'> | null;
   is_active: boolean;

@@ -38,7 +38,27 @@ interface PrismaDelegate<T> {
 }
 
 // Type for valid Prisma model names
-type PrismaModelName = "user" | "role" | "login" | "outlet" | "outletEmployee" | "product" | "productStock" | "productStockDetail" | "productCategory" | "order" | "orderItem" | "employee" | "payroll" | "supplier" | "material" | "materialIn" | "materialOut" | "outletProductRequest" | "outletMaterialRequest"| "productMaster";
+type PrismaModelName =
+	| "user"
+	| "role"
+	| "login"
+	| "outlet"
+	| "outletEmployee"
+	| "product"
+	| "productStock"
+	| "productStockDetail"
+	| "productCategory"
+	| "order"
+	| "orderItem"
+	| "employee"
+	| "payroll"
+	| "supplier"
+	| "material"
+	| "materialIn"
+	| "materialOut"
+	| "outletProductRequest"
+	| "outletMaterialRequest"
+	| "productMaster";
 
 // Field mapping configuration types
 export interface FieldMapping {
