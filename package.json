@@ -16,7 +16,8 @@
 		"prisma:migrate": "dotenv -e .env -- prisma migrate dev",
 		"prisma:studio": "dotenv -e .env -- prisma studio",
 		"prisma:push": "dotenv -e .env -- prisma db push",
-		"prisma:seed": "dotenv -e .env -- prisma db seed"
+		"prisma:seed": "dotenv -e .env -- prisma db seed",
+		"prisma:generate:data": "dotenv -e .env -- prisma db seed"
 	},
 	"prisma": {
 		"seed": "ts-node prisma/seed.ts"
@@ -25,6 +26,7 @@
 	"license": "ISC",
 	"description": "",
 	"devDependencies": {
+		"@faker-js/faker": "^10.1.0",
 		"@types/cors": "^2.8.17",
 		"@types/express": "^5.0.0",
 		"@types/helmet": "^0.0.48",

@@ -222,6 +222,7 @@ model Employee {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   payroll         Payroll[]
+  payment_batches PaymentBatch[]
   outlet_employee OutletEmployee[]
   orders          Order[]
   attendances     Attendance[]
@@ -229,19 +230,109 @@ model Employee {
   @@map("employees")
 }
 
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  CANCELLED
+}
+
+enum BonusType {
+  TARGET_ACHIEVEMENT
+  MANUAL
+  PERFORMANCE
+  ATTENDANCE
+  OTHER
+}
+
+enum DeductionType {
+  LATE
+  ABSENT
+  LOAN
+  INSURANCE
+  TAX
+  OTHER
+}
+
 model Payroll {
+  id                Int                 @id @default(autoincrement())
+  employee_id       Int
+  outlet_id         Int
+  attendance_id     Int?
+  base_salary       Float
+  total_bonus       Float               @default(0)
+  total_deduction   Float               @default(0)
+  final_salary      Float
+  work_date         DateTime
+  payment_batch_id  Int?
+  employee          Employee            @relation(fields: [employee_id], references: [id])
+  outlet            Outlet              @relation(fields: [outlet_id], references: [id])
+  attendance        Attendance?         @relation(fields: [attendance_id], references: [id])
+  payment_batch     PaymentBatch?       @relation(fields: [payment_batch_id], references: [id])
+  bonuses           PayrollBonus[]
+  deductions        PayrollDeduction[]
+  is_active         Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([employee_id, work_date])
+  @@index([outlet_id, work_date])
+  @@index([payment_batch_id])
+  @@map("employee_payrolls")
+}
+
+model PaymentBatch {
+  id                Int             @id @default(autoincrement())
+  employee_id       Int
+  period_start      DateTime
+  period_end        DateTime
+  total_base_salary Float
+  total_bonus       Float           @default(0)
+  total_deduction   Float           @default(0)
+  final_amount      Float
+  status            PaymentStatus   @default(PENDING)
+  paid_at           DateTime?
+  payment_method    String?
+  payment_reference String?
+  notes             String?
+  employee          Employee        @relation(fields: [employee_id], references: [id])
+  payrolls          Payroll[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([employee_id, period_start, period_end])
+  @@index([status])
+  @@map("payment_batches")
+}
+
+model PayrollBonus {
   id          Int      @id @default(autoincrement())
-  employee_id Int
-  salary      Float
-  bonus       Float    @default(0)
-  deductions  Float    @default(0)
-  pay_date    DateTime @default(now())
-  employee    Employee @relation(fields: [employee_id], references: [id])
-  is_active   Boolean  @default(true)
+  payroll_id  Int
+  type        BonusType
+  amount      Float
+  description String?
+  reference   String?
+  payroll     Payroll  @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("employee_payrolls")
+  @@index([payroll_id])
+  @@map("payroll_bonuses")
+}
+
+model PayrollDeduction {
+  id          Int           @id @default(autoincrement())
+  payroll_id  Int
+  type        DeductionType
+  amount      Float
+  description String?
+  reference   String?
+  payroll     Payroll       @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([payroll_id])
+  @@map("payroll_deductions")
 }
 
 // ============================================================================
@@ -355,6 +446,7 @@ model Outlet {
   user              User                    @relation(fields: [user_id], references: [id])
   outlet_employee   OutletEmployee[]
   orders            Order[]
+  payrolls          Payroll[]
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   product_requests  OutletProductRequest[]
@@ -438,6 +530,7 @@ model Attendance {
   // Relations
   employee Employee @relation(fields: [employee_id], references: [id])
   outlet   Outlet   @relation(fields: [outlet_id], references: [id])
+  payrolls Payroll[]
 
   // Indexes for common queries
   @@index([employee_id, checkin_time])
