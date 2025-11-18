@@ -544,3 +544,6 @@ model OutletMaterialRequest {
 
   @@map("outlet_material_requests")
 }
+
+
+// finance

@@ -1,6 +1,7 @@
 import { TUser} from "../../../core/entities/user/user";
 import { UserRepository as IUserRepository } from "../../../core/repositories/user";
 import Repository from "./Repository";
+import bcrypt from 'bcrypt';
 
 export default class UserRepository
 	extends Repository<TUser>
@@ -22,10 +23,25 @@ export default class UserRepository
 	}
 
 	async updatePassword(id: number, newPassword: string): Promise<void> {
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
 		await this.getModel().update({
 			where: { id },
-			data: { password: newPassword },
+			data: { password: hashedPassword },
 		});
+	}
+
+	/**
+	 * Override update method to hash password if provided
+	 */
+	async update(id: string, item: Partial<TUser>): Promise<TUser> {
+		// If password is being updated, hash it first
+		if (item.password) {
+			const hashedPassword = await bcrypt.hash(item.password, 10);
+			item = { ...item, password: hashedPassword };
+		}
+		
+		// Call parent update method
+		return super.update(id, item);
 	}
 
 	async createLoginHistory(
