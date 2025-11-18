@@ -63,9 +63,8 @@ export const updateUserSchema = z.object({
       .optional(),
     
     password: z.string()
-      .min(8, { message: 'Password must be at least 8 characters' })
-      .max(100, { message: 'Password must not exceed 100 characters' })
-      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' })
+      .min(4, { message: 'Password must be at least 4 characters' })
+      .max(16, { message: 'Password must not exceed 16 characters' })
       .optional(),
     
     role_id: z.number()
