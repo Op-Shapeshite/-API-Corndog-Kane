@@ -8,7 +8,9 @@ import {
   TransactionType,
   TFinanceReport
 } from "../../../core/entities/finance/transaction";
+import { TFinancialStatements } from "../../../core/entities/finance/report";
 import TransactionService from '../../../core/services/TransactionService';
+import { FinancialStatementService } from '../../../core/services/FinancialStatementService';
 import { TransactionRepository } from "../../../adapters/postgres/repositories/TransactionRepository";
 import { AccountRepository } from "../../../adapters/postgres/repositories/AccountRepository";
 import Controller from "./Controller";
@@ -16,28 +18,53 @@ import { TransactionResponseMapper } from "../../../mappers/response-mappers/Tra
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 
-export class TransactionController extends Controller<TTransactionGetResponse | TFinanceReport, TMetadataResponse> {
+export class TransactionController extends Controller<TTransactionGetResponse | TFinanceReport | TFinancialStatements, TMetadataResponse> {
   private transactionService: TransactionService;
+  private financialStatementService: FinancialStatementService;
 
   constructor() {
     super();
+    const transactionRepo = new TransactionRepository();
+    const accountRepo = new AccountRepository();
+    
     this.transactionService = new TransactionService(
-      new TransactionRepository(),
-      new AccountRepository()
+      transactionRepo,
+      accountRepo
+    );
+    
+    this.financialStatementService = new FinancialStatementService(
+      transactionRepo,
+      accountRepo
     );
   }
 
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
+        // Use validated pagination params from middleware with defaults
+        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+        
         const transactions = await this.transactionService.getAllTransactions();
         const mappedResults = TransactionResponseMapper.toListResponse(transactions);
+        
+        // Calculate pagination from all results
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = mappedResults.slice(startIndex, endIndex);
+        
+        const metadata: TMetadataResponse = {
+          page,
+          limit,
+          total_records: mappedResults.length,
+          total_pages: Math.ceil(mappedResults.length / limit),
+        };
         
         return this.getSuccessResponse(
           res,
           {
-            data: mappedResults,
-            metadata: {} as TMetadataResponse,
+            data: paginatedData,
+            metadata,
           },
           "Transactions retrieved successfully"
         );
@@ -48,7 +75,12 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           "Failed to retrieve transactions",
           500,
           [] as TTransactionGetResponse[],
-          {} as TMetadataResponse
+          {
+            page: 1,
+            limit: 10,
+            total_records: 0,
+            total_pages: 0,
+          } as TMetadataResponse
         );
       }
     };
@@ -203,20 +235,84 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         const type = (req.query.type as string) || 'table';
         const startDate = new Date(req.query.start_date as string);
         const endDate = new Date(req.query.end_date as string);
-        const accountCategoryIds = req.query.account_category_ids 
-          ? (req.query.account_category_ids as string).split(',').map(Number)
-          : undefined;
+        const reportCategory = (req.query.report_category as string) || 'all';
 
+        // Validate dates
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
           return this.handleError(
             res,
             new Error('Invalid date format'),
-            "Invalid start_date or end_date format",
+            "Invalid start_date or end_date format. Use YYYY-MM-DD",
             400,
-            {} as TFinanceReport,
+            {} as TFinancialStatements,
             {} as TMetadataResponse
           );
         }
+
+        // Validate end date >= start date
+        if (endDate < startDate) {
+          return this.handleError(
+            res,
+            new Error('Invalid date range'),
+            "end_date must be greater than or equal to start_date",
+            400,
+            {} as TFinancialStatements,
+            {} as TMetadataResponse
+          );
+        }
+
+        // Validate report category
+        if (!['laba_rugi', 'neraca', 'cashflow', 'all'].includes(reportCategory)) {
+          return this.handleError(
+            res,
+            new Error('Invalid report category'),
+            "report_category must be: laba_rugi, neraca, cashflow, or all",
+            400,
+            {} as TFinancialStatements,
+            {} as TMetadataResponse
+          );
+        }
+
+        // Generate dynamic financial statements with monthly arrays
+        if (type === 'json') {
+          const statements = await this.financialStatementService.generateStatements(
+            startDate,
+            endDate,
+            reportCategory as 'laba_rugi' | 'neraca' | 'cashflow' | 'all'
+          );
+
+          return this.getSuccessResponse(
+            res,
+            {
+              data: statements,
+              metadata: {} as TMetadataResponse,
+            },
+            "Financial statements generated successfully"
+          );
+        }
+
+        // PDF type also returns JSON with dynamic financial statements
+        if (type === 'pdf') {
+          const statements = await this.financialStatementService.generateStatements(
+            startDate,
+            endDate,
+            reportCategory as 'laba_rugi' | 'neraca' | 'cashflow' | 'all'
+          );
+
+          return this.getSuccessResponse(
+            res,
+            {
+              data: statements,
+              metadata: {} as TMetadataResponse,
+            },
+            "Financial statements generated successfully"
+          );
+        }
+
+        // Legacy report formats (table, xlsx)
+        const accountCategoryIds = req.query.account_category_ids 
+          ? (req.query.account_category_ids as string).split(',').map(Number)
+          : undefined;
 
         const report = await this.transactionService.generateReport(
           startDate,
@@ -239,14 +335,11 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           case 'xlsx':
             return this.generateExcelReport(res, report);
 
-          case 'pdf':
-            return this.generatePDFReport(res, report);
-
           default:
             return this.handleError(
               res,
               new Error('Invalid report type'),
-              "Report type must be: table, xlsx, or pdf",
+              "Report type must be: table, xlsx, pdf, or json",
               400,
               {} as TFinanceReport,
               {} as TMetadataResponse
