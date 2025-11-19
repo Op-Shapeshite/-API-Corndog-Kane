@@ -15,8 +15,9 @@ import { TOutletProductRequest, TOutletMaterialRequest } from "../../../core/ent
 import { TOrder } from "../../../core/entities/order/order";
 import { TProduct, TProductWithID } from "../../../core/entities/product/product";
 import { TMasterProduct, TMasterProductWithID } from "../../../core/entities/product/masterProduct";
+import { TPayroll } from "../../../core/entities/payroll/payroll";
 
-export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID | TMasterProduct| TMasterProductWithID;
+export type TEntity = TUser | TOutlet | TRole | TEmployee | TOutletAssignment | TCategory | TCategoryWithID | TSupplier | TSupplierWithID | TMaterial | TMaterialWithID | TOutletProductRequest | TOutletMaterialRequest | TOrder | TProduct | TProductWithID | TPayroll | TMasterProduct| TMasterProductWithID;
 
 // Type for Prisma delegate with CRUD operations
 interface PrismaDelegate<T> {
@@ -58,7 +59,10 @@ type PrismaModelName =
 	| "materialOut"
 	| "outletProductRequest"
 	| "outletMaterialRequest"
-	| "productMaster";
+	| "productMaster"
+	| "account"
+	| "accountCategory"
+	| "transaction";
 
 // Field mapping configuration types
 export interface FieldMapping {

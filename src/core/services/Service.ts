@@ -11,6 +11,7 @@ import { TOutletProductRequest, TOutletMaterialRequest } from "../entities/outle
 import { TOrder } from "../entities/order/order";
 import { TProduct, TProductWithID } from "../entities/product/product";
 import { TMasterProduct, TMasterProductWithID } from "../entities/product/masterProduct";
+import { TPayroll } from "../entities/payroll/payroll";
 
 export type TEntity =
 	| TUser
@@ -30,7 +31,8 @@ export type TEntity =
 	| TProduct
 	| TProductWithID
 	| TMasterProduct
-	| TMasterProductWithID;
+	| TMasterProductWithID
+	| TPayroll;
 
 export class Service<T extends TEntity> {
 	repository: Repository<T>;

@@ -20,9 +20,10 @@ export async function seedRoles(): Promise<RoleData[]> {
   const roles = [
     { name: 'Super Admin', description: 'SUPER_ADMIN' },
     { name: 'Admin', description: 'ADMIN' },
-    { name: 'Manager', description: 'MANAGER' },
-    { name: 'Staff', description: 'STAFF' },
-    { name: 'User', description: 'USER' },
+    { name: 'HR', description: 'HR' },
+    { name: 'Finance', description: 'FINANCE' },
+    { name: 'Warehouse', description: 'WAREHOUSE' },
+    { name: 'Outlet', description: 'OUTLET' },
   ];
 
   let createdRoles: RoleData[] = [];
@@ -59,11 +60,12 @@ export async function seedUsers(roles: RoleData[]): Promise<void> {
   // Get role IDs
   const superAdminRole = roles.find((r) => r.name === "Super Admin");
   const adminRole = roles.find(r => r.name === 'Admin');
-  const managerRole = roles.find(r => r.name === 'Manager');
-  const staffRole = roles.find(r => r.name === 'Staff');
-  const userRole = roles.find(r => r.name === 'User');
+  const hrRole = roles.find(r => r.name === 'HR');
+  const financeRole = roles.find(r => r.name === 'Finance');
+  const warehouseRole = roles.find(r => r.name === 'Warehouse');
+  const outletRole = roles.find(r => r.name === 'Outlet');
 
-  if (!superAdminRole || !adminRole || !managerRole || !staffRole || !userRole) {
+  if (!superAdminRole || !adminRole || !hrRole || !financeRole || !warehouseRole || !outletRole) {
     throw new Error('Failed to find all required roles');
   }
 
@@ -87,46 +89,32 @@ export async function seedUsers(roles: RoleData[]): Promise<void> {
       is_active: true,
     },
     {
-      username: 'manager',
-      name: 'Manager User',
+      username: 'hr.manager',
+      name: 'HR Manager',
       password: defaultPassword,
-      role_id: managerRole.id,
+      role_id: hrRole.id,
       is_active: true,
     },
     {
-      username: 'staff',
-      name: 'Staff User',
+      username: 'finance.manager',
+      name: 'Finance Manager',
       password: defaultPassword,
-      role_id: staffRole.id,
+      role_id: financeRole.id,
       is_active: true,
     },
     {
-      username: 'john.doe',
-      name: 'John Doe',
+      username: 'warehouse.manager',
+      name: 'Warehouse Manager',
       password: defaultPassword,
-      role_id: userRole.id,
+      role_id: warehouseRole.id,
       is_active: true,
     },
     {
-      username: 'jane.smith',
-      name: 'Jane Smith',
+      username: 'outlet.user',
+      name: 'Outlet User',
       password: defaultPassword,
-      role_id: userRole.id,
+      role_id: outletRole.id,
       is_active: true,
-    },
-    {
-      username: 'bob.wilson',
-      name: 'Bob Wilson',
-      password: defaultPassword,
-      role_id: staffRole.id,
-      is_active: true,
-    },
-    {
-      username: 'inactive.user',
-      name: 'Inactive User',
-      password: defaultPassword,
-      role_id: userRole.id,
-      is_active: false,
     },
   ];
 
@@ -176,14 +164,12 @@ export async function seedAll() {
     console.log('\n📋 Default credentials (all users):');
     console.log('   Password: password123\n');
     console.log('   Usernames:');
-    console.log('   - superadmin (Super Admin role)');
-    console.log('   - admin      (Admin role)');
-    console.log('   - manager    (Manager role)');
-    console.log('   - staff      (Staff role)');
-    console.log('   - john.doe   (User role)');
-    console.log('   - jane.smith (User role)');
-    console.log('   - bob.wilson (Staff role)');
-    console.log('   - inactive.user (User role - inactive)\n');
+    console.log('   - superadmin        (Super Admin role)');
+    console.log('   - admin             (Admin role)');
+    console.log('   - hr.manager        (HR role)');
+    console.log('   - finance.manager   (Finance role)');
+    console.log('   - warehouse.manager (Warehouse role)');
+    console.log('   - outlet.user       (Outlet role)\n');
 
   } catch (error) {
     console.error('\n❌ Error during seeding:', error);
