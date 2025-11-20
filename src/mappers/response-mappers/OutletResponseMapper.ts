@@ -8,10 +8,9 @@ import { TOutlet, TOutletGetResponse, TOutletGetResponseWithSettings, TOutletWit
  */
 export class OutletResponseMapper {
   /**
-   * Map User entity to list response format (simplified)
-   * Used in findAll endpoints
+   * Map single Outlet entity to response format
    */
-  static toListResponse(outlet: TOutlet, picName: string | null = null): TOutletGetResponse {
+  static toResponse(outlet: TOutlet, picName: string | null = null): TOutletGetResponse {
     console.log(outlet)
     return {
 		id: outlet.id,
@@ -26,6 +25,14 @@ export class OutletResponseMapper {
 		created_at: outlet.createdAt,
 		updated_at: outlet.updatedAt,
     };
+  }
+
+  /**
+   * Map Outlet entity to list response format (simplified)
+   * Used in findAll endpoints
+   */
+  static toListResponse(outlets: TOutlet[]): TOutletGetResponse[] {
+    return outlets.map(outlet => this.toResponse(outlet));
   }
 
   /**

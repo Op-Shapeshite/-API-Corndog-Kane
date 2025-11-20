@@ -7,10 +7,9 @@ import { TRoleGetResponse } from "../../core/entities/user/role";
  */
 export class UserResponseMapper {
   /**
-   * Map User entity to list response format (simplified)
-   * Used in findAll endpoints
+   * Map single User entity to response format
    */
-  static toListResponse(user: TUser): TUserGetResponse {
+  static toResponse(user: TUser): TUserGetResponse {
     return {
       id: user.id,
       name: user.name,
@@ -21,6 +20,14 @@ export class UserResponseMapper {
       created_at: user.createdAt,
       updated_at: user.updatedAt,
     };
+  }
+
+  /**
+   * Map User entity to list response format (simplified)
+   * Used in findAll endpoints
+   */
+  static toListResponse(users: TUser[]): TUserGetResponse[] {
+    return users.map(user => this.toResponse(user));
   }
 
   /**

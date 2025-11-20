@@ -70,7 +70,7 @@ export class OutletController extends Controller<
 						await this.outletRepository.getLatestEmployeeName(
 							parseInt(outlet.id)
 						);
-					return OutletResponseMapper.toListResponse(
+					return OutletResponseMapper.toResponse(
 						outlet,
 						picName
 					);
@@ -331,7 +331,7 @@ export class OutletController extends Controller<
 
 			const responseData: TOutletAssignmentGetResponse[] =
 				result.assignments.map((assignment) =>
-					OutletAssignmentResponseMapper.toListResponse(
+					OutletAssignmentResponseMapper.toResponse(
 						assignment
 					)
 				);
