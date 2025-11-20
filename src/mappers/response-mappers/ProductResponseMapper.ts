@@ -1,7 +1,7 @@
 import {  TProductGetResponse, TProductWithID } from "../../core/entities/product/product";
 
 export class ProductResponseMapper {
-	static toListResponse(product: TProductWithID & { stock?: number }): TProductGetResponse {
+	static toResponse(product: TProductWithID & { stock?: number }): TProductGetResponse {
 		return {
 			id: product.id,
       name: product.name,
@@ -16,8 +16,12 @@ export class ProductResponseMapper {
       } : null,
 			is_active: product.isActive,
 			stock: product.stock,
-			created_at: product.createdAt.toISOString(),
-			updated_at: product.updatedAt.toISOString(),
+			created_at: product.createdAt?.toISOString() || new Date().toISOString(),
+			updated_at: product.updatedAt?.toISOString() || new Date().toISOString(),
 		};
+	}
+
+	static toListResponse(products: (TProductWithID & { stock?: number })[]): TProductGetResponse[] {
+		return products.map(product => this.toResponse(product));
 	}
 }
