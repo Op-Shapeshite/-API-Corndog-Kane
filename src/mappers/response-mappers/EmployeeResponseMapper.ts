@@ -1,17 +1,17 @@
 import { TEmployee, TEmployeeGetResponse } from "../../core/entities/employee/employee";
 
 export class EmployeeResponseMapper {
-  static toListResponse(employee: TEmployee): TEmployeeGetResponse {
+  static toResponse(employee: TEmployee): TEmployeeGetResponse {
     return {
       id: employee.id,
       nik: employee.nik,
       name: employee.name,
       phone: employee.phone,
       address: employee.address,
-      province_id: employee.provinceId.toString(),
-      city_id: employee.cityId.toString(),
-      district_id: employee.districtId.toString(),
-      subdistrict_id: employee.subdistrictId.toString(),
+      province_id: employee.provinceId?.toString() || '',
+      city_id: employee.cityId?.toString() || '',
+      district_id: employee.districtId?.toString() || '',
+      subdistrict_id: employee.subdistrictId?.toString() || '',
       merital_status: employee.meritalStatus,
       religion: employee.religion,
       birth_date: employee.birthDate,
@@ -29,5 +29,9 @@ export class EmployeeResponseMapper {
       created_at: employee.createdAt,
       updated_at: employee.updatedAt,
     };
+  }
+
+  static toListResponse(employees: TEmployee[]): TEmployeeGetResponse[] {
+    return employees.map(employee => this.toResponse(employee));
   }
 }
