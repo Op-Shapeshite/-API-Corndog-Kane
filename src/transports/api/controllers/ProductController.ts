@@ -55,7 +55,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
       return this.getSuccessResponse(
         res,
         {
-          data: ProductResponseMapper.toListResponse(newProduct as TProductWithID),
+          data: ProductResponseMapper.toResponse(newProduct as TProductWithID),
           
           metadata: {} as TMetadataResponse,
         },
@@ -108,7 +108,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
       return this.getSuccessResponse(
         res,
         {
-          data: ProductResponseMapper.toListResponse(updatedProduct as TProductWithID),
+          data: ProductResponseMapper.toResponse(updatedProduct as TProductWithID),
           metadata: {} as TMetadataResponse,
         },
         "Product updated successfully"
