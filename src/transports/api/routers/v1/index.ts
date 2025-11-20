@@ -14,6 +14,12 @@ import materialRouter from './material';
 import inventoryRouter from './inventory';
 import outletRequestRouter from './outletRequest';
 import orderRouter from './order';
+import payrollRouter from './payroll';
+import accountRouter from './account';
+import accountCategoryRouter from './accountCategory';
+import accountTypeRouter from './accountType';
+import transactionRouter from './transaction';
+import reportRouter from './report';
 
 const router = express.Router();
 
@@ -42,5 +48,11 @@ router.use('/materials', materialRouter);
 router.use('/inventory', inventoryRouter);
 router.use('/outlet-requests', outletRequestRouter);
 router.use('/orders', orderRouter);
+router.use('/finance/payroll', payrollRouter);
+router.use('/finance/accounts', accountRouter);
+router.use('/finance/account-categories', accountCategoryRouter);
+router.use('/finance/account-types', accountTypeRouter);
+router.use('/finance/transactions', transactionRouter);
+router.use('/finance/reports', reportRouter);
 
 export default router;

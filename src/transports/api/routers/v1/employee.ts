@@ -14,6 +14,9 @@ import { deleteScheduleSchema } from '../../validations/schedule-delete.validati
 import { EmployeeController } from '../../controllers/EmployeeController';
 import EmployeeService from '../../../../core/services/EmployeeService';
 import EmployeeRepository from '../../../../adapters/postgres/repositories/EmployeeRepository';
+import PayrollService from '../../../../core/services/PayrollService';
+import PayrollRepository from '../../../../adapters/postgres/repositories/PayrollRepository';
+import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
 import { EmployeeResponseMapper } from '../../../../mappers/response-mappers/EmployeeResponseMapper';
 import { authMiddleware } from '../../../../policies/authMiddleware';
 import { storage, storageMultiple } from '../../../../policies/uploadImages';
@@ -22,8 +25,11 @@ import { OutletController } from '../../controllers/OutletController';
 const router = express.Router();
 
 const employeeController = new EmployeeController();
-const employeeService = new EmployeeService(new EmployeeRepository());
 const outletController = new OutletController();
+const payrollRepository = new PayrollRepository();
+const outletRepository = new OutletRepository();
+const payrollService = new PayrollService(payrollRepository, outletRepository);
+const employeeService = new EmployeeService(new EmployeeRepository(), payrollService);
 
 // Upload middleware for attendance images
 const uploadAttendanceImage = storage('absent');

@@ -11,6 +11,7 @@ import { TOutletProductRequest, TOutletMaterialRequest } from "../entities/outle
 import { TOrder } from "../entities/order/order";
 import { TProduct, TProductWithID } from "../entities/product/product";
 import { TMasterProduct, TMasterProductWithID } from "../entities/product/masterProduct";
+import { TPayroll } from "../entities/payroll/payroll";
 
 export type TEntity =
 	| TUser
@@ -30,7 +31,8 @@ export type TEntity =
 	| TProduct
 	| TProductWithID
 	| TMasterProduct
-	| TMasterProductWithID;
+	| TMasterProductWithID
+	| TPayroll;
 
 export class Service<T extends TEntity> {
 	repository: Repository<T>;
@@ -42,14 +44,19 @@ export class Service<T extends TEntity> {
 	}
 	
 	async findAll(
-		page?: number,
-		limit?: number,
+		page: number = 1,
+		limit: number = 10,
 		search?: SearchConfig[],
 		filters?: FilterObject,
 		orderBy?: Record<string, 'asc' | 'desc'>,
 		outletId?: number
 	): Promise<PaginationResult<T>> {
-		return this.repository.getAll(page, limit, search, filters, orderBy);
+		// Add outletId to filters if provided
+		const combinedFilters = outletId 
+			? { ...filters, outlet_id: outletId }
+			: filters;
+		
+		return this.repository.getAll(page, limit, search, combinedFilters, orderBy);
 	}
 	
 	async create(item: T): Promise<T> {

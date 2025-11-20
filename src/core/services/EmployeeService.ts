@@ -3,12 +3,15 @@ import { TEmployee } from "../entities/employee/employee";
 import { TAttendanceWithID } from "../entities/employee/attendance";
 import { TAttendanceWithRelations } from "../repositories/employee";
 import { Service } from "./Service";
+import PayrollService from "./PayrollService";
 
 export default class EmployeeService extends Service<TEmployee> {
   declare repository: EmployeeRepository;
+  private payrollService: PayrollService;
 
-  constructor(repository: EmployeeRepository) {
+  constructor(repository: EmployeeRepository, payrollService: PayrollService) {
     super(repository);
+    this.payrollService = payrollService;
   }
 
   async getSchedules(
@@ -74,7 +77,18 @@ export default class EmployeeService extends Service<TEmployee> {
       throw new Error(`Cannot checkout before ${formattedOutletTime}. Current time is ${formattedCurrentTime}.`);
     }
 
-    return await this.repository.checkout(employeeId, imagePath);
+    const attendance = await this.repository.checkout(employeeId, imagePath);
+
+    // Create payroll after successful checkout
+    try {
+      await this.payrollService.createPayrollOnCheckout(attendance.id);
+      console.log(`Payroll created for attendance ${attendance.id}`);
+    } catch (error) {
+      console.error(`Failed to create payroll for attendance ${attendance.id}:`, error);
+      // Don't throw error - checkout should succeed even if payroll creation fails
+    }
+
+    return attendance;
   }
 
   /**

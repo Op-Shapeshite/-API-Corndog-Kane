@@ -64,7 +64,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         );
       }
 
-      const responseData: TEmployeeGetResponse = EmployeeResponseMapper.toListResponse(employee);
+      const responseData: TEmployeeGetResponse = EmployeeResponseMapper.toResponse(employee);
 
       return this.getSuccessResponse(
         res,
@@ -127,7 +127,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       return this.getSuccessResponse(
         res,
         {
-          data: EmployeeResponseMapper.toListResponse(newEmployee),
+          data: EmployeeResponseMapper.toResponse(newEmployee),
           metadata: {} as TMetadataResponse,
         },
         'Employee created successfully'
@@ -184,7 +184,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       return this.getSuccessResponse(
         res,
         {
-          data: EmployeeResponseMapper.toListResponse(updatedEmployee),
+          data: EmployeeResponseMapper.toResponse(updatedEmployee),
           metadata: {} as TMetadataResponse,
         },
         'Employee updated successfully'

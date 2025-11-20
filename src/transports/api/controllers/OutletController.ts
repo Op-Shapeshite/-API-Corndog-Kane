@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import OutletRepository from "../../../adapters/postgres/repositories/OutletRepository";
 import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
+import PayrollRepository from "../../../adapters/postgres/repositories/PayrollRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import { TOutletAssignmentGetResponse } from "../../../core/entities/outlet/assignment";
 import { 
@@ -15,6 +16,7 @@ import {
 } from "../../../core/entities/outlet/outlet";
 import OutletService from "../../../core/services/OutletService";
 import EmployeeService from "../../../core/services/EmployeeService";
+import PayrollService from "../../../core/services/PayrollService";
 import Controller from "./Controller";
 import { OutletResponseMapper } from "../../../mappers/response-mappers/OutletResponseMapper";
 import { OutletAssignmentResponseMapper } from "../../../mappers/response-mappers/OutletAssignmentResponseMapper";
@@ -32,12 +34,14 @@ export class OutletController extends Controller<
 	private outletService: OutletService;
 	private employeeService: EmployeeService;
 	private outletRepository: OutletRepository;
+	private payrollService: PayrollService;
 
 	constructor() {
 		super();
 		this.outletRepository = new OutletRepository();
 		this.outletService = new OutletService(this.outletRepository);
-		this.employeeService = new EmployeeService(new EmployeeRepository());
+		this.payrollService = new PayrollService(new PayrollRepository(), this.outletRepository);
+		this.employeeService = new EmployeeService(new EmployeeRepository(), this.payrollService);
 	}
 
 	/**

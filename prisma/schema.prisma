@@ -222,6 +222,7 @@ model Employee {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   payroll         Payroll[]
+  payment_batches PaymentBatch[]
   outlet_employee OutletEmployee[]
   orders          Order[]
   attendances     Attendance[]
@@ -229,19 +230,109 @@ model Employee {
   @@map("employees")
 }
 
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  CANCELLED
+}
+
+enum BonusType {
+  TARGET_ACHIEVEMENT
+  MANUAL
+  PERFORMANCE
+  ATTENDANCE
+  OTHER
+}
+
+enum DeductionType {
+  LATE
+  ABSENT
+  LOAN
+  INSURANCE
+  TAX
+  OTHER
+}
+
 model Payroll {
+  id                Int                 @id @default(autoincrement())
+  employee_id       Int
+  outlet_id         Int
+  attendance_id     Int?
+  base_salary       Float
+  total_bonus       Float               @default(0)
+  total_deduction   Float               @default(0)
+  final_salary      Float
+  work_date         DateTime
+  payment_batch_id  Int?
+  employee          Employee            @relation(fields: [employee_id], references: [id])
+  outlet            Outlet              @relation(fields: [outlet_id], references: [id])
+  attendance        Attendance?         @relation(fields: [attendance_id], references: [id])
+  payment_batch     PaymentBatch?       @relation(fields: [payment_batch_id], references: [id])
+  bonuses           PayrollBonus[]
+  deductions        PayrollDeduction[]
+  is_active         Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([employee_id, work_date])
+  @@index([outlet_id, work_date])
+  @@index([payment_batch_id])
+  @@map("employee_payrolls")
+}
+
+model PaymentBatch {
+  id                Int             @id @default(autoincrement())
+  employee_id       Int
+  period_start      DateTime
+  period_end        DateTime
+  total_base_salary Float
+  total_bonus       Float           @default(0)
+  total_deduction   Float           @default(0)
+  final_amount      Float
+  status            PaymentStatus   @default(PENDING)
+  paid_at           DateTime?
+  payment_method    String?
+  payment_reference String?
+  notes             String?
+  employee          Employee        @relation(fields: [employee_id], references: [id])
+  payrolls          Payroll[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([employee_id, period_start, period_end])
+  @@index([status])
+  @@map("payment_batches")
+}
+
+model PayrollBonus {
   id          Int      @id @default(autoincrement())
-  employee_id Int
-  salary      Float
-  bonus       Float    @default(0)
-  deductions  Float    @default(0)
-  pay_date    DateTime @default(now())
-  employee    Employee @relation(fields: [employee_id], references: [id])
-  is_active   Boolean  @default(true)
+  payroll_id  Int
+  type        BonusType
+  amount      Float
+  description String?
+  reference   String?
+  payroll     Payroll  @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("employee_payrolls")
+  @@index([payroll_id])
+  @@map("payroll_bonuses")
+}
+
+model PayrollDeduction {
+  id          Int           @id @default(autoincrement())
+  payroll_id  Int
+  type        DeductionType
+  amount      Float
+  description String?
+  reference   String?
+  payroll     Payroll       @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([payroll_id])
+  @@map("payroll_deductions")
 }
 
 // ============================================================================
@@ -355,6 +446,7 @@ model Outlet {
   user              User                    @relation(fields: [user_id], references: [id])
   outlet_employee   OutletEmployee[]
   orders            Order[]
+  payrolls          Payroll[]
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   product_requests  OutletProductRequest[]
@@ -438,6 +530,7 @@ model Attendance {
   // Relations
   employee Employee @relation(fields: [employee_id], references: [id])
   outlet   Outlet   @relation(fields: [outlet_id], references: [id])
+  payrolls Payroll[]
 
   // Indexes for common queries
   @@index([employee_id, checkin_time])
@@ -545,55 +638,73 @@ model OutletMaterialRequest {
   @@map("outlet_material_requests")
 }
 
-//analize this schema for coa Finance for the endpoint is 
-//1. /finannce/accounts -> crud and get all of account can be filtered by category
-//2. /finance/acccount-categories -> getr all account category
-//3. /finance/transaction must be crud and get all of transaction for createing must be date,account_id,type,amount,description with updated to balance on account, for get all of transaction must be  date,account_name,account_id,description,amount of credit, amount of debit
+// // ============================================================================
+// FINANCE MODULE - Chart of Accounts & Transaction Management
+// ============================================================================
 
-//4. ./finance/reports?type=table|pdf|xlsx&start_date&end_date&account_category_ids=1,2,3 on the table type must be  grup the transaction on same date  with the field date,account_name,account_id,description,income_amount,expence_amount, and up 1 level is total of saldo with sum 
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
 
+model Account {
+  id                  Int                 @id @default(autoincrement())
+  name                String
+  number              String              @unique
+  balance             Float               @default(0)
+  description         String?
+  account_category_id Int
+  account_category    AccountCategory     @relation(fields: [account_category_id], references: [id])
+  transactions        Transaction[]
+  is_active           Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  account_type_id     Int
+  account_type        AccountType         @relation(fields: [account_type_id], references: [id])
 
-// finance
-//model Account{
-//  id          Int      @id @default(autoincrement())
-//  name        String
-//  number      String   @unique
-//  balance     Float    @default(0)
-//  description String?
-//  account_category_id Int
-//  account_category    AccountCategory @relation(fields: [account_category_id], references: [id])
-//  transactions Transaction[]
-//  is_active   Boolean  @default(true)
- // createdAt   DateTime @default(now())
-//  updatedAt   DateTime @updatedAt
+  @@index([account_category_id])
+  @@map("accounts")
+}
 
+model AccountCategory {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  description   String?
+  is_active     Boolean       @default(true)
+  accounts      Account[]
+  account_types AccountType[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-//}
-//model AccountCategory{
-//  id          Int      @id @default(autoincrement())
-//  name        String   @unique
- // description String?
-//  is_active   Boolean  @default(true)
-//  accounts     Account[]
-//  createdAt   DateTime @default(now())
-//  updatedAt   DateTime @updatedAt
-//  
-//}
-//enum TransactionType {
-//  INCOME
-//  EXPENSE
-//}
-//model Transaction{
-//  id              Int      @id @default(autoincrement())
-//  account_id      Int
-//  amount          Float
-//  transaction_type TransactionType
-//  description     String?
-//  transaction_date DateTime @default(now())
-//
-//  account         Account  @relation(fields: [account_id], references: [id])
-//  createdAt       DateTime @default(now())
-//  updatedAt       DateTime @updatedAt
-//
-//}
-//
+  @@map("account_categories")
+}
+model AccountType {
+  id                  Int             @id @default(autoincrement())
+  name                String          @unique
+  code                String?         @unique
+  description         String?
+  account_category_id Int
+  account_category    AccountCategory @relation(fields: [account_category_id], references: [id])
+  is_active           Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  accounts            Account[]
+
+  @@map("account_types")
+}
+model Transaction {
+  id               Int             @id @default(autoincrement())
+  account_id       Int
+  amount           Float
+  transaction_type TransactionType
+  description      String?
+  transaction_date DateTime        @default(now())
+  reference_number String?
+  account          Account         @relation(fields: [account_id], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([transaction_date])
+  @@index([account_id, transaction_date])
+  @@map("transactions")
+}
