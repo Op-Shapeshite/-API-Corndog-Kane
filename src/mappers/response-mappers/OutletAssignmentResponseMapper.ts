@@ -1,7 +1,7 @@
 import { TOutletAssignmentWithRelations, TOutletAssignmentGetResponse } from "../../core/entities/outlet/assignment";
 
 export class OutletAssignmentResponseMapper {
-  static toListResponse(assignment: TOutletAssignmentWithRelations): TOutletAssignmentGetResponse {
+  static toResponse(assignment: TOutletAssignmentWithRelations): TOutletAssignmentGetResponse {
     return {
       outlet: {
         id: assignment.outlet.id,
@@ -14,5 +14,9 @@ export class OutletAssignmentResponseMapper {
       },
       assigned_at: assignment.assigned_at.toISOString(),
     };
+  }
+
+  static toListResponse(assignments: TOutletAssignmentWithRelations[]): TOutletAssignmentGetResponse[] {
+    return assignments.map(assignment => this.toResponse(assignment));
   }
 }
