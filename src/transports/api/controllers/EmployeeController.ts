@@ -279,7 +279,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         outlet: { id: number; name: string; location: string; check_in_time: string; check_out_time: string };
         employee: { id: number; name: string; phone: string; nik: string; address: string };
       }>).map(schedule =>
-        OutletAssignmentResponseMapper.toListResponse(schedule)
+        OutletAssignmentResponseMapper.toResponse(schedule)
       );
       
       return this.getSuccessResponse(

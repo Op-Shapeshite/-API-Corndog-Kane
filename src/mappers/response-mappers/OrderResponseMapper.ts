@@ -2,10 +2,9 @@ import { TOrderGetResponse, TOrder, TOrderWithItems, TOrderListResponse, TOrderD
 
 export class OrderResponseMapper {
   /**
-   * Map Order entity to list response format (simplified)
-   * Used in findAll endpoints
+   * Map single Order entity to response format
    */
-  static toListResponse(order: TOrder): TOrderGetResponse {
+  static toResponse(order: TOrder): TOrderGetResponse {
     return {
       id: parseInt(order.id),
       outlet_id: order.outletId,
@@ -20,6 +19,14 @@ export class OrderResponseMapper {
       created_at: order.createdAt ?? new Date(),
       updated_at: order.updatedAt ?? new Date(),
     };
+  }
+
+  /**
+   * Map Order entity to list response format (simplified)
+   * Used in findAll endpoints
+   */
+  static toListResponse(orders: TOrder[]): TOrderGetResponse[] {
+    return orders.map(order => this.toResponse(order));
   }
 
   /**
