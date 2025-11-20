@@ -2,10 +2,9 @@ import {  TSupplierGetResponse, TSupplierWithID } from "../../core/entities/supl
 
 export  class SupplierResponseMapper {
   /**
-   * Map User entity to list response format (simplified)
-   * Used in findAll endpoints
+   * Map single supplier entity to response format
    */
-  static toListResponse(supplier: TSupplierWithID): TSupplierGetResponse {
+  static toResponse(supplier: TSupplierWithID): TSupplierGetResponse {
     return {
       id: supplier.id,
       name: supplier.name,
@@ -15,6 +14,14 @@ export  class SupplierResponseMapper {
       created_at: supplier.createdAt ?? new Date(),
       updated_at: supplier.updatedAt ?? new Date(),
     } as TSupplierGetResponse;
+  }
+
+  /**
+   * Map array of supplier entities to list response format
+   * Used in findAll endpoints
+   */
+  static toListResponse(suppliers: TSupplierWithID[]): TSupplierGetResponse[] {
+    return suppliers.map(supplier => this.toResponse(supplier));
   }
 
 }

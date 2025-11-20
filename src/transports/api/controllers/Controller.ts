@@ -76,11 +76,14 @@ export default class Controller<T, M> {
 			);
 		}
 		
+		// Extract error message from Error object or use default
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		
 		// Default error handling for non-Prisma errors
 		return this.getFailureResponse(
 			res,
 			{ data: emptyData, metadata: emptyMetadata },
-			[{ field: 'server', message, type: 'internal_error' }],
+			[{ field: 'server', message: errorMessage, type: 'internal_error' }],
 			message,
 			statusCode
 		);
