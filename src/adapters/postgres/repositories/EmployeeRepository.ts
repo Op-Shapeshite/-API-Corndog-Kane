@@ -223,40 +223,25 @@ export default class EmployeeRepository
     const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const day = days[now.getDay()];
 
-    // Find matching outlet setting for current day and time
+    // Find matching outlet setting for current day
+    // Allow check-in at any time (early or late) - just need a schedule for the day
     const settings = await this.prisma.outletSetting.findMany({
       where: {
         outlet_id: outletId,
         day: { has: day as DAY },
       },
+      orderBy: {
+        check_in_time: 'asc', // Get earliest check-in time for the day
+      },
     });
 
-    // Debug logging
-    console.log('Check-in Debug Info:', {
-      outletId,
-      currentDay: day,
-      currentTime: currentTimeStr,
-      settingsFound: settings.length,
-      settings: settings.map(s => ({
-        id: s.id,
-        check_in_time: s.check_in_time,
-        days: s.day
-      }))
-    });
-
-    // Filter to get settings where check_in_time <= current time
-    const validSettings = settings.filter(s => s.check_in_time <= currentTimeStr);
-    
-    console.log('Valid settings after time filter:', validSettings.length);
-    
-    if (validSettings.length === 0) {
-      throw new Error(`No valid check-in time found for current time and day. Current: ${currentTimeStr} on ${day}. Settings found: ${settings.length}. Please check if outlet settings are configured correctly.`);
+    if (settings.length === 0) {
+      throw new Error(`No schedule found for ${day} at this outlet. Please contact your manager to set up outlet schedules.`);
     }
 
-    // Get the latest check_in_time
-    const setting = validSettings.reduce((latest, current) => 
-      current.check_in_time > latest.check_in_time ? current : latest
-    );
+    // Use the first (earliest) setting for the day
+    // This represents the scheduled check-in time to calculate lateness
+    const setting = settings[0];
     
     // Parse outlet check_in_time (format: "HH:MM:SS")
     const [outletHour, outletMinute] = setting.check_in_time.split(':').map(Number);
