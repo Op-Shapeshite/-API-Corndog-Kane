@@ -1,4 +1,4 @@
-import { TInternalPayroll } from "../../../core/entities/payroll/internalPayroll";
+import { TInternalPayroll } from "../../core/entities/payroll/internalPayroll";
 
 export const InternalPayrollMapperEntity = {
   toEntity: (dbRecord: any): TInternalPayroll => ({
