@@ -115,7 +115,28 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
   ) {
     // Use custom query to include account relation
     const skip = (page - 1) * limit;
-    const where: Record<string, any> = filters || {};
+    const where: Record<string, any> = {};
+
+    // Handle date range filters (start_date, end_date)
+    if (filters) {
+      const { start_date, end_date, ...otherFilters } = filters;
+      
+      // Add non-date filters
+      Object.assign(where, otherFilters);
+      
+      // Convert start_date and end_date to transaction_date range filter
+      if (start_date || end_date) {
+        where.transaction_date = {};
+        
+        if (start_date) {
+          where.transaction_date.gte = new Date(start_date as string);
+        }
+        
+        if (end_date) {
+          where.transaction_date.lte = new Date(end_date as string);
+        }
+      }
+    }
 
     // Add search conditions
     if (search && search.length > 0) {
@@ -136,6 +157,7 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
         }
       }
     }
+
 
     // Get total count
     const total = await this.prisma.transaction.count({ where });
