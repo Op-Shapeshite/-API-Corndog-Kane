@@ -527,15 +527,25 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
     try {
       const workbook = new ExcelJS.Workbook();
       const { period, laba_rugi, neraca, cashflow } = statements;
+      
+      // Validate period and months exist
+      if (!period || !period.months || !Array.isArray(period.months) || period.months.length === 0) {
+        throw new Error('Invalid period data: months array is missing or empty');
+      }
+      
       const months = period.months;
 
       // Helper function to add section to worksheet
       const addSections = (worksheet: ExcelJS.Worksheet, sections: any[], indentLevel: number = 0) => {
         sections.forEach(section => {
           const indent = '  '.repeat(indentLevel);
+          
+          // Ensure section.amount is an array, fallback to empty array if undefined
+          const amounts = Array.isArray(section.amount) ? section.amount : [];
+          
           const row = worksheet.addRow([
             indent + section.label,
-            ...section.amount
+            ...amounts
           ]);
 
           // Bold for top-level sections (indentLevel === 0)
