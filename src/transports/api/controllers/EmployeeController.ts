@@ -15,6 +15,8 @@ import OutletRepository from "../../../adapters/postgres/repositories/OutletRepo
 import EmployeeRepository from "../../../adapters/postgres/repositories/EmployeeRepository";
 import fs from "fs";
 import path from "path";
+import ExcelJS from 'exceljs';
+import { styleHeaderRow, setExcelHeaders, autoSizeColumns, formatDate } from "../../../utils/excelHelpers";
 
 // Union type for all possible employee response types
 type TEmployeeResponseTypes = TEmployeeGetResponse | TOutletAssignmentGetResponse | TAttendanceGetResponse | TAttendanceListResponse[] | TAttendanceTableResponse[] | null;
@@ -212,6 +214,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
   getSchedules = async (req: Request, res: Response, employeeService: EmployeeService) => {
     try {
       const view = req.query.view as string | undefined;
+      const type = req.query.type as string;
       const startDate = req.query.start_date as string | undefined;
       const endDate = req.query.end_date as string | undefined;
       const status = req.query.status as string | undefined;
@@ -219,6 +222,32 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       const searchValue = req.query.search_value as string | undefined;
       const page = req.query.page ? parseInt(req.query.page as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+
+      // If Excel export requested, fetch both schedule assignments and attendance data
+      if (type === 'xlsx') {
+        // Fetch timeline view (schedule assignments)
+        const schedulesResult = await employeeService.getSchedules(undefined, startDate, endDate, status, searchKey, searchValue, page, limit);
+        const schedules = (schedulesResult as Array<{
+          id: number;
+          outlet_id: number;
+          employee_id: number;
+          assigned_at: Date;
+          is_active: boolean;
+          createdAt: Date;
+          updatedAt: Date;
+          outlet: { id: number; name: string; location: string; check_in_time: string; check_out_time: string };
+          employee: { id: number; name: string; phone: string; nik: string; address: string };
+        }>).map(schedule => OutletAssignmentResponseMapper.toResponse(schedule));
+
+        // Fetch table view (attendance data)
+        const attendanceResult = await employeeService.getSchedules('table', startDate, endDate, status, searchKey, searchValue, page, limit) as {
+          data: Array<any>;
+          pagination: any;
+        };
+        const attendance = AttendanceTableResponseMapper.toListResponse(attendanceResult.data);
+
+        return this.generateScheduleExcel(res, schedules, attendance);
+      }
 
       // Get data based on view parameter and date filters
       const result = await employeeService.getSchedules(view, startDate, endDate, status, searchKey, searchValue, page, limit);
@@ -599,4 +628,176 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
     }
   };
+
+  /**
+   * Generate Excel file for schedules with 2 sheets:
+   * 1. Schedule Assignments (timeline view)
+   * 2. Attendance Records (table view)
+   */
+  private async generateScheduleExcel(
+    res: Response,
+    schedules: TOutletAssignmentGetResponse[],
+    attendance: TAttendanceTableResponse[]
+  ) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+
+      // ===== SHEET 1: Schedule (Weekly Pivot Tables) =====
+      const scheduleSheet = workbook.addWorksheet('Schedule');
+
+      // Extract unique outlets and dates from schedules
+      const outletMap = new Map<number, { name: string; location: string }>();
+      const dateSet = new Set<string>();
+
+      schedules.forEach((schedule: any) => {
+        if (schedule.outlet_id && schedule.outlet_name) {
+          outletMap.set(schedule.outlet_id, {
+            name: schedule.outlet_name,
+            location: schedule.outlet_location || ''
+          });
+        }
+        if (schedule.assigned_at) {
+          const date = new Date(schedule.assigned_at);
+          const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+          dateSet.add(dateKey);
+        }
+      });
+
+      // Sort dates
+      const sortedDates = Array.from(dateSet).sort();
+      
+      // Group dates by week (ISO week number)
+      const getWeekKey = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        // Adjust to Monday as first day (ISO week)
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(date);
+        monday.setDate(date.getDate() + diffToMonday);
+        return monday.toISOString().split('T')[0]; // Monday date as week key
+      };
+
+      const weekMap = new Map<string, string[]>();
+      sortedDates.forEach(dateStr => {
+        const weekKey = getWeekKey(dateStr);
+        if (!weekMap.has(weekKey)) {
+          weekMap.set(weekKey, []);
+        }
+        weekMap.get(weekKey)!.push(dateStr);
+      });
+
+      // Sort weeks
+      const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+      // Get outlets sorted
+      const outlets = Array.from(outletMap.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+      // Create a table for each week
+      sortedWeeks.forEach(([weekKey, weekDates], weekIndex) => {
+        // Add spacing between weeks (except first week)
+        if (weekIndex > 0) {
+          scheduleSheet.addRow([]); // Empty row
+          scheduleSheet.addRow([]); // Empty row
+        }
+
+        // Create header row for this week
+        const headerRow: any[] = ['Outlet/Date'];
+        weekDates.forEach(dateStr => {
+          const date = new Date(dateStr);
+          const dayName = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][date.getDay()];
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          headerRow.push(`${dayName}, ${day}-${month}-${year}`);
+        });
+
+        const header = scheduleSheet.addRow(headerRow);
+        styleHeaderRow(header);
+
+        // Add outlet rows for this week
+        outlets.forEach(([outletId, outletInfo]) => {
+          const row: any[] = [outletInfo.name];
+          
+          // For each date in this week, find employees assigned to this outlet
+          weekDates.forEach(dateStr => {
+            const employeesOnDate = schedules
+              .filter((s: any) => {
+                if (!s.assigned_at || s.outlet_id !== outletId) return false;
+                const scheduleDate = new Date(s.assigned_at).toISOString().split('T')[0];
+                return scheduleDate === dateStr && s.is_active;
+              })
+              .map((s: any) => s.employee_name)
+              .filter((name: string) => name); // Filter out null/undefined
+            
+            // Join multiple employees with comma or show dash
+            const cellValue = employeesOnDate.length > 0 
+              ? employeesOnDate.join(', ') 
+              : '-';
+            
+            row.push(cellValue);
+          });
+          
+          scheduleSheet.addRow(row);
+        });
+      });
+
+      // If no data at all, add a note
+      if (scheduleSheet.rowCount === 0) {
+        scheduleSheet.addRow(['No schedules recorded for this period']);
+      }
+
+      autoSizeColumns(scheduleSheet);
+
+      // ===== SHEET 2: Attendance Records =====
+      const attendanceSheet = workbook.addWorksheet('Attendance');
+
+      const attendanceHeaderRow = attendanceSheet.addRow([
+        'Attendance ID',
+        'Employee Name',
+        'Outlet Name',
+        'Check-in Time',
+        'Check-out Time',
+        'Attendance Status',
+        'Late Minutes',
+        'Late Approval Status',
+        'Late Notes'
+      ]);
+      styleHeaderRow(attendanceHeaderRow);
+
+      // Add attendance data
+      attendance.forEach((att: any) => {
+        const checkinTime = att.checkin_time ? new Date(att.checkin_time).toLocaleString('id-ID') : '-';
+        const checkoutTime = att.checkout_time ? new Date(att.checkout_time).toLocaleString('id-ID') : '-';
+        
+        attendanceSheet.addRow([
+          att.id || '-',
+          att.employee_name || '-',
+          att.outlet_name || '-',
+          checkinTime,
+          checkoutTime,
+          att.attendance_status || '-',
+          att.late_minutes || 0,
+          att.late_approval_status || '-',
+          att.late_notes || '-'
+        ]);
+      });
+
+      // If no attendance, add a note
+      if (attendanceSheet.rowCount === 1) {
+        attendanceSheet.addRow(['No attendance records for this period', '', '', '', '', '', '', '', '']);
+      }
+
+      autoSizeColumns(attendanceSheet);
+
+      // Set response headers and send file
+      const filename = `schedule-attendance-${new Date().toISOString().split('T')[0]}.xlsx`;
+      setExcelHeaders(res, filename);
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error generating schedule Excel:', error);
+      throw error;
+    }
+  }
 }

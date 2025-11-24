@@ -16,7 +16,7 @@ import { AccountRepository } from "../../../adapters/postgres/repositories/Accou
 import Controller from "./Controller";
 import { TransactionResponseMapper } from "../../../mappers/response-mappers/TransactionResponseMapper";
 import ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
+import { styleHeaderRow, setExcelHeaders, autoSizeColumns, formatDate, formatCurrency } from '../../../utils/excelHelpers';
 
 export class TransactionController extends Controller<TTransactionGetResponse | TFinanceReport | TFinancialStatements, TMetadataResponse> {
   private transactionService: TransactionService;
@@ -41,17 +41,17 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
-        const { page, limit, search_key, search_value, ...filters } = req.query;
+        const { page, limit, search_key, search_value, type, ...filters } = req.query;
         // Use validated defaults from pagination schema (page=1, limit=10)
         const pageNum = page ? parseInt(page as string, 10) : 1;
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
         
         // Build search config
         const search =
-          search_key && 
-          search_value && 
-          search_key !== 'undefined' && 
-          search_value !== 'undefined'
+          search_key &&
+            search_value &&
+            search_key !== 'undefined' &&
+            search_value !== 'undefined'
             ? [{ field: search_key as string, value: search_value as string }]
             : undefined;
         
@@ -65,6 +65,11 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         
         // Map to response format
         const mappedData = TransactionResponseMapper.toListResponse(result.data);
+        
+        // If Excel export requested, generate and return Excel file
+        if (type === 'xlsx') {
+          return this.generateTransactionsExcel(res, mappedData);
+        }
         
         const metadata: TMetadataResponse = {
           page: result.page,
@@ -287,12 +292,17 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         }
 
         // Generate dynamic financial statements with monthly arrays
-        if (type === 'json') {
+        if (type === 'json' || type === 'xlsx') {
           const statements = await this.financialStatementService.generateStatements(
             startDate,
             endDate,
             reportCategory as 'laba_rugi' | 'neraca' | 'cashflow' | 'all'
           );
+
+          // If Excel export requested, generate multi-sheet Excel file
+          if (type === 'xlsx') {
+            return this.generateFinancialStatementsExcel(res, statements);
+          }
 
           return this.getSuccessResponse(
             res,
@@ -304,7 +314,7 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           );
         }
 
-        // PDF type also returns JSON with dynamic financial statements
+        // PDF type returns JSON with dynamic financial statements (no longer generates Excel)
         if (type === 'pdf') {
           const statements = await this.financialStatementService.generateStatements(
             startDate,
@@ -322,8 +332,8 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           );
         }
 
-        // Legacy report formats (table, xlsx)
-        const accountCategoryIds = req.query.account_category_ids 
+        // Legacy report formats - generate old-style table report
+        const accountCategoryIds = req.query.account_category_ids
           ? (req.query.account_category_ids as string).split(',').map(Number)
           : undefined;
 
@@ -333,31 +343,31 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           accountCategoryIds
         );
 
-        // Return based on type
-        switch (type) {
-          case 'table':
-            return this.getSuccessResponse(
-              res,
-              {
-                data: report,
-                metadata: {} as TMetadataResponse,
-              },
-              "Finance report generated successfully"
-            );
-
-          case 'xlsx':
-            return this.generateExcelReport(res, report);
-
-          default:
-            return this.handleError(
-              res,
-              new Error('Invalid report type'),
-              "Report type must be: table, xlsx, pdf, or json",
-              400,
-              {} as TFinanceReport,
-              {} as TMetadataResponse
-            );
+        // Legacy table format
+        if (type === 'table') {
+          return this.getSuccessResponse(
+            res,
+            {
+              data: report,
+              metadata: {} as TMetadataResponse,
+            },
+            "Finance report generated successfully"
+          );
         }
+
+        // Legacy xlsx format (will be deprecated - use type=xlsx with json format instead)
+        if (type === 'xlsx-legacy') {
+          return this.generateExcelReport(res, report);
+        }
+
+        return this.handleError(
+          res,
+          new Error('Invalid report type'),
+          "Report type must be: table, xlsx, pdf, or json",
+          400,
+          {} as TFinanceReport,
+          {} as TMetadataResponse
+        );
       } catch (error) {
         return this.handleError(
           res,
@@ -458,54 +468,193 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
     res.end();
   }
 
-  private async generatePDFReport(res: Response, report: TFinanceReport) {
-    const doc = new PDFDocument({ margin: 50 });
+  /**
+   * Generate Excel file for transactions
+   */
+  private async generateTransactionsExcel(res: Response, transactions: TTransactionGetResponse[]) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Transactions');
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=finance-report-${report.period.start_date}-${report.period.end_date}.pdf`
-    );
+      // Add headers
+      const headerRow = worksheet.addRow([
+        'Transaction ID',
+        'Date',
+        'Account Name',
+        'Account Number',
+        'Type',
+        'Amount',
+        'Description',
+        'Reference'
+      ]);
+      styleHeaderRow(headerRow);
 
-    doc.pipe(res);
-
-    // Title
-    doc.fontSize(20).text('Finance Report', { align: 'center' });
-    doc.fontSize(12).text(
-      `Period: ${report.period.start_date} to ${report.period.end_date}`,
-      { align: 'center' }
-    );
-    doc.moveDown();
-
-    // Summary
-    doc.fontSize(14).text('Summary', { underline: true });
-    doc.fontSize(12);
-    doc.text(`Total Income: ${report.summary.total_income.toLocaleString()}`);
-    doc.text(`Total Expense: ${report.summary.total_expense.toLocaleString()}`);
-    doc.text(`Balance: ${report.summary.balance.toLocaleString()}`);
-    doc.moveDown();
-
-    // Transactions
-    doc.fontSize(14).text('Transactions', { underline: true });
-    doc.fontSize(10);
-
-    report.data.forEach(day => {
-      doc.fontSize(12).text(`Date: ${day.date}`);
-      doc.fontSize(10);
-      
-      day.transactions.forEach(t => {
-        doc.text(
-          `${t.account_name} (${t.account_number}) - ${t.description || 'N/A'}`
-        );
-        doc.text(`  Income: ${t.income_amount.toLocaleString()} | Expense: ${t.expense_amount.toLocaleString()}`);
+      // Add data rows
+      transactions.forEach(transaction => {
+        const txn = transaction as any; // Runtime has more fields than type definition
+        worksheet.addRow([
+          txn.id || '-',
+          txn.date ? formatDate(txn.date) : '-',
+          txn.account_name || '-',
+          txn.account_number || '-',
+          txn.credit > 0 ? 'INCOME' : 'EXPENSE',
+          (txn.credit || txn.debit || 0),
+          txn.description || '-',
+          txn.reference_number || '-'
+        ]);
       });
-      
-      doc.fontSize(11).text(
-        `Day Total - Income: ${day.total_income.toLocaleString()} | Expense: ${day.total_expense.toLocaleString()}`
-      );
-      doc.moveDown();
-    });
 
-    doc.end();
+      // Auto-size columns
+      autoSizeColumns(worksheet);
+
+      // Set response headers and send file
+      const filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
+      setExcelHeaders(res, filename);
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate multi-sheet Excel for Financial Statements
+   * Creates 3 sheets: Laba Rugi, Neraca, and Cashflow
+   */
+  private async generateFinancialStatementsExcel(res: Response, statements: TFinancialStatements) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const { period, laba_rugi, neraca, cashflow } = statements;
+      const months = period.months;
+
+      // Helper function to add section to worksheet
+      const addSections = (worksheet: ExcelJS.Worksheet, sections: any[], indentLevel: number = 0) => {
+        sections.forEach(section => {
+          const indent = '  '.repeat(indentLevel);
+          const row = worksheet.addRow([
+            indent + section.label,
+            ...section.amount
+          ]);
+
+          // Bold for top-level sections (indentLevel === 0)
+          if (indentLevel === 0) {
+            row.font = { bold: true };
+          }
+
+          // Recursively add subsections
+          if (section.subsections && section.subsections.length > 0) {
+            addSections(worksheet, section.subsections, indentLevel + 1);
+          }
+        });
+      };
+
+      // ===== SHEET 1: Laba Rugi (Income Statement) =====
+      if (laba_rugi && laba_rugi.length > 0) {
+        const sheet = workbook.addWorksheet('Laba Rugi');
+
+        // Title
+        sheet.mergeCells(1, 1, 1, months.length + 1);
+        const titleCell = sheet.getCell(1, 1);
+        titleCell.value = 'Laporan Laba Rugi';
+        titleCell.font = { bold: true, size: 14 };
+        titleCell.alignment = { horizontal: 'center' };
+
+        // Period
+        sheet.mergeCells(2, 1, 2, months.length + 1);
+        const periodCell = sheet.getCell(2, 1);
+        periodCell.value = `Periode: ${period.start_date} - ${period.end_date}`;
+        periodCell.alignment = { horizontal: 'center' };
+
+        // Empty row
+        sheet.addRow([]);
+
+        // Headers
+        const headerRow = sheet.addRow(['Keterangan', ...months]);
+        styleHeaderRow(headerRow);
+
+        // Data
+        addSections(sheet, laba_rugi);
+
+        autoSizeColumns(sheet);
+      }
+
+      // ===== SHEET 2: Neraca (Balance Sheet) =====
+      if (neraca && neraca.length > 0) {
+        const sheet = workbook.addWorksheet('Neraca');
+
+        // Title
+        sheet.mergeCells(1, 1, 1, months.length + 1);
+        const titleCell = sheet.getCell(1, 1);
+        titleCell.value = 'Laporan Neraca';
+        titleCell.font = { bold: true, size: 14 };
+        titleCell.alignment = { horizontal: 'center' };
+
+        // Period
+        sheet.mergeCells(2, 1, 2, months.length + 1);
+        const periodCell = sheet.getCell(2, 1);
+        periodCell.value = `Periode: ${period.start_date} - ${period.end_date}`;
+        periodCell.alignment = { horizontal: 'center' };
+
+        // Empty row
+        sheet.addRow([]);
+
+        // Headers
+        const headerRow = sheet.addRow(['Keterangan', ...months]);
+        styleHeaderRow(headerRow);
+
+        // Data
+        addSections(sheet, neraca);
+
+        autoSizeColumns(sheet);
+      }
+
+      // ===== SHEET 3: Cashflow =====
+      if (cashflow && cashflow.length > 0) {
+        const sheet = workbook.addWorksheet('Cashflow');
+
+        // Title
+        sheet.mergeCells(1, 1, 1, months.length + 1);
+        const titleCell = sheet.getCell(1, 1);
+        titleCell.value = 'Laporan Arus Kas';
+        titleCell.font = { bold: true, size: 14 };
+        titleCell.alignment = { horizontal: 'center' };
+
+        // Period
+        sheet.mergeCells(2, 1, 2, months.length + 1);
+        const periodCell = sheet.getCell(2, 1);
+        periodCell.value = `Periode: ${period.start_date} - ${period.end_date}`;
+        periodCell.alignment = { horizontal: 'center' };
+
+        // Empty row
+        sheet.addRow([]);
+
+        // Headers
+        const headerRow = sheet.addRow(['Keterangan', ...months]);
+        styleHeaderRow(headerRow);
+
+        // Data
+        addSections(sheet, cashflow);
+
+        autoSizeColumns(sheet);
+      }
+
+      // If no sheets were created, add a placeholder
+      if (workbook.worksheets.length === 0) {
+        const sheet = workbook.addWorksheet('No Data');
+        sheet.addRow(['No financial data available for the selected period']);
+      }
+
+      // Set response headers and send file
+      const filename = `financial-statements-${period.start_date}-${period.end_date}.xlsx`;
+      setExcelHeaders(res, filename);
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error generating financial statements Excel:', error);
+      throw error;
+    }
   }
 }

@@ -126,13 +126,13 @@ model Login {
 // CORE MODULE - Product Master Data
 // ============================================================================
 model ProductMaster {
-  id          Int                   @id @default(autoincrement())
-  name        String  
+  id          Int                @id @default(autoincrement())
+  name        String
   category_id Int
-  category    ProductCategory        @relation(fields: [category_id], references: [id])
-  is_active   Boolean                @default(true)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
+  category    ProductCategory    @relation(fields: [category_id], references: [id])
+  is_active   Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   products    Product[]
   inventories ProductInventory[]
   stocks      ProductStock[]
@@ -141,41 +141,42 @@ model ProductMaster {
 }
 
 model Product {
-  id          Int                    @id @default(autoincrement())
-  image_path  String?
-  description String?
-  price       Float
-  hpp         Float?                 @default(0)
-  product_master_id  Int
-  product_master ProductMaster @relation(fields: [product_master_id], references: [id])
-  is_active   Boolean                @default(true)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  order_items OrderItem[]
-  requests    OutletProductRequest[]
+  id                Int                    @id @default(autoincrement())
+  image_path        String?
+  description       String?
+  price             Float
+  hpp               Float?                 @default(0)
+  product_master_id Int
+  product_master    ProductMaster          @relation(fields: [product_master_id], references: [id])
+  is_active         Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  order_items       OrderItem[]
+  requests          OutletProductRequest[]
+
   @@map("product_menus")
 }
 
-model ProductInventory{
-  id         Int      @id @default(autoincrement())
-  product_id Int
-  quantity   Int
-  material_id Int
+model ProductInventory {
+  id            Int           @id @default(autoincrement())
+  product_id    Int
+  quantity      Int
+  material_id   Int
   unit_quantity String
-  material   material @relation(fields: [material_id], references: [id])
-  product    ProductMaster  @relation(fields: [product_id], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  material      material      @relation(fields: [material_id], references: [id])
+  product       ProductMaster @relation(fields: [product_id], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@map("product_inventories")
 }
 
 model ProductCategory {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  is_active Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id        Int             @id @default(autoincrement())
+  name      String          @unique
+  is_active Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
   products  ProductMaster[]
 
   @@map("product_categories")
@@ -191,41 +192,45 @@ enum BLOODTYPE {
   AB
   O
 }
+
 enum Gender {
   MALE
   FEMALE
 }
+
 model Employee {
-  id              Int              @id @default(autoincrement())
-  nik             String           @unique
-  name            String
-  phone           String
-  address         String
-  province_id     BigInt
-  city_id         BigInt
-  district_id     BigInt
-  subdistrict_id  BigInt
-  merital_status  MeritalStatus
-  religion        String
-  birth_date      DateTime
-  birth_place     String
-  blood_type      BLOODTYPE 
-  rt              String
-  rw              String
-  work_type      String
-  position        String
-  notes           String?
-  image_path      String
-  gender          Gender
-  hire_date       DateTime
-  is_active       Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  payroll         Payroll[]
-  payment_batches PaymentBatch[]
-  outlet_employee OutletEmployee[]
-  orders          Order[]
-  attendances     Attendance[]
+  id                Int               @id @default(autoincrement())
+  nik               String            @unique
+  name              String
+  phone             String
+  address           String
+  province_id       BigInt
+  city_id           BigInt
+  district_id       BigInt
+  subdistrict_id    BigInt
+  merital_status    MeritalStatus
+  religion          String
+  birth_date        DateTime
+  birth_place       String
+  blood_type        BLOODTYPE
+  rt                String
+  rw                String
+  work_type         String
+  position          String
+  notes             String?
+  image_path        String
+  gender            Gender
+  hire_date         DateTime
+  is_active         Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  payroll           Payroll[]
+  payment_batches   PaymentBatch[]
+  outlet_employee   OutletEmployee[]
+  orders            Order[]
+  attendances       Attendance[]
+  base_payrolls     BasePayroll?
+  internal_payrolls InternalPayroll[]
 
   @@map("employees")
 }
@@ -254,26 +259,39 @@ enum DeductionType {
   OTHER
 }
 
-model Payroll {
-  id                Int                 @id @default(autoincrement())
-  employee_id       Int
-  outlet_id         Int
-  attendance_id     Int?
+model BasePayroll {
+  id                Int               @id @default(autoincrement())
+  employee_id       Int               @unique
   base_salary       Float
-  total_bonus       Float               @default(0)
-  total_deduction   Float               @default(0)
-  final_salary      Float
-  work_date         DateTime
-  payment_batch_id  Int?
-  employee          Employee            @relation(fields: [employee_id], references: [id])
-  outlet            Outlet              @relation(fields: [outlet_id], references: [id])
-  attendance        Attendance?         @relation(fields: [attendance_id], references: [id])
-  payment_batch     PaymentBatch?       @relation(fields: [payment_batch_id], references: [id])
-  bonuses           PayrollBonus[]
-  deductions        PayrollDeduction[]
-  is_active         Boolean             @default(true)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  employee          Employee          @relation(fields: [employee_id], references: [id])
+  internal_payrolls InternalPayroll[]
+  is_active         Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@map("base_payrolls")
+}
+
+model Payroll {
+  id               Int                @id @default(autoincrement())
+  employee_id      Int
+  outlet_id        Int
+  attendance_id    Int?
+  base_salary      Float
+  total_bonus      Float              @default(0)
+  total_deduction  Float              @default(0)
+  final_salary     Float
+  work_date        DateTime
+  payment_batch_id Int?
+  employee         Employee           @relation(fields: [employee_id], references: [id])
+  outlet           Outlet             @relation(fields: [outlet_id], references: [id])
+  attendance       Attendance?        @relation(fields: [attendance_id], references: [id])
+  payment_batch    PaymentBatch?      @relation(fields: [payment_batch_id], references: [id])
+  bonuses          PayrollBonus[]     @relation("OutletPayrollBonuses")
+  deductions       PayrollDeduction[] @relation("OutletPayrollDeductions")
+  is_active        Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   @@index([employee_id, work_date])
   @@index([outlet_id, work_date])
@@ -281,24 +299,50 @@ model Payroll {
   @@map("employee_payrolls")
 }
 
+model InternalPayroll {
+  id               Int                @id @default(autoincrement())
+  employee_id      Int
+  base_payroll_id  Int
+  base_salary      Float
+  total_bonus      Float              @default(0)
+  total_deduction  Float              @default(0)
+  final_salary     Float
+  period_start     DateTime
+  period_end       DateTime
+  payment_batch_id Int?
+  employee         Employee           @relation(fields: [employee_id], references: [id])
+  base_payroll     BasePayroll        @relation(fields: [base_payroll_id], references: [id])
+  payment_batch    PaymentBatch?      @relation(fields: [payment_batch_id], references: [id])
+  bonuses          PayrollBonus[]     @relation("InternalPayrollBonuses")
+  deductions       PayrollDeduction[] @relation("InternalPayrollDeductions")
+  is_active        Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([employee_id, period_start, period_end])
+  @@index([payment_batch_id])
+  @@map("internal_payrolls")
+}
+
 model PaymentBatch {
-  id                Int             @id @default(autoincrement())
+  id                Int               @id @default(autoincrement())
   employee_id       Int
   period_start      DateTime
   period_end        DateTime
   total_base_salary Float
-  total_bonus       Float           @default(0)
-  total_deduction   Float           @default(0)
+  total_bonus       Float             @default(0)
+  total_deduction   Float             @default(0)
   final_amount      Float
-  status            PaymentStatus   @default(PENDING)
+  status            PaymentStatus     @default(PENDING)
   paid_at           DateTime?
   payment_method    String?
   payment_reference String?
   notes             String?
-  employee          Employee        @relation(fields: [employee_id], references: [id])
+  employee          Employee          @relation(fields: [employee_id], references: [id])
   payrolls          Payroll[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  internal_payrolls InternalPayroll[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([employee_id, period_start, period_end])
   @@index([status])
@@ -306,32 +350,38 @@ model PaymentBatch {
 }
 
 model PayrollBonus {
-  id          Int      @id @default(autoincrement())
-  payroll_id  Int
-  type        BonusType
-  amount      Float
-  description String?
-  reference   String?
-  payroll     Payroll  @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  Int              @id @default(autoincrement())
+  payroll_id          Int?
+  internal_payroll_id Int?
+  type                BonusType
+  amount              Float
+  description         String?
+  reference           String?
+  payroll             Payroll?         @relation("OutletPayrollBonuses", fields: [payroll_id], references: [id], onDelete: Cascade)
+  internal_payroll    InternalPayroll? @relation("InternalPayrollBonuses", fields: [internal_payroll_id], references: [id], onDelete: Cascade)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   @@index([payroll_id])
+  @@index([internal_payroll_id])
   @@map("payroll_bonuses")
 }
 
 model PayrollDeduction {
-  id          Int           @id @default(autoincrement())
-  payroll_id  Int
-  type        DeductionType
-  amount      Float
-  description String?
-  reference   String?
-  payroll     Payroll       @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                  Int              @id @default(autoincrement())
+  payroll_id          Int?
+  internal_payroll_id Int?
+  type                DeductionType
+  amount              Float
+  description         String?
+  reference           String?
+  payroll             Payroll?         @relation("OutletPayrollDeductions", fields: [payroll_id], references: [id], onDelete: Cascade)
+  internal_payroll    InternalPayroll? @relation("InternalPayrollDeductions", fields: [internal_payroll_id], references: [id], onDelete: Cascade)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   @@index([payroll_id])
+  @@index([internal_payroll_id])
   @@map("payroll_deductions")
 }
 
@@ -370,6 +420,7 @@ model material {
   requests     OutletMaterialRequest[]
   products     ProductInventory[]
   order_usages OrderMaterialUsage[]
+
   @@map("materials")
 }
 
@@ -408,8 +459,8 @@ model ProductStock {
   id          Int           @id @default(autoincrement())
   product_id  Int
   products    ProductMaster @relation(fields: [product_id], references: [id])
-  is_active   Boolean      @default(true)
-  units       String       @default("pcs")
+  is_active   Boolean       @default(true)
+  units       String        @default("pcs")
   quantity    Int           @default(0)
   date        DateTime
   source_from PRODUCTSOURCE @default(PRODUCTION)
@@ -440,7 +491,7 @@ model Outlet {
   location          String
   code              String                  @unique @default(uuid())
   description       String?
-  income_target     Int                     @default(0) 
+  income_target     Int                     @default(0)
   is_active         Boolean                 @default(true)
   user_id           Int                     @unique
   user              User                    @relation(fields: [user_id], references: [id])
@@ -456,6 +507,7 @@ model Outlet {
 
   @@map("outlets")
 }
+
 enum DAY {
   MONDAY
   SUNDAY
@@ -465,19 +517,20 @@ enum DAY {
   FRIDAY
   SATURDAY
 }
+
 model OutletSetting {
-  id              Int @id @default(autoincrement())
-  outlet_id       Int
-  check_in_time   String
-  check_out_time  String
-  salary          Int
-  day             DAY[]
-  outlet          Outlet @relation(fields: [outlet_id], references: [id], onDelete: Cascade,onUpdate: Cascade)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  outlet_id      Int
+  check_in_time  String
+  check_out_time String
+  salary         Int
+  day            DAY[]
+  outlet         Outlet   @relation(fields: [outlet_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
   @@map("outlet_settings")
 }
-
 
 model OutletEmployee {
   id          Int      @id @default(autoincrement())
@@ -485,11 +538,11 @@ model OutletEmployee {
   employee_id Int
   assigned_at DateTime @default(now())
 
-  outlet      Outlet   @relation(fields: [outlet_id], references: [id])
-  employee    Employee @relation(fields: [employee_id], references: [id])
-  is_active   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  outlet    Outlet   @relation(fields: [outlet_id], references: [id])
+  employee  Employee @relation(fields: [employee_id], references: [id])
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("outlet_employees")
 }
@@ -502,6 +555,7 @@ enum ApprovalStatus {
   APPROVED
   REJECTED
 }
+
 enum AttendanceStatus {
   PRESENT
   SICK
@@ -509,27 +563,28 @@ enum AttendanceStatus {
   EXCUSED
   CUTI
 }
+
 model Attendance {
-  id                   Int       @id @default(autoincrement())
+  id                   Int              @id @default(autoincrement())
   employee_id          Int
   outlet_id            Int
   checkin_image_proof  String
   checkout_image_proof String?
-  checkin_time         DateTime  @default(now())
+  checkin_time         DateTime         @default(now())
   checkout_time        DateTime?
-  late_minutes        Int       @default(0)
-  late_notes          String?
-  late_present_proof  String?
-  late_approval_status ApprovalStatus @default(PENDING)
-  attendance_status   AttendanceStatus @default(PRESENT)
-  notes               String?
-  is_active            Boolean   @default(true)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  late_minutes         Int              @default(0)
+  late_notes           String?
+  late_present_proof   String?
+  late_approval_status ApprovalStatus   @default(PENDING)
+  attendance_status    AttendanceStatus @default(PRESENT)
+  notes                String?
+  is_active            Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   // Relations
-  employee Employee @relation(fields: [employee_id], references: [id])
-  outlet   Outlet   @relation(fields: [outlet_id], references: [id])
+  employee Employee  @relation(fields: [employee_id], references: [id])
+  outlet   Outlet    @relation(fields: [outlet_id], references: [id])
   payrolls Payroll[]
 
   // Indexes for common queries
@@ -544,42 +599,41 @@ model Attendance {
 // ============================================================================
 
 model Order {
-  id              Int                   @id @default(autoincrement())
+  id              Int                  @id @default(autoincrement())
   outlet_id       Int
   outlet_location String
-  invoice_number  String                @unique
+  invoice_number  String               @unique
   employee_id     Int
   payment_method  String
   total_amount    Int
-  status          String                @default("PENDING")
+  status          String               @default("PENDING")
   is_using_bag    BagSize?
   packaging_type  PackagingType?
-  is_active       Boolean               @default(true)
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  is_active       Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
   items           OrderItem[]
   material_usage  OrderMaterialUsage[]
-  outlet          Outlet                @relation(fields: [outlet_id], references: [id])
-  employee        Employee              @relation(fields: [employee_id], references: [id])
+  outlet          Outlet               @relation(fields: [outlet_id], references: [id])
+  employee        Employee             @relation(fields: [employee_id], references: [id])
 
   @@map("orders")
 }
 
-
 model OrderItem {
-  id         Int      @id @default(autoincrement())
-  order_id   Int
-  product_id Int
-  quantity   Int
-  price      Float
+  id                 Int         @id @default(autoincrement())
+  order_id           Int
+  product_id         Int
+  quantity           Int
+  price              Float
   order_item_root_id Int?
-  order      Order    @relation(fields: [order_id], references: [id])
-  product    Product  @relation(fields: [product_id], references: [id])
-  order_item_root OrderItem? @relation("OrderItemSelfRelation", fields: [order_item_root_id], references: [id])
-  sub_items       OrderItem[] @relation("OrderItemSelfRelation")
-  is_active  Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  order              Order       @relation(fields: [order_id], references: [id])
+  product            Product     @relation(fields: [product_id], references: [id])
+  order_item_root    OrderItem?  @relation("OrderItemSelfRelation", fields: [order_item_root_id], references: [id])
+  sub_items          OrderItem[] @relation("OrderItemSelfRelation")
+  is_active          Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@map("order_items")
 }
@@ -648,19 +702,19 @@ enum TransactionType {
 }
 
 model Account {
-  id                  Int                 @id @default(autoincrement())
+  id                  Int             @id @default(autoincrement())
   name                String
-  number              String              @unique
-  balance             Float               @default(0)
+  number              String          @unique
+  balance             Float           @default(0)
   description         String?
   account_category_id Int
-  account_category    AccountCategory     @relation(fields: [account_category_id], references: [id])
+  account_category    AccountCategory @relation(fields: [account_category_id], references: [id])
   transactions        Transaction[]
-  is_active           Boolean             @default(true)
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  is_active           Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
   account_type_id     Int
-  account_type        AccountType         @relation(fields: [account_type_id], references: [id])
+  account_type        AccountType     @relation(fields: [account_type_id], references: [id])
 
   @@index([account_category_id])
   @@map("accounts")
@@ -678,6 +732,7 @@ model AccountCategory {
 
   @@map("account_categories")
 }
+
 model AccountType {
   id                  Int             @id @default(autoincrement())
   name                String          @unique
@@ -692,6 +747,7 @@ model AccountType {
 
   @@map("account_types")
 }
+
 model Transaction {
   id               Int             @id @default(autoincrement())
   account_id       Int
