@@ -14,6 +14,8 @@ import { AuthRequest } from '../../../policies/authMiddleware';
 import { Request } from 'express';
 import { getWebSocketInstance } from '../../websocket';
 import { PrismaClient } from '@prisma/client';
+import ExcelJS from 'exceljs';
+import { styleHeaderRow, setExcelHeaders, autoSizeColumns, formatDate } from '../../../utils/excelHelpers';
 
 // Union type for all possible order response types (including null for error cases)
 type TOrderResponseTypes = TOrderGetResponse | TOrderListResponse | TOrderDetailResponse | TMyOrderResponse | null;
@@ -38,6 +40,9 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
    */
   async getAllOrders(req: Request, res: Response) {
     try {
+      // Check if Excel export is requested
+      const type = req.query.type as string;
+      
       // Use validated pagination params from middleware with defaults
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
@@ -48,6 +53,11 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       const data: TOrderListResponse[] = result.orders.map(order => 
         OrderResponseMapper.toOrderListResponse(order)
       );
+
+      // If Excel export requested, generate and return Excel file
+      if (type === 'xlsx') {
+        return this.generateOrdersExcel(res, data);
+      }
 
       const metadata: TMetadataResponse = {
         page: result.page,
@@ -430,6 +440,54 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         null,
         {} as TMetadataResponse
       );
+    }
+  }
+
+  /**
+   * Generate Excel file for orders
+   */
+  private async generateOrdersExcel(res: Response, orders: TOrderListResponse[]) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Orders');
+
+      // Add headers
+      const headerRow = worksheet.addRow([
+        'Invoice Number',
+        'Outlet',
+        'Payment Method',
+        'Total Amount',
+        'Order Status',
+        'Created At'
+      ]);
+      styleHeaderRow(headerRow);
+
+      // Add data rows
+      orders.forEach(order => {
+        worksheet.addRow([
+          order.invoice_number || '-',
+          order.outlet_name || '-',
+          order.payment_method || '-',
+          order.total_amount || 0,
+          order.order_status || '-',
+          (order.created_at && typeof order.created_at === 'string') || order.created_at instanceof Date
+            ? formatDate(order.created_at as string | Date)
+            : '-'
+        ]);
+      });
+
+      // Auto-size columns
+      autoSizeColumns(worksheet);
+
+      // Set response headers and send file
+      const filename = `orders-${new Date().toISOString().split('T')[0]}.xlsx`;
+      setExcelHeaders(res, filename);
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+      throw error;
     }
   }
 }

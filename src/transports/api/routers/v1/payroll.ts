@@ -15,6 +15,13 @@ const payrollService = new PayrollService(payrollRepository, outletRepository);
 router.use(authMiddleware);
 
 /**
+ * POST /api/v1/finance/payroll
+ * Create payroll template for internal employees (HR, Finance, Warehouse, etc.)
+ * Body: { employee_id: number, salary: number }
+ */
+router.post('/', (req, res) => payrollController.createInternalPayrollTemplate(req, res, payrollService));
+
+/**
  * GET /api/v1/finance/payroll
  * Get all employee payroll summary
  * Query params: start_date, end_date
@@ -47,6 +54,6 @@ router.put('/:employee_id', (req, res) => payrollController.updatePayroll(req, r
  * Create payment batch (pay salary)
  * No request body required
  */
-router.post('/:employee_id', (req, res) => payrollController.createPayment(req, res, payrollService));
+router.post('/pay/:employee_id', (req, res) => payrollController.createPayment(req, res, payrollService));
 
 export default router;

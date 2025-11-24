@@ -428,4 +428,59 @@ export default class PayrollService extends Service<TPayroll> {
   private formatDate(date: Date): string {
     return date.toISOString().split('T')[0];
   }
+
+  // ==========================================================================
+  // INTERNAL PAYROLL METHODS
+  // ==========================================================================
+
+  async createInternalPayrollTemplate(employeeId: number, salary: number) {
+    const employeeType = await this.repository.getEmployeeType(employeeId);
+    if (employeeType === 'outlet') {
+      throw new Error('Karyawan ini sudah di-assign ke outlet, gunakan sistem payroll outlet');
+    }
+
+    const employee = await this.repository.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new Error('Employee not found');
+    }
+
+    const basePayroll = await this.repository.createOrUpdateBasePayroll(employeeId, salary);
+    const { start, end } = this.getCurrentMonthRange();
+    const existingPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
+    
+    let internalPayroll;
+    if (existingPayrolls.length === 0) {
+      internalPayroll = await this.repository.createInternalPayroll({
+        employeeId,
+        basePayrollId: basePayroll.id,
+        baseSalary: salary,
+        totalBonus: 0,
+        totalDeduction: 0,
+        finalSalary: salary,
+        periodStart: start,
+        periodEnd: end,
+      });
+    } else {
+      internalPayroll = existingPayrolls[0];
+    }
+
+    return {
+      id: basePayroll.id,
+      employee_id: employeeId,
+      employee_name: employee.name,
+      base_salary: salary,
+      is_active: basePayroll.is_active,
+      created_at: basePayroll.createdAt,
+      updated_at: basePayroll.updatedAt,
+    };
+  }
+
+  private getCurrentMonthRange(): { start: Date; end: Date } {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
 }
