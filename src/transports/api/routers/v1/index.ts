@@ -20,6 +20,7 @@ import accountCategoryRouter from './accountCategory';
 import accountTypeRouter from './accountType';
 import transactionRouter from './transaction';
 import reportRouter from './report';
+import dashboardRouter from './dashboard';
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.use("/auth", authRouter);
 router.use("/", testRouter);
 router.use('/users', userRouter);
 router.use('/roles', roleRouter);
-router.use('/outlets', outletRouter );
+router.use('/outlets', outletRouter);
 router.use('/employees', employeeRouter);
 router.use('/categories', categoryRouter);
 router.use('/products', productRouter);
@@ -54,5 +55,6 @@ router.use('/finance/account-categories', accountCategoryRouter);
 router.use('/finance/account-types', accountTypeRouter);
 router.use('/finance/transactions', transactionRouter);
 router.use('/finance/reports', reportRouter);
+router.use('/dashboard', dashboardRouter);
 
 export default router;
