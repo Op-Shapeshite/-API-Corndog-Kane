@@ -18,21 +18,31 @@ export const dashboardSchema = z.object({
         // Profit type filter
         profit_type: z.enum(['today', 'weekly', 'monthly']),
 
-        // Product sales outlet filter
-        product_sales_outlet_id: z.string().transform((val) => parseInt(val, 10)).pipe(
-            z.number().int().positive('product_sales_outlet_id must be a positive integer')
-        ),
+        // Product sales outlet filter (allow 'all' or specific ID)
+        product_sales_outlet_id: z.string().transform((val) => {
+            if (val.toLowerCase() === 'all') {
+                return 'all' as const;
+            }
+            const id = parseInt(val, 10);
+            if (isNaN(id) || id <= 0) {
+                throw new Error('product_sales_outlet_id must be "all" or a positive integer');
+            }
+            return id;
+        }),
 
         // Product sales date range
         product_sales_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'product_sales_start_date must be in YYYY-MM-DD format'),
 
         product_sales_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'product_sales_end_date must be in YYYY-MM-DD format'),
 
-        // Accounts IDs filter (comma-separated)
+        // Accounts IDs filter (allow 'all' or comma-separated IDs)
         accounts_ids: z.string().transform((val) => {
+            if (val.toLowerCase() === 'all') {
+                return 'all' as const;
+            }
             const ids = val.split(',').map(id => parseInt(id.trim(), 10));
             if (ids.some(id => isNaN(id) || id <= 0)) {
-                throw new Error('accounts_ids must be comma-separated positive integers');
+                throw new Error('accounts_ids must be "all" or comma-separated positive integers');
             }
             return ids;
         }),

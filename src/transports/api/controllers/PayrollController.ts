@@ -36,7 +36,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         // For Excel, we need detailed data with bonuses and deductions
         // Get all employee IDs from the result
         const employeeIds = result.map((r: any) => r.employee_id);
-        
+
         // Fetch detailed payroll data for each employee (bonuses & deductions)
         const detailedPayrolls = await Promise.all(
           employeeIds.map(async (employeeId: number) => {
@@ -160,6 +160,45 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
 
       const mappedData = PayrollDetailResponseMapper.map(result);
 
+      // 🔥 AUTO-POST FINANCE TRANSACTION TO ACCOUNT 6103 (Beban Gaji)
+      try {
+        const { TransactionRepository } = await import('../../../adapters/postgres/repositories/TransactionRepository');
+        const { PrismaClient } = await import('@prisma/client');
+
+        const transactionRepo = new TransactionRepository();
+        const prisma = new PrismaClient();
+
+        // Get employee name
+        const employee = await prisma.employee.findUnique({
+          where: { id: employeeId },
+          select: { name: true }
+        });
+
+        const employeeName = employee?.name || 'Unknown Employee';
+        const paymentDate = new Date();
+
+        // Get final_amount from result (it's the final salary after deductions)
+        const finalAmount = (result as any).final_amount || 0;
+
+        if (finalAmount > 0) {
+          await transactionRepo.create({
+            accountId: 6103, // Account: Beban Gaji
+            amount: finalAmount,
+            transactionType: 'EXPENSE' as any,
+            description: `Gaji ${employeeName}`,
+            transactionDate: paymentDate,
+            referenceNumber: `PAY-${employeeId}-${paymentDate.getTime()}`
+          });
+
+          console.log(`💰 Auto-posted transaction to account 6103: Rp ${finalAmount.toLocaleString()} for ${employeeName}`);
+        }
+
+        await prisma.$disconnect();
+      } catch (financeError) {
+        console.error('⚠️  Auto-post finance transaction failed:', financeError);
+        // Don't fail the payment request if finance posting fails
+      }
+
       return this.getSuccessResponse(res, {
         data: mappedData,
         metadata: {
@@ -246,13 +285,13 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
    * 3. Deductions
    */
   private async generatePayrollsExcel(
-    res: Response, 
+    res: Response,
     payrolls: TPayrollListResponse[],
     detailedPayrolls: any[] = []
   ) {
     try {
       const workbook = new ExcelJS.Workbook();
-      
+
       // ===== SHEET 1: Payroll Summary =====
       const summarySheet = workbook.addWorksheet('Payroll Summary');
 

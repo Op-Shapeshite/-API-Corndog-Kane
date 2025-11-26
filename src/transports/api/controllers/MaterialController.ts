@@ -18,13 +18,52 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
     return async (req: Request, res: Response) => {
       try {
         const data: TMaterialStockInCreateRequest = req.body;
-        
+
         // Service returns entity
         const entity = await this.materialService.stockIn(data);
-        
+
         // Map entity to response
         const responseData = MaterialStockOutResponseMapper.toResponse(entity);
-        
+
+        // 🔥 AUTO-POST FINANCE TRANSACTION TO ACCOUNT 5101 (HPP/COGS)
+        try {
+          const { TransactionRepository } = await import('../../../adapters/postgres/repositories/TransactionRepository');
+          const { PrismaClient } = await import('@prisma/client');
+
+          const transactionRepo = new TransactionRepository();
+          const prisma = new PrismaClient();
+
+          // Get material name  
+          const material = await prisma.material.findUnique({
+            where: { id: data.material_id },
+            select: { name: true }
+          });
+
+          const materialName = material?.name || 'Unknown Material';
+          const purchaseDate = new Date();
+
+          // Calculate total purchase cost: price * quantity
+          const totalCost = data.price * data.quantity;
+
+          if (totalCost > 0) {
+            await transactionRepo.create({
+              accountId: 5101, // Account: HPP/COGS
+              amount: totalCost,
+              transactionType: 'EXPENSE' as any,
+              description: `Pembelian ${materialName}`,
+              transactionDate: purchaseDate,
+              referenceNumber: `MAT-${data.material_id}-${purchaseDate.getTime()}`
+            });
+
+            console.log(`💰 Auto-posted transaction to account 5101: Rp ${totalCost.toLocaleString()} for ${materialName}`);
+          }
+
+          await prisma.$disconnect();
+        } catch (financeError) {
+          console.error('⚠️  Auto-post finance transaction failed:', financeError);
+          // Don't fail the stock-in request if finance posting fails
+        }
+
         return this.getSuccessResponse(
           res,
           {
@@ -50,13 +89,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
     return async (req: Request, res: Response) => {
       try {
         const data: TMaterialStockOutCreateRequest = req.body;
-        
+
         // Service returns entity
         const entity = await this.materialService.stockOut(data);
-        
+
         // Map entity to response
         const mappedResult: TMaterialInventoryGetResponse = MaterialStockOutResponseMapper.toResponse(entity);
-        
+
         return this.getSuccessResponse(
           res,
           {
@@ -84,9 +123,9 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         // Use validated pagination params from middleware with defaults
         const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
         const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
-        
+
         const { data, total } = await this.materialService.getBuyList(page, limit);
-        
+
         // Map MaterialStockInEntity to TMaterialStockInGetResponse format
         const mappedResults: TMaterialStockInGetResponse[] = data.map(item => ({
           id: item.id,
@@ -102,14 +141,14 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
           created_at: item.createdAt,
           updated_at: item.updatedAt,
         }));
-        
+
         const metadata: TMetadataResponse = {
           page,
           limit,
           total_records: total,
           total_pages: Math.ceil(total / limit),
         };
-        
+
         return this.getSuccessResponse(
           res,
           {
@@ -137,19 +176,19 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         // Use validated pagination params from middleware with defaults
         const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
         const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
-        
+
         const { data, total } = await this.materialService.getStocksList(page, limit);
-        const mappedResults: TMaterialInventoryGetResponse[] = data.map(item => 
+        const mappedResults: TMaterialInventoryGetResponse[] = data.map(item =>
           MaterialStockOutResponseMapper.toResponse(item)
         );
-        
+
         const metadata: TMetadataResponse = {
           page,
           limit,
           total_records: total,
           total_pages: Math.ceil(total / limit),
         };
-        
+
         return this.getSuccessResponse(
           res,
           {

@@ -42,7 +42,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
     try {
       // Check if Excel export is requested
       const type = req.query.type as string;
-      
+
       // Use validated pagination params from middleware with defaults
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
@@ -50,7 +50,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       const result = await this.orderService.getAllOrders(page, limit);
 
       // Map each order to list response format
-      const data: TOrderListResponse[] = result.orders.map(order => 
+      const data: TOrderListResponse[] = result.orders.map(order =>
         OrderResponseMapper.toOrderListResponse(order)
       );
 
@@ -113,7 +113,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       const result = await this.orderService.getOrdersByOutlet(outletId, page, limit);
 
       // Map each order to my order response format (with nested items)
-      const data: TMyOrderResponse[] = result.orders.map((order: any) => 
+      const data: TMyOrderResponse[] = result.orders.map((order: any) =>
         OrderResponseMapper.toMyOrderResponse(order)
       );
 
@@ -166,7 +166,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       }
 
       const order = await this.orderService.getOrderById(orderId);
-      
+
       // Use the same format as /order/my endpoint
       const data: TMyOrderResponse = OrderResponseMapper.toMyOrderResponse(order);
 
@@ -180,7 +180,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       );
     } catch (error) {
       const statusCode = error instanceof Error && error.message === 'Order not found' ? 404 : 500;
-      
+
       return this.handleError(
         res,
         error,
@@ -342,7 +342,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         try {
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Start of today
-          
+
           const productStockResult = await this.outletService.getOutletProductStocks(
             outletId,
             1, // page
@@ -350,12 +350,12 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
             today, // start date - today
             today // end date - today
           );
-          
+
           // Filter to only include products that were ordered
-          const filteredProductStocks = productStockResult.data.filter((item: TOutletStockItem) => 
+          const filteredProductStocks = productStockResult.data.filter((item: TOutletStockItem) =>
             orderedProductIds.has(item.product_id)
           );
-          
+
           if (filteredProductStocks.length > 0) {
             io.emit('new-product-stock', {
               outlet_id: outletId,
@@ -389,7 +389,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
             if (orderedMaterialIds.size > 0) {
               const today = new Date();
               today.setHours(0, 0, 0, 0); // Start of today
-              
+
               const materialStockResult = await this.outletService.getOutletMaterialStocks(
                 outletId,
                 1, // page
@@ -397,12 +397,12 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
                 today, // start date - today
                 today // end date - today
               );
-              
+
               // Filter to only include materials used in ordered products
-              const filteredMaterialStocks = materialStockResult.data.filter((item: TMaterialStockItem) => 
+              const filteredMaterialStocks = materialStockResult.data.filter((item: TMaterialStockItem) =>
                 orderedMaterialIds.has(item.material_id)
               );
-              
+
               if (filteredMaterialStocks.length > 0) {
                 io.emit('new-material-stock', {
                   outlet_id: outletId,
@@ -418,6 +418,52 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       } catch (wsError) {
         console.error('⚠️  WebSocket emit failed:', wsError);
         // Don't fail the request if WebSocket fails
+      }
+
+      // 🔥 AUTO-POST FINANCE TRANSACTION TO ACCOUNT 4101 (Pendapatan Penjualan)
+      try {
+        const TransactionRepository = (await import('../../../adapters/postgres/repositories/TransactionRepository')).TransactionRepository;
+        const transactionRepo = new TransactionRepository();
+
+        // Calculate total HPP from all order items
+        let totalHPP = 0;
+        if (fullOrder && fullOrder.items) {
+          for (const item of fullOrder.items) {
+            // Get product HPP from database
+            const product = await this.prisma.product.findUnique({
+              where: { id: item.product_id },
+              select: { hpp: true }
+            });
+
+            if (product && product.hpp) {
+              totalHPP += Number(product.hpp) * item.quantity;
+            }
+          }
+        }
+
+        // Calculate profit: total_amount - total_hpp
+        const totalAmount = Number(fullOrder.total_amount) || 0;
+        const profit = totalAmount - totalHPP;
+
+        // Only create transaction if profit > 0
+        if (profit > 0) {
+          const orderDate = new Date();
+          const formattedDate = orderDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+          await transactionRepo.create({
+            accountId: 4101, // Account: Pendapatan Penjualan
+            amount: profit,
+            transactionType: 'INCOME' as any,
+            description: `Pendapatan Penjualan ${formattedDate}`,
+            transactionDate: orderDate,
+            referenceNumber: fullOrder.invoice_number
+          });
+
+          console.log(`💰 Auto-posted transaction to account 4101: Rp ${profit.toLocaleString()} for order ${fullOrder.invoice_number}`);
+        }
+      } catch (financeError) {
+        console.error('⚠️  Auto-post finance transaction failed:', financeError);
+        // Don't fail the order request if finance posting fails
       }
 
       return this.getSuccessResponse(

@@ -19,6 +19,10 @@ export class DashboardService {
      * Get complete dashboard data with all metrics
      */
     async getDashboardData(params: TDashboardQueryParams): Promise<TDashboardResponse> {
+        // Resolve 'all' to actual IDs
+        const accountIds = await this.resolveAccountIds(params.accounts_ids);
+        const outletId = await this.resolveOutletId(params.product_sales_outlet_id);
+
         const [
             income,
             soldProducts,
@@ -28,16 +32,16 @@ export class DashboardService {
             cashflow,
             customerGrowth
         ] = await Promise.all([
-            this.getIncomeWithPercentage(params.income_type, params.accounts_ids),
+            this.getIncomeWithPercentage(params.income_type, accountIds),
             this.getSoldProductsWithPercentage(params.sold_product_type),
-            this.getExpensesWithPercentage(params.expense_type, params.accounts_ids),
-            this.getProfitsWithPercentage(params.profit_type, params.accounts_ids),
+            this.getExpensesWithPercentage(params.expense_type, accountIds),
+            this.getProfitsWithPercentage(params.profit_type, accountIds),
             this.getProductsStatistics(
-                params.product_sales_outlet_id,
+                outletId,
                 params.product_sales_start_date,
                 params.product_sales_end_date
             ),
-            this.getCashflow(params.cashflow_type, params.accounts_ids),
+            this.getCashflow(params.cashflow_type, accountIds),
             this.getCustomerGrowth(params.customer_growth_type)
         ]);
 
@@ -50,6 +54,26 @@ export class DashboardService {
             cashflow,
             customer_growth: customerGrowth
         };
+    }
+
+    /**
+     * Resolve account IDs - if 'all', fetch all account IDs
+     */
+    private async resolveAccountIds(accountIds: number[] | 'all'): Promise<number[]> {
+        if (accountIds === 'all') {
+            return await this.repository.getAllAccountIds();
+        }
+        return accountIds;
+    }
+
+    /**
+     * Resolve outlet ID - if 'all', use null to indicate all outlets
+     */
+    private async resolveOutletId(outletId: number | 'all'): Promise<number | null> {
+        if (outletId === 'all') {
+            return null; // null means all outlets
+        }
+        return outletId;
     }
 
     /**
@@ -144,7 +168,7 @@ export class DashboardService {
      * Get products statistics with increase percentage
      */
     private async getProductsStatistics(
-        outletId: number,
+        outletId: number | null,
         startDate: string,
         endDate: string
     ): Promise<TProductStatistic[]> {
