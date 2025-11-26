@@ -1,12 +1,11 @@
-import { TUser} from "../../../core/entities/user/user";
+import { TUser } from "../../../core/entities/user/user";
 import { UserRepository as IUserRepository } from "../../../core/repositories/user";
 import Repository from "./Repository";
 import bcrypt from 'bcrypt';
 
 export default class UserRepository
 	extends Repository<TUser>
-	implements IUserRepository
-{
+	implements IUserRepository {
 	constructor() {
 		super("user");
 	}
@@ -31,6 +30,20 @@ export default class UserRepository
 	}
 
 	/**
+	 * Override create method to hash password before saving
+	 */
+	async create(item: TUser): Promise<TUser> {
+		// Always hash password when creating new user
+		if (item.password) {
+			const hashedPassword = await bcrypt.hash(item.password, 10);
+			item = { ...item, password: hashedPassword };
+		}
+
+		// Call parent create method
+		return super.create(item);
+	}
+
+	/**
 	 * Override update method to hash password if provided
 	 */
 	async update(id: string, item: Partial<TUser>): Promise<TUser> {
@@ -39,7 +52,7 @@ export default class UserRepository
 			const hashedPassword = await bcrypt.hash(item.password, 10);
 			item = { ...item, password: hashedPassword };
 		}
-		
+
 		// Call parent update method
 		return super.update(id, item);
 	}
