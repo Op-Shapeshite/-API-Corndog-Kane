@@ -31,10 +31,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
    */
   private snakeToCamel<TObj extends Record<string, unknown>>(obj: TObj): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
       const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      
+
       if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
         result[camelKey] = this.snakeToCamel(value as Record<string, unknown>);
       } else if (Array.isArray(value)) {
@@ -47,7 +47,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         result[camelKey] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -55,7 +55,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
     const { id } = req.params;
     try {
       const employee = await employeeService.findById(id);
-      
+
       if (!employee) {
         return this.getFailureResponse(
           res,
@@ -70,9 +70,9 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
       return this.getSuccessResponse(
         res,
-        { 
-          data: responseData, 
-          metadata: {} as TMetadataResponse 
+        {
+          data: responseData,
+          metadata: {} as TMetadataResponse
         },
         'Employee retrieved successfully'
       );
@@ -113,10 +113,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       // Convert snake_case to camelCase while preserving types (integers, dates, etc.)
       const requestData = this.snakeToCamel({
         ...req.body,
-        province_id: +req.body.province_id,
-        city_id: +req.body.city_id,
-        district_id: +req.body.district_id,
-        subdistrict_id: +req.body.subdistrict_id,
+        province_id: Number(req.body.province_id),
+        city_id: Number(req.body.city_id),
+        district_id: Number(req.body.district_id),
+        subdistrict_id: Number(req.body.subdistrict_id),
         image_path: imagePath,
       });
 
@@ -125,7 +125,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       console.log('cityId type:', typeof requestData.cityId, 'value:', requestData.cityId);
 
       const newEmployee = await employeeService.create(requestData as TEmployee);
-      
+
       return this.getSuccessResponse(
         res,
         {
@@ -160,7 +160,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
    */
   updateEmployee = async (req: Request, res: Response, employeeService: EmployeeService) => {
     const employeeId = req.params.id;
-    
+
     try {
       const imagePath = req.file?.filename;
 
@@ -182,7 +182,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       });
 
       const updatedEmployee = await employeeService.update(employeeId, requestData);
-      
+
       return this.getSuccessResponse(
         res,
         {
@@ -251,7 +251,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
       // Get data based on view parameter and date filters
       const result = await employeeService.getSchedules(view, startDate, endDate, status, searchKey, searchValue, page, limit);
-      
+
       // For table view, return attendance data with pagination
       if (view === 'table') {
         const resultWithPagination = result as {
@@ -280,7 +280,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         const tableResponse: TAttendanceTableResponse[] = AttendanceTableResponseMapper.toListResponse(
           resultWithPagination.data
         );
-        
+
         return this.getSuccessResponse(
           res,
           {
@@ -310,7 +310,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       }>).map(schedule =>
         OutletAssignmentResponseMapper.toResponse(schedule)
       );
-      
+
       return this.getSuccessResponse(
         res,
         {
@@ -356,22 +356,22 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
       const imagePath = files?.image_proof?.[0]?.filename;
       const latePresentProof = files?.late_present_proof?.[0]?.filename;
-      
+
       // Extract late_notes from body
       const lateNotes = req.body.late_notes;
 
       if (!imagePath) {
         return this.getFailureResponse(res,
-          { data: null, metadata: {} as TMetadataResponse } ,
-          [{field:"image_proof", message: "Image proof is required", type: "required"}],
+          { data: null, metadata: {} as TMetadataResponse },
+          [{ field: "image_proof", message: "Image proof is required", type: "required" }],
           'Image proof is required',
           400
         )
       }
-      
+
       // Get the scheduled employee for this outlet
       const employeeId = await employeeService.findScheduledEmployeeByUserId(parseInt(userId));
-      
+
       if (!employeeId) {
         return this.getFailureResponse(
           res,
@@ -383,10 +383,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       }
 
       const attendance = await employeeService.checkin(
-        employeeId, 
+        employeeId,
         parseInt(String(outletId)), // Ensure outletId is a number
-        imagePath, 
-        lateNotes, 
+        imagePath,
+        lateNotes,
         latePresentProof
       );
       const responseData: TAttendanceGetResponse = AttendanceResponseMapper.toResponse(attendance);
@@ -401,7 +401,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to check in';
-      
+
       return this.handleError(
         res,
         error,
@@ -438,7 +438,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
       // Get the scheduled employee for this outlet
       const employeeId = await employeeService.findScheduledEmployeeByUserId(parseInt(userId));
-      
+
       if (!employeeId) {
         return this.getFailureResponse(
           res,
@@ -452,7 +452,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       // Get outlet to validate checkout time
       const outletRepository = new OutletRepository();
       const outlet = await outletRepository.findById(outletId);
-      
+
       if (!outlet) {
         return this.getFailureResponse(
           res,
@@ -466,7 +466,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       // Get today's attendance to find checkin_time
       const employeeRepository = new EmployeeRepository();
       const todayAttendance = await employeeRepository.findTodayAttendance(employeeId);
-      
+
       if (!todayAttendance) {
         return this.getFailureResponse(
           res,
@@ -485,7 +485,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
       // Find the matching setting for today
       const setting = await outletRepository.getSettingForCheckin(outletId, day, currentTimeStr);
-      
+
       if (!setting) {
         return this.getFailureResponse(
           res,
@@ -497,12 +497,12 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       }
 
       const attendance = await employeeService.checkout(
-        employeeId, 
-        outletId, 
-        imagePath, 
+        employeeId,
+        outletId,
+        imagePath,
         setting.checkoutTime
       );
-      
+
       const responseData: TAttendanceGetResponse = AttendanceResponseMapper.toResponse(attendance);
 
       return this.getSuccessResponse(
@@ -515,7 +515,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to check out';
-      
+
       return this.handleError(
         res,
         error,
@@ -547,7 +547,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
 
       // Apply ResponseMapper in Controller layer to transform raw data to API response format
-      const mappedData = result.data.map(attendance => 
+      const mappedData = result.data.map(attendance =>
         AttendanceListResponseMapper.toResponse(attendance)
       );
 
@@ -568,7 +568,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to retrieve attendances';
-      
+
       return this.handleError(
         res,
         error,
@@ -617,7 +617,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update late approval status';
-      
+
       return this.handleError(
         res,
         error,
@@ -665,7 +665,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
       // Sort dates
       const sortedDates = Array.from(dateSet).sort();
-      
+
       // Group dates by week (ISO week number)
       const getWeekKey = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -717,7 +717,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         // Add outlet rows for this week
         outlets.forEach(([outletId, outletInfo]) => {
           const row: any[] = [outletInfo.name];
-          
+
           // For each date in this week, find employees assigned to this outlet
           weekDates.forEach(dateStr => {
             const employeesOnDate = schedules
@@ -728,15 +728,15 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
               })
               .map((s: any) => s.employee_name)
               .filter((name: string) => name); // Filter out null/undefined
-            
+
             // Join multiple employees with comma or show dash
-            const cellValue = employeesOnDate.length > 0 
-              ? employeesOnDate.join(', ') 
+            const cellValue = employeesOnDate.length > 0
+              ? employeesOnDate.join(', ')
               : '-';
-            
+
             row.push(cellValue);
           });
-          
+
           scheduleSheet.addRow(row);
         });
       });
@@ -768,7 +768,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       attendance.forEach((att: any) => {
         const checkinTime = att.checkin_time ? new Date(att.checkin_time).toLocaleString('id-ID') : '-';
         const checkoutTime = att.checkout_time ? new Date(att.checkout_time).toLocaleString('id-ID') : '-';
-        
+
         attendanceSheet.addRow([
           att.id || '-',
           att.employee_name || '-',
