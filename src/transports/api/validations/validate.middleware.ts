@@ -9,20 +9,25 @@ import { TErrorResponse } from '../../../core/entities/base/response';
 export const validate = (schema: ZodObject<ZodRawShape>) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Validate request data (body, params, query)
-      await schema.parseAsync({
+      // Validate and transform request data (body, params, query)
+      const validated = await schema.parseAsync({
         body: req.body,
         params: req.params,
         query: req.query
       });
-      
+
+      // Replace request data with validated & transformed values
+      req.body = validated.body;
+      req.params = validated.params as any;
+      req.query = validated.query as any;
+
       return next();
     } catch (error) {
       if (error instanceof ZodError) {
         // Convert Zod errors to our error response format
         const errors: TErrorResponse[] = error.issues.map((err) => {
           const field = err.path.slice(1).join('.'); // Remove 'body', 'params', or 'query' prefix
-          
+
           return {
             field: field || String(err.path[0]),
             message: err.message,
