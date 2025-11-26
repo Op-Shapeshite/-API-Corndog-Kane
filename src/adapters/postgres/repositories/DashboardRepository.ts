@@ -12,7 +12,7 @@ export interface IDashboardRepository {
     getSoldProductsCount(startDate: Date, endDate: Date): Promise<number>;
 
     getProductStatistics(
-        outletId: number,
+        outletId: number | null,
         startDate: Date,
         endDate: Date
     ): Promise<any[]>;
@@ -28,6 +28,8 @@ export interface IDashboardRepository {
     getOrderCountsByOutlet(startDate: Date, endDate: Date): Promise<any[]>;
 
     getOutletDetails(outletIds: number[]): Promise<any[]>;
+
+    getAllAccountIds(): Promise<number[]>;
 }
 
 export class DashboardRepository implements IDashboardRepository {
@@ -88,23 +90,30 @@ export class DashboardRepository implements IDashboardRepository {
 
     /**
      * Get product statistics grouped by product_id
+     * If outletId is null, aggregate across all outlets
      */
     async getProductStatistics(
-        outletId: number,
+        outletId: number | null,
         startDate: Date,
         endDate: Date
     ): Promise<any[]> {
+        const whereClause: any = {
+            order: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            }
+        };
+
+        // Only filter by outlet if outletId is provided (not null = not 'all')
+        if (outletId !== null) {
+            whereClause.order.outlet_id = outletId;
+        }
+
         const stats = await this.prisma.orderItem.groupBy({
             by: ['product_id'],
-            where: {
-                order: {
-                    outlet_id: outletId,
-                    createdAt: {
-                        gte: startDate,
-                        lte: endDate
-                    }
-                }
-            },
+            where: whereClause,
             _sum: {
                 quantity: true
             }
@@ -194,5 +203,18 @@ export class DashboardRepository implements IDashboardRepository {
         });
 
         return outlets;
+    }
+
+    /**
+     * Get all account IDs
+     */
+    async getAllAccountIds(): Promise<number[]> {
+        const accounts = await this.prisma.account.findMany({
+            select: {
+                id: true
+            }
+        });
+
+        return accounts.map((account: any) => account.id);
     }
 }

@@ -57,10 +57,10 @@ export type TDashboardQueryParams = {
     sold_product_type: 'today' | 'weekly' | 'monthly';
     expense_type: 'today' | 'weekly' | 'monthly';
     profit_type: 'today' | 'weekly' | 'monthly';
-    product_sales_outlet_id: number;
+    product_sales_outlet_id: number | 'all'; // Support 'all' for all outlets
     product_sales_start_date: string; // YYYY-MM-DD
     product_sales_end_date: string; // YYYY-MM-DD
-    accounts_ids: number[];
+    accounts_ids: number[] | 'all'; // Support 'all' for all accounts
     cashflow_type: 'yearly' | 'monthly' | 'weekly' | 'daily';
     customer_growth_type: 'daily' | 'monthly' | 'weekly' | 'yearly';
 };
