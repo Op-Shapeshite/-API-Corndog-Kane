@@ -7,75 +7,74 @@ import { Service } from "./Service";
 import bcrypt from "bcrypt";
 
 export default class OutletService extends Service<TOutlet> {
-	declare repository: OutletRepository;
-	declare userRepository: UserRepository;
+  declare repository: OutletRepository;
+  declare userRepository: UserRepository;
 
-	constructor(repository: OutletRepository) {
-		super(repository);
-		this.userRepository = new UserRepository();
-	}
+  constructor(repository: OutletRepository) {
+    super(repository);
+    this.userRepository = new UserRepository();
+  }
 
-	/**
-	 * Validate settings for overlap
-	 * Rejects if there are settings with same days AND same checkin_time AND same checkout_time
-	 */
-	private validateSettingsOverlap(settings: TOutletSetting[]): void {
-		for (let i = 0; i < settings.length; i++) {
-			for (let j = i + 1; j < settings.length; j++) {
-				const setting1 = settings[i];
-				const setting2 = settings[j];
-				
-				// Check if there are common days
-				const hasCommonDay = setting1.days.some(day => setting2.days.includes(day));
-				
-				// Check if times are the same
-				const sameCheckin = setting1.checkin_time === setting2.checkin_time;
-				const sameCheckout = setting1.checkout_time === setting2.checkout_time;
-				
-				// Reject if there's overlap
-				if (hasCommonDay && sameCheckin && sameCheckout) {
-					const commonDays = setting1.days.filter(day => setting2.days.includes(day));
-					throw new Error(`Duplicate setting found for days: ${commonDays.join(', ')}. Same checkin and checkout times are not allowed.`);
-				}
-			}
-		}
-	}
+  /**
+   * Validate settings for overlap
+   * Rejects if there are settings with same days AND same checkin_time AND same checkout_time
+   */
+  private validateSettingsOverlap(settings: TOutletSetting[]): void {
+    for (let i = 0; i < settings.length; i++) {
+      for (let j = i + 1; j < settings.length; j++) {
+        const setting1 = settings[i];
+        const setting2 = settings[j];
 
-	async createOutlet(item: TOutletCreate ): Promise<TOutlet | TOutletWithSettings> {
-		// Validate settings overlap
-		this.validateSettingsOverlap(item.settings);
+        // Check if there are common days
+        const hasCommonDay = setting1.days.some(day => setting2.days.includes(day));
 
-		let userIdToUse: number = item.userId ? item.userId : 0;
-		if (item.user && !item.userId) {
-			// Hash password before creating user
-			const hashedPassword = await bcrypt.hash(item.user.password, 10);
-			
-			const userData = {
-				name: item.user.name,
-				username: item.user.username,
-				password: hashedPassword,
-				role_id: item.user.role_id,
-			} as TUserCreate;
-			const newUser = await this.userRepository.create(userData as TUser) as TUser;
-			userIdToUse = +newUser.id;
-		}
+        // Check if times are the same
+        const sameCheckin = setting1.checkin_time === setting2.checkin_time;
+        const sameCheckout = setting1.checkout_time === setting2.checkout_time;
 
-		const newOutlet = await this.repository.create({
-			...item,
-			userId: userIdToUse || 1,
-		} as unknown as TOutletWithSettings & { userId: number });
-		return newOutlet;
-	}
+        // Reject if there's overlap
+        if (hasCommonDay && sameCheckin && sameCheckout) {
+          const commonDays = setting1.days.filter(day => setting2.days.includes(day));
+          throw new Error(`Duplicate setting found for days: ${commonDays.join(', ')}. Same checkin and checkout times are not allowed.`);
+        }
+      }
+    }
+  }
 
-	async updateOutlet(id: number, item: Partial<TOutletUpdate>): Promise<TOutlet | TOutletWithSettings | null> {
-		// Validate settings overlap if settings are provided
-		if (item.settings) {
-			this.validateSettingsOverlap(item.settings);
-		}
+  async createOutlet(item: TOutletCreate): Promise<TOutlet | TOutletWithSettings> {
+    // Validate settings overlap
+    this.validateSettingsOverlap(item.settings);
 
-		const updatedOutlet = await this.repository.update(id.toString(), item as Partial<TOutletWithSettings>);
-		return updatedOutlet;
-	}
+    let userIdToUse: number = item.userId ? item.userId : 0;
+    if (item.user && !item.userId) {
+      // Hash password before creating user
+
+      const userData = {
+        name: item.user.name,
+        username: item.user.username,
+        password: item.user.password,
+        role_id: item.user.role_id,
+      } as TUserCreate;
+      const newUser = await this.userRepository.create(userData as TUser) as TUser;
+      userIdToUse = +newUser.id;
+    }
+
+    const newOutlet = await this.repository.create({
+      ...item,
+      userId: userIdToUse || 1,
+    } as unknown as TOutletWithSettings & { userId: number });
+    return newOutlet;
+  }
+
+  async updateOutlet(id: number, item: Partial<TOutletUpdate>): Promise<TOutlet | TOutletWithSettings | null> {
+    // Validate settings overlap if settings are provided
+    if (item.settings) {
+      this.validateSettingsOverlap(item.settings);
+    }
+
+    const updatedOutlet = await this.repository.update(id.toString(), item as Partial<TOutletWithSettings>);
+    return updatedOutlet;
+  }
 
   async assignEmployeeToOutletForDates(
     outletId: number,
@@ -86,12 +85,12 @@ export default class OutletService extends Service<TOutlet> {
     previousStatus?: string,
     notes?: string
   ): Promise<{ assignments: TOutletAssignmentWithRelations[]; attendances: any[]; action: string }> {
-    const { generateDateRange, getNextSaturday, getLastSaturdayOfMonth, normalizeToStartOfDay } = 
+    const { generateDateRange, getNextSaturday, getLastSaturdayOfMonth, normalizeToStartOfDay } =
       await import('../utils/dateHelper');
-    
+
     // Determine end date based on flags
     let endDate: Date;
-    
+
     if (isForOneMonth) {
       // End on last Saturday of the month
       endDate = getLastSaturdayOfMonth(startDate);
@@ -102,19 +101,19 @@ export default class OutletService extends Service<TOutlet> {
       // Single day
       endDate = new Date(startDate);
     }
-    
+
     // Generate all dates in range
     const dates = generateDateRange(normalizeToStartOfDay(startDate), normalizeToStartOfDay(endDate));
-    
+
     const assignments: TOutletAssignmentWithRelations[] = [];
     const attendances: any[] = [];
     let actionType = 'simple_assignment';
-    
+
     // Process each date
     for (const date of dates) {
       // FIRST: Check if the new employee is already assigned to a DIFFERENT outlet on this date
       const newEmployeeExistingAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
-      
+
       if (newEmployeeExistingAssignment && newEmployeeExistingAssignment.outlet_id !== outletId) {
         // Validation: Prevent duplicate assignment to different outlet on same day
         // Only allow if previousStatus is provided (indicating intentional move/swap)
@@ -124,24 +123,24 @@ export default class OutletService extends Service<TOutlet> {
             `Cannot assign to multiple outlets on the same day. To move the employee, provide previous_status parameter.`
           );
         }
-        
+
         // Employee is assigned to another outlet with previous_status - delete that assignment
         await this.repository.deleteAssignmentsByOutletAndDate(
           newEmployeeExistingAssignment.outlet_id,
           date
         );
       }
-      
+
       // SECOND: Check for existing assignment on this outlet for this date
       const existingAssignment = await this.repository.findAssignmentByOutletAndDate(outletId, date);
-      
+
       if (!existingAssignment) {
         // No conflict - simple assignment
         const newAssignment = await this.repository.assignEmployeeToOutlet(outletId, employeeId, date);
         assignments.push(newAssignment);
         continue;
       }
-      
+
       // Conflict detected - check if employee already has PRESENT attendance
       const presentAttendance = await this.repository.findAttendanceByEmployeeOutletDate(
         existingAssignment.employee_id,
@@ -149,21 +148,21 @@ export default class OutletService extends Service<TOutlet> {
         date,
         'PRESENT'
       );
-      
+
       if (presentAttendance) {
         throw new Error(
           `Cannot reassign: Employee ${existingAssignment.employee.name} has already checked in as PRESENT on ${date.toISOString().split('T')[0]}`
         );
       }
-      
+
       // Apply scenario logic based on previous_status
       if (previousStatus === 'PRESENT') {
         // Scenario 2: SWAP employees - DO NOT create attendance
         actionType = 'swap';
-        
+
         // Find new employee's current assignment for this date
         const newEmployeeAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
-        
+
         if (newEmployeeAssignment) {
           // Swap the two employees (no attendance created)
           const swapped = await this.repository.swapEmployeeAssignments(
@@ -184,7 +183,7 @@ export default class OutletService extends Service<TOutlet> {
       } else if (previousStatus) {
         // Scenario 1 & 3: REPLACE with status (SICK, NOT_PRESENT, etc.)
         actionType = 'replace';
-        
+
         const result = await this.repository.replaceEmployeeWithAttendance(
           existingAssignment.employee_id,
           employeeId,
@@ -201,7 +200,7 @@ export default class OutletService extends Service<TOutlet> {
         assignments.push(newAssignment);
       }
     }
-    
+
     return {
       assignments,
       attendances,
