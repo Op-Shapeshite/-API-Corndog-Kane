@@ -43,52 +43,52 @@ router.get('/', validate(getEmployeesSchema), employeeController.findAll(employe
 router.get('/schedule', validate(getSchedulesSchema), (req, res) => employeeController.getSchedules(req, res, employeeService));
 
 // Get attendances by outlet (must be before /:id route)
-router.get('/schedule/:outletId', 
+router.get('/schedule/:outletId',
   authMiddleware,
   validate(getAttendancesByOutletSchema),
   (req, res) => employeeController.getAttendancesByOutlet(req, res, employeeService)
 );
 
 // Attendance endpoints
-router.post('/checkin', 
-  authMiddleware, 
+router.post('/checkin',
+  authMiddleware,
   uploadMultipleAttendanceImages([
     { name: 'image_proof', maxCount: 1 },
     { name: 'late_present_proof', maxCount: 1 }
-  ]), 
+  ]),
   (req, res) => employeeController.checkin(req, res, employeeService)
 );
-router.post('/checkout', 
-  authMiddleware, 
-  uploadAttendanceImage('image_proof'), 
+router.post('/checkout',
+  authMiddleware,
+  uploadAttendanceImage('image_proof'),
   (req, res) => employeeController.checkout(req, res, employeeService)
 );
 
 // Update late approval status - must be before /:id route
-router.patch('/:id/:status', 
+router.patch('/:id/:status',
   authMiddleware,
-  validate(updateLateApprovalStatusSchema), 
+  validate(updateLateApprovalStatusSchema),
   (req, res) => employeeController.updateLateApprovalStatus(req, res, employeeService)
 );
 
 router.get('/:id', validate(getEmployeeByIdSchema), (req, res) => employeeController.findById(req, res, employeeService));
-router.post('/', 
+router.post('/',
   uploadEmployeeImage('image'),
-  validate(createEmployeeSchema), 
+  validate(createEmployeeSchema),
   (req, res) => employeeController.createEmployee(req, res, employeeService)
 );
-router.put('/:id', 
+router.put('/:id',
   uploadEmployeeImage('image_path'),
-  validate(updateEmployeeSchema), 
+  validate(updateEmployeeSchema),
   (req, res) => employeeController.updateEmployee(req, res, employeeService)
 );
-router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
+// router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
 
 // Delete schedule by outlet_id and date
 router.delete(
-	"/schedule/:outlet_id/:date",
-	validate(deleteScheduleSchema),
-	outletController.deleteSchedule
+  "/schedule/:outlet_id/:date",
+  validate(deleteScheduleSchema),
+  outletController.deleteSchedule
 );
 
 export default router;
