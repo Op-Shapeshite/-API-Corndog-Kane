@@ -21,9 +21,7 @@ export const productInventoryUpdateSchema = z.object({
 		id: z.string().min(1, "id must be required"),
 	}),
 	body: z.object({
-
-		quantity: z
-			.number("Quantity must be a integer"),
+		quantity: z.number('Quantity must be a number'), // Allow float, positive, negative, and zero
 		unit: z.string().min(1, "Unit is required"),
 
 		materials: z.array(
@@ -32,12 +30,7 @@ export const productInventoryUpdateSchema = z.object({
 					.number()
 					.int()
 					.positive("Material ID must be a positive integer"),
-				quantity: z
-					.number()
-					.int()
-					.nonnegative(
-						"Material quantity must be a non-negative integer"
-					),
+				quantity: z.number('Material quantity must be a number'), // Allow float values
 				unit: z.string().min(1, "Material unit is required"),
 			})
 		).optional(),
