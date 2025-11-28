@@ -12,7 +12,7 @@ export default {
 	},
 	adapter: {
 		postgres: {
-			url: process.env.ADAPTER_PRISMA_POSTGRES_URL ||"postgresql://user:password@localhost:5432/mydb",
+			url: process.env.ADAPTER_PRISMA_POSTGRES_URL || "postgresql://user:password@localhost:5432/mydb",
 			optimizeKey: process.env.ADAPTER_PRISMA_OPTIMIZE_API_KEY || "",
 		},
 		azure: {
@@ -50,6 +50,16 @@ export default {
 	},
 	logging: {
 		level: process.env.LOG_LEVEL || "debug",
+		dir: process.env.LOG_DIR || "logs",
+		logstash: {
+			enabled: process.env.LOGSTASH_ENABLED === "true" || false,
+			host: process.env.LOGSTASH_HOST || "localhost",
+			port: parseInt(process.env.LOGSTASH_PORT || "5000", 10),
+		},
+		rotation: {
+			maxSize: process.env.LOG_MAX_SIZE || "20m",
+			maxFiles: process.env.LOG_MAX_FILES || "14d",
+		},
 	},
 	cache: {
 		ttl: process.env.CACHE_TTL || 3600,

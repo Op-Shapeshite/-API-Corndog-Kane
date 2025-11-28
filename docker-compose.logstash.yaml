@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: api-logstash
+    ports:
+      - "5000:5000"  # TCP input for logs
+      - "9600:9600"  # Logstash monitoring API
+    volumes:
+      - ./scripts/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - logstash-data:/var/log/logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xmx512m -Xms512m"
+      - "XPACK_MONITORING_ENABLED=false"
+    networks:
+      - logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Elasticsearch for log storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: api-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - logging
+    restart: unless-stopped
+    # Uncomment to enable Elasticsearch
+    # profiles:
+    #   - with-elasticsearch
+
+  # Optional: Kibana for log visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: api-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - logging
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    # Uncomment to enable Kibana
+    # profiles:
+    #   - with-elasticsearch
+
+volumes:
+  logstash-data:
+driver: local
+  elasticsearch-data:
+    driver: local
+
+networks:
+  logging:
+    driver: bridge
