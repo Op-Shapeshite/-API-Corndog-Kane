@@ -8,7 +8,7 @@ import Repository from "./Repository";
  */
 function mapProductFromPrisma(prismaProduct: any) {
 	if (!prismaProduct) return null;
-	
+
 	return {
 		...prismaProduct,
 		name: prismaProduct.product_master?.name || '',
@@ -19,12 +19,17 @@ function mapProductFromPrisma(prismaProduct: any) {
 	};
 }
 
+import QuantityUnitService from "../../../core/services/QuantityUnitService";
+import QuantityUnitRepository from "./QuantityUnitRepository";
+
 export default class OrderRepository
 	extends Repository<TOrder>
-	implements IOrderRepository
-{
+	implements IOrderRepository {
+	private quantityUnitService: QuantityUnitService;
+
 	constructor() {
 		super("order");
+		this.quantityUnitService = new QuantityUnitService(new QuantityUnitRepository());
 	}
 
 	/**
@@ -34,7 +39,7 @@ export default class OrderRepository
 		const today = new Date();
 		const startOfDay = new Date(today);
 		startOfDay.setHours(0, 0, 0, 0);
-		
+
 		const endOfDay = new Date(today);
 		endOfDay.setHours(23, 59, 59, 999);
 
@@ -274,7 +279,7 @@ export default class OrderRepository
 
 		// Get all parent items (root items only)
 		const parentItems = orderItems.filter(item => !item.order_item_root_id);
-		
+
 		// Track total parent quantity for bag/packaging
 		const totalParentQuantity = parentItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -284,8 +289,8 @@ export default class OrderRepository
 		// 1. PROCESS PRODUCT INVENTORY MATERIALS (excluding minyak - handled separately)
 		for (const item of parentItems) {
 			const productInventories = await tx.productInventory.findMany({
-				where: { 
-					product_id: item.product_id 
+				where: {
+					product_id: item.product_id
 				},
 				include: {
 					material: true
@@ -294,7 +299,7 @@ export default class OrderRepository
 
 			for (const inv of productInventories) {
 				const materialName = inv.material.name.toLowerCase();
-				
+
 				// Skip minyak, bag, packaging materials (handled separately)
 				if (
 					materialName.includes('minyak') ||
@@ -305,19 +310,6 @@ export default class OrderRepository
 					materialName.includes('cup') ||
 					materialName.includes('gelas')
 				) {
-					continue;
-				}
-
-				const materialQuantity = inv.quantity * item.quantity;
-				const existing = materialMap.get(inv.material_id);
-				
-				if (existing) {
-					existing.quantity += materialQuantity;
-				} else {
-					materialMap.set(inv.material_id, {
-						quantity: materialQuantity,
-						unit: inv.unit_quantity
-					});
 				}
 			}
 		}
@@ -336,9 +328,11 @@ export default class OrderRepository
 			for (const inv of productInventories) {
 				const materialName = inv.material.name.toLowerCase();
 				if (materialName.includes('minyak')) {
-					totalMinyakQuantity += inv.quantity * item.quantity;
+					const quantity = inv.quantity * item.quantity;
+					const converted = await this.quantityUnitService.convertQuantity(inv.unit_quantity, minyakUnit, quantity);
+					totalMinyakQuantity += converted;
 					minyakMaterialId = inv.material_id;
-					minyakUnit = inv.unit_quantity;
+					// minyakUnit is 'ml' by default and we convert to it.
 				}
 			}
 		}
@@ -392,7 +386,7 @@ export default class OrderRepository
 		// 4. PROCESS PACKAGING (if packaging_type is set and not NONE)
 		if (orderData.packagingType && orderData.packagingType !== 'NONE') {
 			let searchPatterns: string[] = [];
-			
+
 			if (orderData.packagingType === 'BOX') {
 				searchPatterns = ['box', 'kardus'];
 			} else if (orderData.packagingType === 'CUP') {
@@ -502,7 +496,7 @@ export default class OrderRepository
 
 		const [orders, total] = await Promise.all([
 			this.prisma.order.findMany({
-				where: { 
+				where: {
 					is_active: true,
 					outlet_id: outletId,
 				},
@@ -535,8 +529,8 @@ export default class OrderRepository
 				skip,
 				take: limit,
 			}),
-			this.getModel().count({ 
-				where: { 
+			this.getModel().count({
+				where: {
 					is_active: true,
 					outlet_id: outletId,
 				},

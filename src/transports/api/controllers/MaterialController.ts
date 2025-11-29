@@ -14,6 +14,25 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
     this.materialService = new MaterialService(new MaterialRepository());
   }
 
+  create = () => {
+    return async (req: Request, res: Response) => {
+      try {
+        const data = req.body;
+        const result = await this.materialService.create(data);
+        return this.getSuccessResponse(res, { data: result as any, metadata: {} as TMetadataResponse }, "Material created successfully");
+      } catch (error) {
+        return this.handleError(
+          res,
+          error,
+          "Failed to create material",
+          500,
+          {} as any,
+          {} as TMetadataResponse
+        );
+      }
+    };
+  }
+
   stockIn = () => {
     return async (req: Request, res: Response) => {
       try {
@@ -204,6 +223,56 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
           "Failed to retrieve stocks list",
           500,
           [] as TMaterialInventoryGetResponse[],
+          {} as TMetadataResponse
+        );
+      }
+    };
+  }
+
+  getMaterialOutById = () => {
+    return async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id, 10);
+
+        if (isNaN(id)) {
+          return this.handleError(
+            res,
+            new Error('Invalid ID'),
+            "Invalid material out ID",
+            400,
+            {} as any,
+            {} as TMetadataResponse
+          );
+        }
+
+        const materialOut = await this.materialService.getMaterialOutById(id);
+
+        if (!materialOut) {
+          return this.handleError(
+            res,
+            new Error('Not Found'),
+            "Material out not found",
+            404,
+            {} as any,
+            {} as TMetadataResponse
+          );
+        }
+
+        return this.getSuccessResponse(
+          res,
+          {
+            data: materialOut as any,
+            metadata: {} as TMetadataResponse,
+          },
+          "Material out retrieved successfully"
+        );
+      } catch (error) {
+        return this.handleError(
+          res,
+          error,
+          "Failed to retrieve material out",
+          500,
+          {} as any,
           {} as TMetadataResponse
         );
       }

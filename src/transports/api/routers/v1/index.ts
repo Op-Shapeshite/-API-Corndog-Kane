@@ -21,6 +21,7 @@ import accountTypeRouter from './accountType';
 import transactionRouter from './transaction';
 import reportRouter from './report';
 import dashboardRouter from './dashboard';
+import quantityUnitRouter from './quantityUnit';
 
 const router = express.Router();
 
@@ -56,5 +57,6 @@ router.use('/finance/account-types', accountTypeRouter);
 router.use('/finance/transactions', transactionRouter);
 router.use('/finance/reports', reportRouter);
 router.use('/dashboard', dashboardRouter);
+router.use('/quantity-units', quantityUnitRouter);
 
 export default router;

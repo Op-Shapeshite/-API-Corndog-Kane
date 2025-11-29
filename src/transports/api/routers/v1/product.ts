@@ -1,18 +1,18 @@
-
 import express from 'express';
 import { validate } from '../../validations/validate.middleware';
-import { 
+import {
   createProductSchema,
   updateProductSchema,
   deleteProductSchema,
   productStockInSchema
- } from '../../validations/product.validation';
+} from '../../validations/product.validation';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { ProductController } from '../../controllers/ProductController';
 import ProductService from '../../../../core/services/ProductService';
-import {ProductRepository} from '../../../../adapters/postgres/repositories/ProductRepository';
+import { ProductRepository } from '../../../../adapters/postgres/repositories/ProductRepository';
 import { ProductResponseMapper } from '../../../../mappers/response-mappers/ProductResponseMapper';
 import { storage } from '../../../../policies/uploadImages';
+import { validateUnit } from '../../middlewares/unitValidation';
 
 const router = express.Router();
 
@@ -39,6 +39,7 @@ router.get(
 router.post(
   "/in",
   validate(productStockInSchema),
+  validateUnit,
   productController.addStockIn
 );
 

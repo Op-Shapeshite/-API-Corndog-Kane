@@ -51,6 +51,7 @@
 		"vite": "^6.0.7"
 	},
 	"dependencies": {
+		"@elastic/ecs-winston-format": "^1.5.3",
 		"@prisma/client": "^6.17.1",
 		"@prisma/extension-optimize": "^2.0.0",
 		"@prisma/instrumentation": "^6.17.1",
@@ -78,6 +79,7 @@
 		"winston": "^3.18.3",
 		"winston-daily-rotate-file": "^5.0.0",
 		"winston-logstash": "^1.2.1",
+		"winston-logstash-transport": "^2.0.0",
 		"zod": "^4.1.12"
 	}
 }

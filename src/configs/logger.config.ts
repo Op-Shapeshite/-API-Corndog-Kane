@@ -1,5 +1,6 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
+// @ts-ignore
 import LogstashTransport from 'winston-logstash';
 import env from './env';
 import path from 'path';

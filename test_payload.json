@@ -1,0 +1,14 @@
+{
+    "items": [
+        {
+            "quantity": 10,
+            "unit_quantity": "INVALID_UNIT",
+            "price": 1000,
+            "supplier_id": 1,
+            "material": {
+                "name": "Test Material",
+                "is_active": true
+            }
+        }
+    ]
+}

@@ -81,6 +81,8 @@ export type TMaterialStockInGetResponse = {
 export type TMaterialStockOutCreateRequest = {
   quantity: number;
   material_id: number;
+  unit_quantity: string;
+  description?: string;  // Optional - for manual material out
 };
 
 export type TMaterialStockOutUpdateRequest = Partial<TMaterialStockOutCreateRequest>;
@@ -191,6 +193,8 @@ export interface MaterialStockOutEntity {
   materialId: number;
   quantity: number;
   quantityUnit: string;
+  description?: string;  // Optional - for manual material out
+  usedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }

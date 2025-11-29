@@ -17,6 +17,7 @@ import { PayrollMapperEntity } from "./mappers/PayrollMapperEntity";
 import { AccountMapperEntity } from "./mappers/AccountMapperEntity";
 import { AccountCategoryMapperEntity } from "./mappers/AccountCategoryMapperEntity";
 import { TransactionMapperEntity } from "./mappers/TransactionMapperEntity";
+import { QuantityUnitMapperEntity } from "./mappers/QuantityUnitMapperEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
 	order: OrderMapperEntity,
@@ -37,16 +38,17 @@ export const EntityMappers: Record<string, EntityMapConfig> = {
 	account: AccountMapperEntity,
 	accountCategory: AccountCategoryMapperEntity,
 	transaction: TransactionMapperEntity,
+	quantityUnit: QuantityUnitMapperEntity,
 };
 
 /**
  * Get mapping configuration for an entity
  */
 export function getEntityMapper(entityName: string): EntityMapConfig {
-  const mapper = EntityMappers[entityName];
-  if (!mapper) {
-    console.log("Mapper for", entityName, ":", mapper);
-    throw new Error(`No mapper configuration found for entity: ${entityName}`);
-  }
-  return mapper;
+	const mapper = EntityMappers[entityName];
+	if (!mapper) {
+		console.log("Mapper for", entityName, ":", mapper);
+		throw new Error(`No mapper configuration found for entity: ${entityName}`);
+	}
+	return mapper;
 }
