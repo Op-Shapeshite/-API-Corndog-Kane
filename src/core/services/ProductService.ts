@@ -1,16 +1,19 @@
-import { TProduct, TProductWithID, TProductStockInventory, TProductStockInRequest, TProductStockIn } from "../entities/product/product";
+import { TProduct, TProductWithID, TProductStockInventory, TProductStockInRequest, TProductStockIn, TProductWithMaterial } from "../entities/product/product";
 import { ProductRepository } from "../../adapters/postgres/repositories/ProductRepository";
 import { Service } from "./Service";
 import { PaginationResult, SearchConfig, FilterObject } from "../repositories/Repository";
 import MaterialService from "./MaterialService";
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
+import { MasterProductRepository } from "../../adapters/postgres/repositories/MasterProductRepository";
 
 export default class ProductService extends Service<TProduct | TProductWithID> {
   declare repository: ProductRepository;
+  declare masterProductRepository: MasterProductRepository;
   private materialService: MaterialService;
 
   constructor(repository: ProductRepository) {
     super(repository);
+    this.masterProductRepository = new MasterProductRepository();
     this.materialService = new MaterialService(new MaterialRepository());
   }
 
@@ -227,6 +230,27 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
    */
   async getDetailedProduct(productId: number) {
     return await this.repository.getDetailedProduct(productId);
+  }
+  async assignMaterialsToProduct(productId: number, materials: any[]) {
+    const product = await this.repository.getById(productId.toString());
+    if (!product || !product?.masterProductId) {
+      throw new Error(`product with ID ${productId} not found`);
+    }
+    const masterProductId = product.masterProductId;
+    console.log(materials)
+    const assignedMaterials = await Promise.all(
+      materials.map(materials =>
+        this.masterProductRepository.createProductInventoryTransaction({
+          product_id: masterProductId,
+          material_id: materials.material_id,
+          quantity: materials.quantity,
+          unit_quantity: materials.unit_quantity,
+        })
+      ));
+    return {
+      ...product,
+      materials: assignedMaterials.map(material => ({ ...material.material, quantity: material.quantity, quantityUnit: material.unit_quantity }))
+    } as TProductWithMaterial
   }
 }
 

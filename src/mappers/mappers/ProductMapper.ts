@@ -23,11 +23,12 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
 
     // Expand __product_master__ if it exists
     const productMaster = entity.__product_master__;
-    
+
     if (productMaster) {
       entity.name = productMaster.name || '';
+      entity.masterProductId = productMaster.id;
       entity.categoryId = productMaster.category_id;
-      
+
       if (productMaster.category) {
         entity.category = {
           id: MapperUtil.mapId(productMaster.category.id),
@@ -39,7 +40,7 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
       } else {
         entity.category = null;
       }
-      
+
       // Remove the internal field
       delete entity.__product_master__;
     }

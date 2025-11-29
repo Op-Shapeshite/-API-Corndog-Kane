@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { validate } from '../../validations/validate.middleware';
 import {
@@ -12,7 +13,6 @@ import ProductService from '../../../../core/services/ProductService';
 import { ProductRepository } from '../../../../adapters/postgres/repositories/ProductRepository';
 import { ProductResponseMapper } from '../../../../mappers/response-mappers/ProductResponseMapper';
 import { storage } from '../../../../policies/uploadImages';
-import { validateUnit } from '../../middlewares/unitValidation';
 
 const router = express.Router();
 
@@ -39,7 +39,6 @@ router.get(
 router.post(
   "/in",
   validate(productStockInSchema),
-  validateUnit,
   productController.addStockIn
 );
 
@@ -65,5 +64,7 @@ router.get(
   "/:id/detail",
   productController.getDetailedProduct
 );
+router.post('/:id/materials', productController.assignMaterialsToProduct);
+// router.put('/:id/materials', productController.unassignMaterialsToProduct);
 
 export default router;

@@ -183,6 +183,7 @@ model ProductInventoryTransaction {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  @@unique([product_id, material_id])
   @@map("product_inventory_transactions")
 }
 
