@@ -157,8 +157,18 @@ export class MasterProductRepository
 		quantity: number;
 		unit_quantity: string;
 	}): Promise<any> {
-		const created = await this.prisma.productInventoryTransaction.create({
-			data: {
+		const created = await this.prisma.productInventoryTransaction.upsert({
+			where: {
+				product_id_material_id: {
+					product_id: data.product_id,
+					material_id: data.material_id,
+				},
+			},
+			update: {
+				quantity: data.quantity,
+				unit_quantity: data.unit_quantity,
+			},
+			create: {
 				product_id: data.product_id,
 				material_id: data.material_id,
 				quantity: data.quantity,
