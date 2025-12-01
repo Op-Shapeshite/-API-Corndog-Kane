@@ -51,6 +51,12 @@ export type TProductGetResponse = {
   category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'> | null;
   is_active: boolean;
   stock?: number;
+  materials?: Array<{
+    material_id: number;
+    material_name: string;
+    quantity: number;
+    unit_quantity: string;
+  }>;
   created_at: string;
   updated_at: string;
 }
@@ -59,7 +65,7 @@ export type TProductWithMaterial = Omit<TProductWithID, 'masterProductId'> & {
   materials: Array<TMaterialWithID & { quantity: number, quantityUnit: string }>;
 }
 
-export type TProductAssignedResponse = Omit<TProductGetResponse, 'created_at' | 'updated_at'> & {
+export type TProductAssignedResponse = Omit<TProductGetResponse, 'created_at' | 'updated_at' | 'materials'> & {
   materials: Array<{
     id: number;
     name: string;

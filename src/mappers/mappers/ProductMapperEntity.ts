@@ -19,7 +19,16 @@ export const ProductMapperEntity: EntityMapConfig = {
     {
       dbField: 'product_master',
       entityField: '__product_master__',  // Internal field, will be expanded below
-      include: { include: { category: true } },
+      include: {
+        include: {
+          category: true,
+          productInventoryTransactions: {
+            include: {
+              material: true
+            }
+          }
+        }
+      },
       mapper: (rel) => {
         return rel; // Keep the raw data for expansion
       },

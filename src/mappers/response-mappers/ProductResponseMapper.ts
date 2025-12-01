@@ -1,7 +1,7 @@
 import { TProductAssignedResponse, TProductGetResponse, TProductWithID, TProductWithMaterial } from "../../core/entities/product/product";
 
 export class ProductResponseMapper {
-	static toResponse(product: TProductWithID & { stock?: number }): TProductGetResponse {
+	static toResponse(product: TProductWithID & { stock?: number; materials?: Array<{ materialId: number; materialName: string; quantity: number; unitQuantity: string }> }): TProductGetResponse {
 		return {
 			id: product.id,
 			name: product.name,
@@ -16,6 +16,12 @@ export class ProductResponseMapper {
 			} : null,
 			is_active: product.isActive,
 			stock: product.stock,
+			materials: product.materials?.map(material => ({
+				material_id: material.materialId,
+				material_name: material.materialName,
+				quantity: material.quantity,
+				unit_quantity: material.unitQuantity,
+			})),
 			created_at: product.createdAt?.toISOString() || new Date().toISOString(),
 			updated_at: product.updatedAt?.toISOString() || new Date().toISOString(),
 		};
