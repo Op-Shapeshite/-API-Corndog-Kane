@@ -336,18 +336,18 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 	}
 
 	/**
-	 * Get material out by ID
-	 * @param id Material out ID
-	 * @returns Material out entity with details
+	 * Get material out records by material ID
+	 * @param materialId Material ID
+	 * @returns List of material out entities with description
 	 */
-	async getMaterialOutById(id: number) {
-		const materialOut = await this.repository.getMaterialOutById(id);
+	async getMaterialOutById(materialId: number) {
+		const materialOutList = await this.repository.getMaterialOutsByMaterialId(materialId);
 
-		if (!materialOut) {
-			return null;
+		if (!materialOutList || materialOutList.length === 0) {
+			return [];
 		}
 
-		return {
+		return materialOutList.map((materialOut: any) => ({
 			id: materialOut.id,
 			material_id: materialOut.materialId,
 			quantity: materialOut.quantity,
@@ -356,6 +356,6 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 			used_at: materialOut.usedAt,
 			created_at: materialOut.createdAt,
 			updated_at: materialOut.updatedAt,
-		};
+		}));
 	}
 }

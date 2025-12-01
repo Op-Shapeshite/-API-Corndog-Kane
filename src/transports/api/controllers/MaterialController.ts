@@ -245,13 +245,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
           );
         }
 
-        const materialOut = await this.materialService.getMaterialOutById(id);
+        const materialOutList = await this.materialService.getMaterialOutById(id);
 
-        if (!materialOut) {
+        if (!materialOutList || materialOutList.length === 0) {
           return this.handleError(
             res,
             new Error('Not Found'),
-            "Material out not found",
+            "No material out records found for this material",
             404,
             {} as any,
             {} as TMetadataResponse
@@ -261,10 +261,10 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         return this.getSuccessResponse(
           res,
           {
-            data: materialOut as any,
+            data: materialOutList as any,
             metadata: {} as TMetadataResponse,
           },
-          "Material out retrieved successfully"
+          "Material out list retrieved successfully"
         );
       } catch (error) {
         return this.handleError(
