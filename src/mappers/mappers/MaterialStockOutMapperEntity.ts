@@ -10,6 +10,8 @@ export const MaterialStockOutMapperEntity: EntityMapConfig = {
     { dbField: 'material_id', entityField: 'materialId' },
     { dbField: 'quantity', entityField: 'quantity' },
     { dbField: 'quantity_unit', entityField: 'quantityUnit' },
+    { dbField: 'description', entityField: 'description' },
+    { dbField: 'used_at', entityField: 'usedAt' },
     { dbField: 'createdAt', entityField: 'createdAt' },
     { dbField: 'updatedAt', entityField: 'updatedAt' },
   ],
