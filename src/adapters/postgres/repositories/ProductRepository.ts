@@ -6,8 +6,7 @@ import { ProductMapper } from "../../../mappers/mappers/ProductMapper";
 
 export class ProductRepository
 	extends Repository<TProduct | TProductWithID>
-	implements IProductRepository
-{
+	implements IProductRepository {
 	constructor() {
 		super("product");
 		// Override with custom mapper
@@ -232,9 +231,9 @@ export class ProductRepository
 				product_id: data.productId,
 				quantity: data.quantity,
 				units: data.quantityUnit,
-			
-				},
-			
+
+			},
+
 		});
 	}
 
@@ -292,9 +291,9 @@ export class ProductRepository
 				sourceFrom: stock.source_from as "PURCHASE" | "PRODUCTION",
 				detail: stock.detail
 					? {
-							price: stock.detail.price,
-							supplierId: stock.detail.supplier_id,
-					  }
+						price: stock.detail.price,
+						supplierId: stock.detail.supplier_id,
+					}
 					: null,
 			})),
 		};
@@ -451,15 +450,15 @@ export class ProductRepository
 			category_id: product.product_master.category_id,
 			category: product.product_master.category
 				? {
-						id: product.product_master.category.id,
-						name: product.product_master.category.name,
-						is_active:
-							product.product_master.category.is_active,
-						created_at:
-							product.product_master.category.createdAt,
-						updated_at:
-							product.product_master.category.updatedAt,
-				  }
+					id: product.product_master.category.id,
+					name: product.product_master.category.name,
+					is_active:
+						product.product_master.category.is_active,
+					created_at:
+						product.product_master.category.createdAt,
+					updated_at:
+						product.product_master.category.updatedAt,
+				}
 				: null,
 			is_active: product.is_active,
 			created_at: product.createdAt,

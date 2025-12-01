@@ -23,5 +23,7 @@ export const stockOutSchema = z.object({
   body: z.object({
     quantity: z.number().positive('quantity must be positive'),
     material_id: z.number().int().positive('material_id is required'),
+    unit_quantity: z.string().min(1, 'unit_quantity is required'),
+    description: z.string().optional(),  // For manual material out
   }),
 });

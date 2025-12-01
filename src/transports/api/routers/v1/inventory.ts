@@ -6,6 +6,7 @@ import { getPaginationSchema } from '../../validations/pagination.validation';
 import InventoryService from '../../../../core/services/InventoryService';
 import MaterialRepository from '../../../../adapters/postgres/repositories/MaterialRepository';
 import SupplierRepository from '../../../../adapters/postgres/repositories/SupplierRepository';
+import { validateUnit } from '../../middlewares/unitValidation';
 
 const router = express.Router();
 
@@ -86,6 +87,7 @@ const inventoryController = new InventoryController();
 router.post(
 	"/in",
 	validate(inventoryStockInSchema),
+	validateUnit,
 	inventoryController.stockIn(inventoryService)
 );
 
@@ -136,10 +138,12 @@ router.post(
  *     "created_at": "2025-10-30T18:32:34.884Z"
  *   }
  * }
+ * 
  */
 router.put(
 	"/in/:id",
 	validate(inventoryStockInUpdateSchema),
+	validateUnit,
 	inventoryController.updateStockIn(inventoryService)
 );
 

@@ -13,6 +13,7 @@ export const productInventoryCreateSchema = z.object({
 			quantity: z.number('Material quantity must be a number'), // Allow float values
 			unit: z.string().min(1, 'Material unit is required'),
 		})),
+
 	}),
 });
 

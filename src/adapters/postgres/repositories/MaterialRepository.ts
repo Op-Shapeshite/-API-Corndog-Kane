@@ -6,7 +6,7 @@ import { EntityMapper } from "../../../mappers/EntityMapper";
 import { MaterialStockInMapperEntity } from "../../../mappers/mappers/MaterialStockInMapperEntity";
 import { MaterialStockOutMapperEntity } from "../../../mappers/mappers/MaterialStockOutMapperEntity";
 import { MaterialWithStocksMapperEntity } from "../../../mappers/mappers/MaterialWithStocksMapperEntity";
-import type { 
+import type {
 	MaterialStockInEntity,
 	MaterialStockOutEntity,
 	MaterialWithStocksEntity,
@@ -17,7 +17,7 @@ import type {
 } from "../../../core/entities/material/material";
 
 // Re-export types for backward compatibility
-export type { 
+export type {
 	MaterialStockInEntity,
 	MaterialStockOutEntity,
 	MaterialWithStocksEntity,
@@ -29,8 +29,7 @@ export type {
 
 export default class MaterialRepository
 	extends Repository<TMaterial | TMaterialWithID>
-	implements IMaterialRepository
-{
+	implements IMaterialRepository {
 	private stockInMapper: EntityMapper<MaterialStockInEntity>;
 	private stockOutMapper: EntityMapper<MaterialStockOutEntity>;
 	private materialWithStocksMapper: EntityMapper<MaterialWithStocksEntity>;
@@ -98,12 +97,13 @@ export default class MaterialRepository
 	}
 
 	// Stock Out Operations
-	async createStockOut(data: CreateStockOutInput): Promise<void> {
+	async createStockOut(data: CreateStockOutInput & { description?: string }): Promise<void> {
 		await this.prisma.materialOut.create({
 			data: {
 				material_id: data.materialId,
 				quantity: data.quantity,
 				quantity_unit: data.quantityUnit,
+				description: data.description,
 			},
 		});
 	}
@@ -173,6 +173,18 @@ export default class MaterialRepository
 
 		// Map DB records to entities using EntityMapper
 		return this.stockOutMapper.mapToEntities(dbRecords);
+	}
+
+	// Get material out by ID
+	async getMaterialOutById(id: number): Promise<MaterialStockOutEntity | null> {
+		const dbRecord = await this.prisma.materialOut.findUnique({
+			where: { id },
+		});
+
+		if (!dbRecord) return null;
+
+		// Map DB record to entity using EntityMapper
+		return this.stockOutMapper.mapToEntity(dbRecord);
 	}
 
 	async getMaterialStockByOutlet(materialId: number, outletId: number, date: Date): Promise<number> {

@@ -6,6 +6,7 @@ import MaterialService from '../../../../core/services/MaterialService';
 import MaterialRepository from '../../../../adapters/postgres/repositories/MaterialRepository';
 import { MaterialResponseMapper } from "../../../../mappers/response-mappers";
 import { getPaginationSchema } from '../../validations/pagination.validation';
+import { validateUnit } from '../../middlewares/unitValidation';
 
 const router = express.Router();
 
@@ -19,10 +20,17 @@ router.get(
 	materialController.findAll(materialService, MaterialResponseMapper)
 );
 
+// POST create material
+router.post(
+	"/",
+	materialController.create()
+);
+
 // POST stock in
 router.post(
 	"/in",
 	validate(stockInSchema),
+	validateUnit,
 	materialController.stockIn()
 );
 
@@ -30,6 +38,7 @@ router.post(
 router.post(
 	"/out",
 	validate(stockOutSchema),
+	validateUnit,
 	materialController.stockOut()
 );
 
@@ -47,4 +56,10 @@ router.get(
 	materialController.getStocksList()
 );
 
+
+// GET material out by ID
+router.get(
+	"/out/:id",
+	materialController.getMaterialOutById()
+);
 export default router;

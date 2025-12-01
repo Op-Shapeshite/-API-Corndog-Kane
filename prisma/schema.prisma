@@ -126,16 +126,17 @@ model Login {
 // CORE MODULE - Product Master Data
 // ============================================================================
 model ProductMaster {
-  id          Int                @id @default(autoincrement())
-  name        String
-  category_id Int
-  category    ProductCategory    @relation(fields: [category_id], references: [id])
-  is_active   Boolean            @default(true)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  products    Product[]
-  inventories ProductInventory[]
-  stocks      ProductStock[]
+  id                           Int                           @id @default(autoincrement())
+  name                         String
+  category_id                  Int
+  category                     ProductCategory               @relation(fields: [category_id], references: [id])
+  is_active                    Boolean                       @default(true)
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  products                     Product[]
+  inventories                  ProductInventory[]
+  stocks                       ProductStock[]
+  productInventoryTransactions ProductInventoryTransaction[]
 
   @@map("product_masters")
 }
@@ -169,6 +170,21 @@ model ProductInventory {
   updatedAt     DateTime      @updatedAt
 
   @@map("product_inventories")
+}
+
+model ProductInventoryTransaction {
+  id            Int           @id @default(autoincrement())
+  product_id    Int
+  quantity      Int
+  material_id   Int
+  unit_quantity String
+  material      material      @relation(fields: [material_id], references: [id])
+  product       ProductMaster @relation(fields: [product_id], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([product_id, material_id])
+  @@map("product_inventory_transactions")
 }
 
 model ProductCategory {
@@ -408,18 +424,19 @@ model Supplier {
 // ============================================================================
 
 model material {
-  id           Int                     @id @default(autoincrement())
-  suplier_id   Int
-  suplier      Supplier                @relation(fields: [suplier_id], references: [id])
-  name         String
-  is_active    Boolean                 @default(true)
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
-  material_in  MaterialIn[]
-  material_out MaterialOut[]
-  requests     OutletMaterialRequest[]
-  products     ProductInventory[]
-  order_usages OrderMaterialUsage[]
+  id                           Int                           @id @default(autoincrement())
+  suplier_id                   Int
+  suplier                      Supplier                      @relation(fields: [suplier_id], references: [id])
+  name                         String
+  is_active                    Boolean                       @default(true)
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  material_in                  MaterialIn[]
+  material_out                 MaterialOut[]
+  requests                     OutletMaterialRequest[]
+  products                     ProductInventory[]
+  order_usages                 OrderMaterialUsage[]
+  productInventoryTransactions ProductInventoryTransaction[]
 
   @@map("materials")
 }
@@ -444,9 +461,12 @@ model MaterialOut {
   quantity_unit String
   quantity      Int
   material      material @relation(fields: [material_id], references: [id])
-  used_at       DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  description   String?
+
+  used_at DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("material_outs")
 }
@@ -763,4 +783,30 @@ model Transaction {
   @@index([transaction_date])
   @@index([account_id, transaction_date])
   @@map("transactions")
+}
+
+// ============================================================================
+// QUANTITY UNIT - Unit Management & Conversion System
+// ============================================================================
+
+enum UnitCategory {
+  WEIGHT // Berat: kg, g, mg
+  VOLUME // Volume: L, ml, kL
+  COUNT // Hitungan: pcs (tidak bisa dikonversi)
+}
+
+model quantityUnit {
+  id                Int          @id @default(autoincrement())
+  name              String // Nama lengkap: "Kilogram", "Gram", "Liter"
+  code              String       @unique // Code untuk API: "kg", "g", "L", "ml", "pcs"
+  symbol            String? // Simbol: "kg", "g", "L", "ml" (optional, bisa sama dengan code)
+  category          UnitCategory // Kategori unit
+  base_unit         String? // Unit dasar dalam kategori: "g" untuk WEIGHT, "ml" untuk VOLUME, null untuk COUNT
+  conversion_factor Float        @default(1) // Faktor konversi ke base unit (1 kg = 1000 g, maka conversion_factor = 1000)
+  is_base           Boolean      @default(false) // Apakah ini unit dasar (g untuk WEIGHT, ml untuk VOLUME)
+  is_active         Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("quantity_units")
 }

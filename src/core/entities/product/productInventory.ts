@@ -1,21 +1,26 @@
 import { TMaterialGetResponse } from "../material/material";
 
 export type TProductInventory = {
-  id: number;
-  quantity: number;
+	id: number;
+	quantity: number;
 	material: TMaterialGetResponse[];
 	unit_quantity: string;
-  createdAt: Date;
-  updatedAt: Date;
+	createdAt: Date;
+	updatedAt: Date;
 };
 
 export type TProductInventoryCreateRequest = {
 	product_id?: number;
 	product_name?: string;
-  category_id: number;
-  unit: string;
-  quantity: number;
+	category_id: number;
+	unit: string;
+	quantity: number;
 	materials: {
+		material_id: number;
+		quantity: number;
+		unit: string;
+	}[];
+	material_transaction?: {
 		material_id: number;
 		quantity: number;
 		unit: string;
@@ -33,8 +38,8 @@ export type TProductInventoryUpdateRequest = {
 };
 
 export type TProductInventoryGetResponse = {
-  id: number;
+	id: number;
 	quantity: number;
 	unit_quantity: string;
-  material: TMaterialGetResponse[];
+	material: TMaterialGetResponse[];
 };

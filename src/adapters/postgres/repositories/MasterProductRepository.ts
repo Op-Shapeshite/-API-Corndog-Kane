@@ -2,13 +2,12 @@
 import { TMasterProduct, TMasterProductWithID } from "../../../core/entities/product/masterProduct";
 import { MasterProductRepository as IMasterProductRepository } from "../../../core/repositories/masterProduct";
 import Repository from "./Repository";
-import { ProductMaster, ProductCategory as Category} from "@prisma/client";
-import {   TProductInventoryUpdateRequest } from "../../../core/entities/product/productInventory";
+import { ProductMaster, ProductCategory as Category } from "@prisma/client";
+import { TProductInventoryUpdateRequest } from "../../../core/entities/product/productInventory";
 
 export class MasterProductRepository
 	extends Repository<TMasterProduct | TMasterProductWithID>
-	implements IMasterProductRepository
-{
+	implements IMasterProductRepository {
 	constructor() {
 		super("productMaster");
 	}
@@ -56,17 +55,6 @@ export class MasterProductRepository
 		return record ? this.mapToEntity(record) : null;
 	}
 
-	// async getAll(): Promise<TMasterProductWithID[]> {
-	// 	const records = await this.prisma.productMaster.findMany({
-	// 		where: { is_active: true },
-	// 		include: {
-	// 			category: true,
-	// 		},
-	// 	});
-
-	// 	return records.map(record => this.mapToEntity(record));
-	// }
-
 	// Product Inventory methods
 	async getProductInventory(masterProductId: number) {
 		const inventories = await this.prisma.productInventory.findMany({
@@ -113,13 +101,13 @@ export class MasterProductRepository
 
 		return {
 			id: created.id,
-			materials:created.material,
+			materials: created.material,
 			createdAt: created.createdAt,
 			updatedAt: created.updatedAt,
 		};
 	}
 
-	async updateProductInventory(masterProductId: number,materialId:number, data: TProductInventoryUpdateRequest) {
+	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
 		// Find the existing product inventory record by product_id and material_id
 		const existing = await this.prisma.productInventory.findFirst({
 			where: {
@@ -127,11 +115,11 @@ export class MasterProductRepository
 				material_id: materialId,
 			},
 		});
-		
+
 		if (!existing) {
 			throw new Error(`Product inventory for product ${masterProductId} and material not found`);
 		}
-		
+
 		const updated = await this.prisma.productInventory.update({
 			where: {
 				id: existing.id, // Use the primary key
@@ -160,6 +148,76 @@ export class MasterProductRepository
 			createdAt: updated.createdAt,
 			updatedAt: updated.updatedAt,
 		};
+	}
+
+	// Product Inventory Transaction methods
+	async createProductInventoryTransaction(data: {
+		product_id: number;
+		material_id: number;
+		quantity: number;
+		unit_quantity: string;
+	}): Promise<any> {
+		const created = await this.prisma.productInventoryTransaction.upsert({
+			where: {
+				product_id_material_id: {
+					product_id: data.product_id,
+					material_id: data.material_id,
+				},
+			},
+			update: {
+				quantity: data.quantity,
+				unit_quantity: data.unit_quantity,
+			},
+			create: {
+				product_id: data.product_id,
+				material_id: data.material_id,
+				quantity: data.quantity,
+				unit_quantity: data.unit_quantity,
+			},
+			include: {
+				material: true,
+			},
+		});
+
+		return {
+			id: created.id,
+			product_id: created.product_id,
+			material_id: created.material_id,
+			quantity: created.quantity,
+			unit_quantity: created.unit_quantity,
+			material: created.material,
+			createdAt: created.createdAt,
+			updatedAt: created.updatedAt,
+		};
+	}
+
+	async getProductInventoryTransactions(productId: number): Promise<any[]> {
+		const transactions = await this.prisma.productInventoryTransaction.findMany({
+			where: {
+				product_id: productId,
+			},
+			include: {
+				material: true,
+			},
+		});
+
+		return transactions.map(transaction => ({
+			id: transaction.id,
+			product_id: transaction.product_id,
+			material_id: transaction.material_id,
+			quantity: transaction.quantity,
+			unit_quantity: transaction.unit_quantity,
+			material: {
+				id: transaction.material.id,
+				name: transaction.material.name,
+				supplier_id: transaction.material.suplier_id,
+				is_active: transaction.material.is_active,
+				created_at: transaction.material.createdAt,
+				updated_at: transaction.material.updatedAt,
+			},
+			createdAt: transaction.createdAt,
+			updatedAt: transaction.updatedAt,
+		}));
 	}
 
 	private mapToEntity(record: ProductMaster & { category?: Category | null }): TMasterProductWithID {

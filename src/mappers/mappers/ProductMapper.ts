@@ -13,7 +13,7 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
   }
 
   /**
-   * Override mapToEntity to expand product_master into name, categoryId, and category
+   * Override mapToEntity to expand product_master into name, categoryId, category, and materials
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   override mapToEntity(dbRecord: any): TProduct | TProductWithID {
@@ -23,11 +23,12 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
 
     // Expand __product_master__ if it exists
     const productMaster = entity.__product_master__;
-    
+
     if (productMaster) {
       entity.name = productMaster.name || '';
+      entity.masterProductId = productMaster.id;
       entity.categoryId = productMaster.category_id;
-      
+
       if (productMaster.category) {
         entity.category = {
           id: MapperUtil.mapId(productMaster.category.id),
@@ -39,7 +40,19 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
       } else {
         entity.category = null;
       }
-      
+
+      // Extract materials from productInventoryTransactions
+      if (productMaster.productInventoryTransactions && Array.isArray(productMaster.productInventoryTransactions)) {
+        entity.materials = productMaster.productInventoryTransactions.map((transaction: any) => ({
+          materialId: transaction.material_id,
+          materialName: transaction.material?.name || '',
+          quantity: transaction.quantity,
+          unitQuantity: transaction.unit_quantity,
+        }));
+      } else {
+        entity.materials = [];
+      }
+
       // Remove the internal field
       delete entity.__product_master__;
     }

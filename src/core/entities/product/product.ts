@@ -1,5 +1,6 @@
 
-import {  TCategoryGetResponse } from "./category";
+import { TMaterial, TMaterialWithID } from "../suplier/material";
+import { TCategoryGetResponse } from "./category";
 
 export type TProduct = {
   imagePath?: string | null;
@@ -8,6 +9,7 @@ export type TProduct = {
   hpp?: number; // Harga Pokok Penjualan (Cost of Goods Sold)
   name: string;
   categoryId?: number;
+  masterProductId?: number;
   category?: {
     id: number;
     name: string;
@@ -22,7 +24,7 @@ export type TProductWithID = TProduct & {
   createdAt: Date;
   updatedAt: Date;
 };
-export type TProductCreate = Omit<TProduct, 'isActive' | 'masterProduct' > & {
+export type TProductCreate = Omit<TProduct, 'isActive' | 'masterProduct'> & {
   isActive?: boolean;
   name: string;
   categoryId: number;
@@ -46,13 +48,31 @@ export type TProductGetResponse = {
   description?: string | null;
   price: number;
   hpp?: number; // Harga Pokok Penjualan (Cost of Goods Sold)
-  category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'>  | null;
+  category: Omit<TCategoryGetResponse, 'created_at' | 'updated_at'> | null;
   is_active: boolean;
   stock?: number;
+  materials?: Array<{
+    material_id: number;
+    material_name: string;
+    quantity: number;
+    unit_quantity: string;
+  }>;
   created_at: string;
   updated_at: string;
 }
 
+export type TProductWithMaterial = Omit<TProductWithID, 'masterProductId'> & {
+  materials: Array<TMaterialWithID & { quantity: number, quantityUnit: string }>;
+}
+
+export type TProductAssignedResponse = Omit<TProductGetResponse, 'created_at' | 'updated_at' | 'materials'> & {
+  materials: Array<{
+    id: number;
+    name: string;
+    suplier_id: number;
+    quantity: number;
+  }>;
+}
 // ============================================================================
 // PRODUCT STOCK INVENTORY TYPES - ENTITY LAYER (camelCase)
 // ============================================================================

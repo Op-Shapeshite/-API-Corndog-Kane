@@ -1,7 +1,7 @@
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
-import { 
-	TMaterial, 
-	TMaterialWithID, 
+import {
+	TMaterial,
+	TMaterialWithID,
 	TMaterialStockInCreateRequest,
 	TMaterialStockOutCreateRequest,
 	TMaterialStockInventory,
@@ -29,11 +29,11 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		outletId?: number
 	): Promise<PaginationResult<TMaterial | TMaterialWithID>> {
 		const result = await super.findAll(page, limit, search, filters, orderBy);
-		
+
 		// If outletId is provided, add stock field
 		if (outletId) {
 			const today = new Date();
-			
+
 			// Add stock to each material
 			const dataWithStock = await Promise.all(
 				result.data.map(async (material) => {
@@ -43,21 +43,32 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 						outletId,
 						today
 					);
-					
+
 					return {
 						...materialWithId,
 						stock,
 					};
 				})
 			);
-			
+
 			return {
 				...result,
 				data: dataWithStock as (TMaterial | TMaterialWithID)[],
 			};
 		}
-		
+
 		return result;
+	}
+
+	/**
+	 * Create new material
+	 */
+	async create(data: any): Promise<TMaterialWithID> {
+		const result = await this.repository.createMaterial(data);
+		return {
+			...data,
+			id: result.id
+		};
 	}
 
 	/**
@@ -91,11 +102,11 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		const currentStock = totalStockIn - totalStockOut;
 
 		// Get latest stock in and out times
-		const latestStockIn = material.materialIn.length > 0 
-			? material.materialIn[material.materialIn.length - 1].createdAt 
+		const latestStockIn = material.materialIn.length > 0
+			? material.materialIn[material.materialIn.length - 1].createdAt
 			: null;
-		const latestStockOut = material.materialOut.length > 0 
-			? material.materialOut[material.materialOut.length - 1].createdAt 
+		const latestStockOut = material.materialOut.length > 0
+			? material.materialOut[material.materialOut.length - 1].createdAt
 			: null;
 
 		// Format time as HH:MM:SS
@@ -134,7 +145,8 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		await this.repository.createStockOut({
 			materialId: data.material_id,
 			quantity: data.quantity,
-			quantityUnit: "pcs",
+			quantityUnit: data.unit_quantity,
+			description: data.description,
 		});
 
 		// Get material with stocks through repository (already mapped by EntityMapper)
@@ -150,11 +162,11 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		const currentStock = totalStockIn - totalStockOut;
 
 		// Get latest stock in and out times
-		const latestStockIn = material.materialIn.length > 0 
-			? material.materialIn[material.materialIn.length - 1].createdAt 
+		const latestStockIn = material.materialIn.length > 0
+			? material.materialIn[material.materialIn.length - 1].createdAt
 			: null;
-		const latestStockOut = material.materialOut.length > 0 
-			? material.materialOut[material.materialOut.length - 1].createdAt 
+		const latestStockOut = material.materialOut.length > 0
+			? material.materialOut[material.materialOut.length - 1].createdAt
 			: null;
 
 		// Format time as HH:MM:SS
@@ -231,7 +243,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		materialIns.forEach(record => {
 			const date = formatDate(record.createdAt);
 			const key = `${record.materialId}_${date}`;
-			
+
 			if (!dailyStocksMap.has(key)) {
 				dailyStocksMap.set(key, {
 					materialId: record.materialId,
@@ -245,7 +257,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 					updatedAt: record.createdAt,
 				});
 			}
-			
+
 			const dailyStock = dailyStocksMap.get(key)!;
 			dailyStock.stockIn += record.quantity;
 			dailyStock.latestInTime = record.createdAt;
@@ -256,7 +268,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		materialOuts.forEach(record => {
 			const date = formatDate(record.createdAt);
 			const key = `${record.materialId}_${date}`;
-			
+
 			if (!dailyStocksMap.has(key)) {
 				// If no stock in on this date, we still need to create entry
 				dailyStocksMap.set(key, {
@@ -271,7 +283,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 					updatedAt: record.createdAt,
 				});
 			}
-			
+
 			const dailyStock = dailyStocksMap.get(key)!;
 			dailyStock.stockOut += record.quantity;
 			dailyStock.latestOutTime = record.createdAt;
@@ -295,7 +307,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		dailyStocks.forEach(daily => {
 			const previousStock = materialStocksMap.get(daily.materialId) || 0;
 			const currentStock = previousStock + daily.stockIn - daily.stockOut;
-			
+
 			data.push({
 				id: daily.materialId,
 				material_id: daily.materialId,
@@ -321,5 +333,29 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		const total = data.length;
 
 		return { data: paginatedData, total };
+	}
+
+	/**
+	 * Get material out by ID
+	 * @param id Material out ID
+	 * @returns Material out entity with details
+	 */
+	async getMaterialOutById(id: number) {
+		const materialOut = await this.repository.getMaterialOutById(id);
+
+		if (!materialOut) {
+			return null;
+		}
+
+		return {
+			id: materialOut.id,
+			material_id: materialOut.materialId,
+			quantity: materialOut.quantity,
+			unit_quantity: materialOut.quantityUnit,
+			description: materialOut.description,
+			used_at: materialOut.usedAt,
+			created_at: materialOut.createdAt,
+			updated_at: materialOut.updatedAt,
+		};
 	}
 }

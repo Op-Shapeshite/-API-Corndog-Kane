@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import {ProductRepository} from "../../../adapters/postgres/repositories/ProductRepository";
+import { ProductRepository } from "../../../adapters/postgres/repositories/ProductRepository";
 import { TMetadataResponse } from "../../../core/entities/base/response";
-import { TProductGetResponse, TProductWithID, TProductInventoryGetResponse, TProductStockInResponse, TProductDetailGetResponse } from "../../../core/entities/product/product";
+import { TProductAssignedResponse, TProductGetResponse, TProductWithID, TProductInventoryGetResponse, TProductStockInResponse, TProductDetailGetResponse } from "../../../core/entities/product/product";
 import ProductService from "../../../core/services/ProductService";
 import MasterProductService from "../../../core/services/MasterProductService";
-import {MasterProductRepository} from "../../../adapters/postgres/repositories/MasterProductRepository";
+import { MasterProductRepository } from "../../../adapters/postgres/repositories/MasterProductRepository";
 import Controller from "./Controller";
 import { ProductResponseMapper } from "../../../mappers/response-mappers/ProductResponseMapper";
 import { ProductStockResponseMapper } from "../../../mappers/response-mappers/ProductStockResponseMapper";
@@ -31,7 +31,7 @@ const logger = winston.createLogger({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LegacyProductInput = any;
 
-export class ProductController extends Controller<TProductGetResponse | TProductStockInResponse | TProductInventoryGetResponse | TProductDetailGetResponse, TMetadataResponse> {
+export class ProductController extends Controller<TProductGetResponse | TProductStockInResponse | TProductInventoryGetResponse | TProductDetailGetResponse | TProductAssignedResponse, TMetadataResponse> {
   private productService: ProductService;
 
   constructor() {
@@ -39,9 +39,13 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
     this.productService = new ProductService(new ProductRepository());
   }
   createProduct = async (req: Request, res: Response) => {
-    const { description, price ,master_product_id} = req.body;
+    const { description, price, master_product_id, material_transaction } = req.body;
     const imagePath = req.file ? req.file.filename : null;
-
+    // material_transaction?: {
+    // 	material_id: number;
+    // 	quantity: number;
+    // 	unit: string;
+    // }[];
     try {
       const newProduct = await this.productService.create({
         master_product_id,
@@ -50,13 +54,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         imagePath,
         hpp: req.body.hpp ? parseFloat(req.body.hpp) : 0,
         isActive: true,
+        material_transaction,
       } as LegacyProductInput);
 
       return this.getSuccessResponse(
         res,
         {
           data: ProductResponseMapper.toResponse(newProduct as TProductWithID),
-          
+
           metadata: {} as TMetadataResponse,
         },
         "Product created successfully"
@@ -64,7 +69,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
     } catch (error) {
       logger.error("Error creating product:", { error });
       return this.handleError(res,
-      
+
         error,
         "Failed to create product",
         500,
@@ -76,15 +81,15 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
   }
   updateProduct = async (req: Request, res: Response) => {
     const productId = req.params.id;
-    const { name, description,hpp, price, category_id, is_active } = req.body;
-    
+    const { name, description, hpp, price, category_id, is_active } = req.body;
+
     const imagePath = req.file ? req.file.filename : null;
 
     try {
       //remove old image if new image is uploaded
       const existingProduct = await this.productService.findById(productId);
-      if(imagePath){
-        if(existingProduct && existingProduct.imagePath){
+      if (imagePath) {
+        if (existingProduct && existingProduct.imagePath) {
           const oldImagePath = path.join(process.cwd(), 'public', 'products', existingProduct.imagePath);
           fs.unlink(oldImagePath, (err) => {
             if (err) {
@@ -127,7 +132,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
   }
 
   deleteProduct = async (req: Request, res: Response) => {
-    const productId = req.params.id ;
+    const productId = req.params.id;
 
     try {
       const existingProduct = await this.productService.findById(productId);
@@ -169,19 +174,19 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
       // Use validated pagination params from middleware with defaults
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
-      
+
       const { data, total } = await this.productService.getStocksList(page, limit);
-      const mappedResults: TProductInventoryGetResponse[] = data.map(item => 
+      const mappedResults: TProductInventoryGetResponse[] = data.map(item =>
         ProductStockResponseMapper.toResponse(item)
       );
-      
+
       const metadata: TMetadataResponse = {
         page,
         limit,
         total_records: total,
         total_pages: Math.ceil(total / limit),
       };
-      
+
       return this.getSuccessResponse(
         res,
         {
@@ -199,7 +204,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
       // If master_product_id is provided but product_id doesn't exist, we may need to create or find a product
       let finalProductId = product_id;
-      
+
       if (!finalProductId && master_product_id) {
         // Find if a product exists with the given master_product_id
         const existingProducts = await this.productService.findAll(1, 1, [], { product_master_id: master_product_id });
@@ -217,12 +222,12 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
             hpp: product.hpp || 0, // Include HPP field
             isActive: true,
           };
-          
+
           const createdProduct = await this.productService.create({
             ...newProductData,
             product_master_id: master_product_id // This ensures we link to existing master product
           });
-          
+
           finalProductId = (createdProduct as any).id;
         }
       } else if (!finalProductId && product) {
@@ -233,7 +238,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           categoryId: product.category_id,
           isActive: true,
         });
-        
+
         const newProductData: any = {
           name: product.name,
           categoryId: product.category_id,
@@ -243,7 +248,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           hpp: product.hpp || 0, // Include HPP field
           isActive: true,
         };
-        
+
         const createdProduct = await this.productService.create(newProductData);
         finalProductId = (createdProduct as any).id;
       }
@@ -306,7 +311,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
       }
 
       const mappedResult = ProductDetailResponseMapper.toResponse(product);
-      
+
       return this.getSuccessResponse(
         res,
         {
@@ -323,6 +328,33 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         "Failed to get detailed product",
         500,
         {} as TProductDetailGetResponse,
+        {} as TMetadataResponse
+      );
+    }
+  }
+  assignMaterialsToProduct = async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const materials = req.body;
+      console.log(productId)
+      const product = await this.productService.assignMaterialsToProduct(productId, materials);
+      console.log(product)
+      return this.getSuccessResponse(
+        res,
+        {
+          data: ProductResponseMapper.toResponseWithMaterial(product),
+          metadata: {} as TMetadataResponse,
+        },
+        "Materials assigned to product successfully"
+      );
+    } catch (error) {
+      logger.error("Error assigning materials to product:", { error });
+      return this.handleError(
+        res,
+        error,
+        "Failed to assign materials to product",
+        500,
+        {} as TProductGetResponse,
         {} as TMetadataResponse
       );
     }

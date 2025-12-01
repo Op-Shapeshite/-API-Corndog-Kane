@@ -5,26 +5,29 @@ import { Service } from "./Service";
 import { TProductInventory, TProductInventoryCreateRequest, TProductInventoryUpdateRequest } from "../entities/product/productInventory";
 import { ProductRepository } from "../../adapters/postgres/repositories/ProductRepository";
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
+import QuantityUnitService from "./QuantityUnitService";
+import QuantityUnitRepository from "../../adapters/postgres/repositories/QuantityUnitRepository";
 
 export default class MasterProductService extends Service<TMasterProduct | TMasterProductWithID> {
   declare repository: MasterProductRepository;
   private productRepository: ProductRepository;
   private materialRepository: MaterialRepository;
+  private quantityUnitService: QuantityUnitService;
 
   constructor(repository: MasterProductRepository) {
     super(repository);
     this.materialRepository = new MaterialRepository();
     this.productRepository = new ProductRepository();
-    
+    this.quantityUnitService = new QuantityUnitService(new QuantityUnitRepository());
   }
 
-  async getAll({category_id}: {category_id?: number}): Promise<TMasterProductWithID[]> {
+  async getAll({ category_id }: { category_id?: number }): Promise<TMasterProductWithID[]> {
     const result = await this.repository.getAll(
-		undefined,
-		undefined,
       undefined,
-    category_id ? { category_id } : undefined,
-		{ id: "asc" }
+      undefined,
+      undefined,
+      category_id ? { category_id } : undefined,
+      { id: "asc" }
     );
     return result.data as TMasterProductWithID[];
   }
@@ -34,7 +37,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
   }
 
   async createProductInventory(data: TProductInventoryCreateRequest): Promise<TProductInventory> {
-    let productId=data.product_id;
+    let productId = data.product_id;
     if (data.product_id === undefined) {
       const pyaload: TMasterProduct = {
         name: data.product_name || "Unnamed Product",
@@ -47,23 +50,31 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     }
     data.product_id = productId!;
     const materials = data.materials;
-    
+
     // VALIDATION: Check material stock availability before creating inventory
     for (const material of materials) {
       const requiredQuantity = material.quantity * data.quantity;
-      
+
       // Get material with stocks
       const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
-      
+
       if (!materialWithStocks) {
         throw new Error(`Material with ID ${material.material_id} not found`);
       }
-      
-      // Calculate available stock
-      const totalStockIn = materialWithStocks.materialIn.reduce((sum, item) => sum + item.quantity, 0);
-      const totalStockOut = materialWithStocks.materialOut.reduce((sum, item) => sum + item.quantity, 0);
+
+      // Calculate available stock with conversion
+      let totalStockIn = 0;
+      for (const item of materialWithStocks.materialIn) {
+        totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
+      }
+
+      let totalStockOut = 0;
+      for (const item of materialWithStocks.materialOut) {
+        totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
+      }
+
       const availableStock = totalStockIn - totalStockOut;
-      
+
       // Check if sufficient stock
       if (availableStock < requiredQuantity) {
         throw new Error(
@@ -72,10 +83,10 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
         );
       }
     }
-    
+
     // Here you might want to create entries in a product inventory table for each material
     // associated with the master product. This depends on your database schema.
-    const materialsCreaated = materials.map(async (material) => new Promise( (resolve) => {
+    const materialsCreaated = materials.map(async (material) => new Promise((resolve) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const inventoryData: any = {
         product_id: productId!,
@@ -90,20 +101,20 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       data.quantity,
       data.unit,
     )
-    await Promise.all(materials.map(async (material) => new Promise( (resolve) => {
+    await Promise.all(materials.map(async (material) => new Promise((resolve) => {
       resolve(this.materialRepository.createStockOut({
         materialId: material.material_id,
         quantityUnit: material.unit,
         quantity: material.quantity * data.quantity,
       }));
     })));
-   
+
     // eslint-disable-entiere-file @typescript-eslint/no-explicit-any
     return {
       id: productId!,
       quantity: data.quantity,
       unit_quantity: data.unit,
-      material: (await Promise.all(materialsCreaated)).map((m:any) => (m.materials))as any[],
+      material: (await Promise.all(materialsCreaated)).map((m: any) => (m.materials)) as any[],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -111,11 +122,11 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
   }
 
   async updateProductInventory(
-    masterProductId: number, 
+    masterProductId: number,
     data: TProductInventoryUpdateRequest
   ): Promise<any> {
 
-    const masterProduct = await this.repository.getById(masterProductId); 
+    const masterProduct = await this.repository.getById(masterProductId);
     if (!masterProduct) {
       throw new Error(`Master product with ID ${masterProductId} not found`);
     }
@@ -123,28 +134,36 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     let materialsUpdated: any[] = (await this.repository
       .getProductInventory(masterProductId))
       .map(item =>
-      ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
-    );
-    
-    const materials: any[]= data.materials;
-    
+        ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
+      );
+
+    const materials: any[] = data.materials;
+
     // VALIDATION: Check material stock availability before updating inventory
     if (materials && materials.length > 0) {
       for (const material of materials) {
         const requiredQuantity = material.quantity * data.quantity;
-        
+
         // Get material with stocks
         const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
-        
+
         if (!materialWithStocks) {
           throw new Error(`Material with ID ${material.material_id} not found`);
         }
-        
-        // Calculate available stock
-        const totalStockIn = materialWithStocks.materialIn.reduce((sum, item) => sum + item.quantity, 0);
-        const totalStockOut = materialWithStocks.materialOut.reduce((sum, item) => sum + item.quantity, 0);
+
+        // Calculate available stock with conversion
+        let totalStockIn = 0;
+        for (const item of materialWithStocks.materialIn) {
+          totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
+        }
+
+        let totalStockOut = 0;
+        for (const item of materialWithStocks.materialOut) {
+          totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
+        }
+
         const availableStock = totalStockIn - totalStockOut;
-        
+
         // Check if sufficient stock
         if (availableStock < requiredQuantity) {
           throw new Error(
@@ -153,32 +172,32 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
           );
         }
       }
-      
-       materialsUpdated = materials.map(async (material:any) => new Promise((resolve) => {
-         const inventoryData: any = {
+
+      materialsUpdated = materials.map(async (material: any) => new Promise((resolve) => {
+        const inventoryData: any = {
           material_id: material.material_id,
           quantity: material.quantity,
           unit_quantity: material.unit,
         };
-        resolve(this.repository.updateProductInventory(masterProductId,material.material_id, inventoryData));
+        resolve(this.repository.updateProductInventory(masterProductId, material.material_id, inventoryData));
       }
       ));
     }
     await this.productRepository.createStockInProduction(masterProductId, data.quantity, data.unit);
 
     await Promise.all(
-		materialsUpdated.map(
-			async (material) =>
-				new Promise((resolve) => {
-					resolve(
-						this.materialRepository.createStockOut({
-							materialId: material.material_id,
-							quantityUnit: material.unit,
-							quantity: material.quantity * data.quantity,
-						})
-					);
-				})
-		)
+      materialsUpdated.map(
+        async (material) =>
+          new Promise((resolve) => {
+            resolve(
+              this.materialRepository.createStockOut({
+                materialId: material.material_id,
+                quantityUnit: material.unit,
+                quantity: material.quantity * data.quantity,
+              })
+            );
+          })
+      )
     );
     return await Promise.all([...materialsUpdated]);
 
