@@ -187,6 +187,17 @@ export default class MaterialRepository
 		return this.stockOutMapper.mapToEntity(dbRecord);
 	}
 
+	// Get material out list by material ID
+	async getMaterialOutsByMaterialId(materialId: number): Promise<MaterialStockOutEntity[]> {
+		const dbRecords = await this.prisma.materialOut.findMany({
+			where: { material_id: materialId },
+			orderBy: { used_at: 'desc' },
+		});
+
+		// Map DB records to entities using EntityMapper
+		return this.stockOutMapper.mapToEntities(dbRecords);
+	}
+
 	async getMaterialStockByOutlet(materialId: number, outletId: number, date: Date): Promise<number> {
 		// End of day for the given date
 		const endOfDay = new Date(date);
