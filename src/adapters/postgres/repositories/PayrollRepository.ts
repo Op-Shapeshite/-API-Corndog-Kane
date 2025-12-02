@@ -288,6 +288,9 @@ export default class PayrollRepository
     status: string;
     source: string;
   }[]> {
+    console.log('=== Payroll Debug ===');
+    console.log('Date range:', startDate, 'to', endDate);
+
     // Get latest payment batch, unpaid payrolls, and internal payrolls for each employee
     const result = await this.prisma.$queryRaw<any[]>`
       WITH LatestBatch AS (
@@ -342,9 +345,11 @@ export default class PayrollRepository
           'INTERNAL_PAYROLL' as source
         FROM internal_payrolls ip
         LEFT JOIN payment_batches pb ON ip.payment_batch_id = pb.id
-        WHERE ip.period_start >= ${startDate}
-          AND ip.period_end <= ${endDate}
-          AND ip.is_active = true
+        WHERE ip.is_active = true
+          -- More lenient date filtering: include records that overlap with the period
+          AND (
+            ip.period_start <= ${endDate} AND ip.period_end >= ${startDate}
+          )
       )
       SELECT
         COALESCE(lb.employee_id, up.employee_id, ip.employee_id) as employee_id,
@@ -365,6 +370,7 @@ export default class PayrollRepository
       ORDER BY e.name, source
     `;
 
+    console.log('PayrollRepository: Final result:', result);
     return result;
   }
 
