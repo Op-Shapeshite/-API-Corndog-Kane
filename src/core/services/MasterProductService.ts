@@ -185,17 +185,6 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
           );
         }
       }
-
-      // Only update materials if validation passes
-      materialsUpdated = materials.map(async (material: any) => new Promise((resolve) => {
-        const inventoryData: any = {
-          material_id: material.material_id,
-          quantity: material.quantity,
-          unit_quantity: material.unit,
-        };
-        resolve(this.repository.updateProductInventory(masterProductId, material.material_id, inventoryData));
-      }
-      ));
     }
 
     // Only proceed with stock operations if all validations pass
@@ -203,19 +192,28 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       // Create stock in production with the determined unit (existing or provided)
       await this.productRepository.createStockInProduction(masterProductId, data.quantity, productUnit);
 
-      // Create material stock out entries only after successful validation and product stock in
-      await Promise.all(
-        materialsUpdated.map(
-          async (materialPromise) => {
-            const material = await materialPromise;
+      // Update product inventory materials if provided
+      if (materials && materials.length > 0) {
+        materialsUpdated = materials.map(async (material: any) => new Promise((resolve) => {
+          const inventoryData: any = {
+            material_id: material.material_id,
+            quantity: material.quantity,
+            unit_quantity: material.unit,
+          };
+          resolve(this.repository.updateProductInventory(masterProductId, material.material_id, inventoryData));
+        }));
+
+        // Create material stock out entries using the original materials data
+        await Promise.all(
+          materials.map(async (material) => {
             return this.materialRepository.createStockOut({
               materialId: material.material_id,
               quantityUnit: material.unit,
               quantity: material.quantity * data.quantity,
             });
-          }
-        )
-      );
+          })
+        );
+      }
       
       return await Promise.all([...materialsUpdated]);
     } catch (error) {
