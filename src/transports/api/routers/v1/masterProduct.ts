@@ -41,7 +41,7 @@ router.get('/:id/inventory',
  */
 router.post('/inventory', 
   authMiddleware,
-  permissionMiddleware(['warehouse:master-products:inventory:read']),
+  permissionMiddleware(['warehouse:master-products:inventory:create']),
   validate(productInventoryCreateSchema), 
   validateUnit, 
   masterProductController.createProductInventory
@@ -53,7 +53,7 @@ router.post('/inventory',
  */
 router.put('/inventory/:id', 
   authMiddleware,
-  permissionMiddleware(['warehouse:master-products:inventory:read']),
+  permissionMiddleware(['warehouse:master-products:inventory:update']),
   validate(productInventoryUpdateSchema), 
   validateUnit, 
   masterProductController.updateProductInventory

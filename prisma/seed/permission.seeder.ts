@@ -127,12 +127,16 @@ const permissions = [
   { name: 'View Outlet Stock Summary', code: 'warehouse:outlet-stocks:summarize', module: 'WAREHOUSE', description: 'View outlet stock summary' },
   { name: 'View Outlet Requests', code: 'warehouse:outlet-requests:read', module: 'WAREHOUSE', description: 'View outlet requests' },
   { name: 'Approve Outlet Requests', code: 'warehouse:outlet-requests:approve', module: 'WAREHOUSE', description: 'Approve outlet requests' },
+  { name: 'Update Outlet Requests', code: 'warehouse:outlet-requests:update', module: 'WAREHOUSE', description: 'Update outlet requests' },
+  { name: 'Delete Outlet Requests', code: 'warehouse:outlet-requests:delete', module: 'WAREHOUSE', description: 'Delete outlet requests' },
   
   // ============================================================================
   // WAREHOUSE - MASTER PRODUCTS - WAREHOUSE | ADMIN | SUPERADMIN
   // ============================================================================
   { name: 'View Master Products', code: 'warehouse:master-products:read', module: 'WAREHOUSE', description: 'View master products' },
   { name: 'View Master Product Inventory', code: 'warehouse:master-products:inventory:read', module: 'WAREHOUSE', description: 'View master product inventory' },
+  { name: 'Create Master Product Inventory', code: 'warehouse:master-products:inventory:create', module: 'WAREHOUSE', description: 'Create master product inventory' },
+  { name: 'Update Master Product Inventory', code: 'warehouse:master-products:inventory:update', module: 'WAREHOUSE', description: 'Update master product inventory' },
   
   // ============================================================================
   // WAREHOUSE - PRODUCT STOCK - WAREHOUSE | ADMIN | SUPERADMIN
@@ -209,8 +213,8 @@ const rolePermissionMappings: Record<string, string[]> = {
     'roles:read', 'roles:create', 'roles:update', 'roles:delete',
     // Warehouse
     'warehouse:outlet-stocks:read', 'warehouse:outlet-stocks:summarize',
-    'warehouse:outlet-requests:read', 'warehouse:outlet-requests:approve',
-    'warehouse:master-products:read', 'warehouse:master-products:inventory:read',
+    'warehouse:outlet-requests:read', 'warehouse:outlet-requests:approve', 'warehouse:outlet-requests:update', 'warehouse:outlet-requests:delete',
+    'warehouse:master-products:read', 'warehouse:master-products:inventory:read', 'warehouse:master-products:inventory:create', 'warehouse:master-products:inventory:update',
     'warehouse:product-stock:read', 'warehouse:product-stock:in', 'warehouse:product-stock:delete',
     'warehouse:suppliers:read', 'warehouse:suppliers:read:detail', 'warehouse:suppliers:create', 'warehouse:suppliers:update', 'warehouse:suppliers:delete',
     'warehouse:material-stocks:read', 'warehouse:material-stocks:out', 'warehouse:material-stocks:delete',
@@ -244,8 +248,8 @@ const rolePermissionMappings: Record<string, string[]> = {
   'Warehouse': [
     // Warehouse module
     'warehouse:outlet-stocks:read', 'warehouse:outlet-stocks:summarize',
-    'warehouse:outlet-requests:read', 'warehouse:outlet-requests:approve',
-    'warehouse:master-products:read', 'warehouse:master-products:inventory:read',
+    'warehouse:outlet-requests:read', 'warehouse:outlet-requests:approve', 'warehouse:outlet-requests:update', 'warehouse:outlet-requests:delete',
+    'warehouse:master-products:read', 'warehouse:master-products:inventory:read', 'warehouse:master-products:inventory:create', 'warehouse:master-products:inventory:update',
     'warehouse:product-stock:read', 'warehouse:product-stock:in', 'warehouse:product-stock:delete',
     'warehouse:suppliers:read', 'warehouse:suppliers:read:detail', 'warehouse:suppliers:create', 'warehouse:suppliers:update', 'warehouse:suppliers:delete',
     'warehouse:material-stocks:read', 'warehouse:material-stocks:out', 'warehouse:material-stocks:delete',
@@ -284,31 +288,26 @@ const rolePermissionMappings: Record<string, string[]> = {
 export async function seedPermissions() {
   console.log('🔑 Seeding permissions...');
   
-  let createdCount = 0;
-  let skippedCount = 0;
+  // Get existing permissions to check which ones already exist
+  const existingPermissions = await prisma.permission.findMany({
+    select: { code: true }
+  });
+  const existingCodes = new Set(existingPermissions.map(p => p.code));
   
-  for (const permission of permissions) {
-    try {
-      const existingPermission = await prisma.permission.findUnique({
-        where: { code: permission.code },
-      });
-      
-      if (!existingPermission) {
-        await prisma.permission.create({
-          data: permission,
-        });
-        console.log(`  ✓ Created permission: ${permission.code}`);
-        createdCount++;
-      } else {
-        skippedCount++;
-      }
-    } catch (error) {
-      console.error(`  ✗ Error creating permission ${permission.code}:`, error);
-      throw error;
-    }
+  // Filter out permissions that already exist
+  const newPermissions = permissions.filter(p => !existingCodes.has(p.code));
+  
+  if (newPermissions.length > 0) {
+    // Batch create new permissions
+    const created = await prisma.permission.createMany({
+      data: newPermissions,
+      skipDuplicates: true,
+    });
+    console.log(`  ✓ Created ${created.count} new permissions`);
   }
   
-  console.log(`\n  Summary: ${createdCount} permissions created, ${skippedCount} permissions skipped`);
+  const skippedCount = permissions.length - newPermissions.length;
+  console.log(`\n  Summary: ${newPermissions.length} permissions created, ${skippedCount} permissions skipped`);
 }
 
 /**
@@ -317,61 +316,59 @@ export async function seedPermissions() {
 export async function seedRolePermissions() {
   console.log('\n🔗 Seeding role-permission mappings...');
   
+  // Get all roles and permissions upfront
+  const allRoles = await prisma.role.findMany();
+  const allPermissions = await prisma.permission.findMany();
+  const existingMappings = await prisma.rolePermission.findMany({
+    select: { role_id: true, permission_id: true }
+  });
+  
+  // Create lookup maps
+  const roleMap = new Map(allRoles.map(r => [r.name, r.id]));
+  const permissionMap = new Map(allPermissions.map(p => [p.code, p.id]));
+  const existingSet = new Set(existingMappings.map(m => `${m.role_id}-${m.permission_id}`));
+  
   let totalCreated = 0;
   let totalSkipped = 0;
   
   for (const [roleName, permissionCodes] of Object.entries(rolePermissionMappings)) {
     console.log(`\n  📌 Processing role: ${roleName}`);
     
-    // Get the role
-    const role = await prisma.role.findUnique({
-      where: { name: roleName },
-    });
-    
-    if (!role) {
+    const roleId = roleMap.get(roleName);
+    if (!roleId) {
       console.log(`    ⚠ Role "${roleName}" not found, skipping...`);
       continue;
     }
     
-    let createdCount = 0;
+    // Prepare batch data for this role
+    const newMappings: { role_id: number; permission_id: number }[] = [];
     let skippedCount = 0;
     
     for (const code of permissionCodes) {
-      // Get the permission
-      const permission = await prisma.permission.findUnique({
-        where: { code },
-      });
-      
-      if (!permission) {
+      const permissionId = permissionMap.get(code);
+      if (!permissionId) {
         console.log(`    ⚠ Permission "${code}" not found, skipping...`);
         continue;
       }
       
-      // Check if mapping exists
-      const existingMapping = await prisma.rolePermission.findUnique({
-        where: {
-          role_id_permission_id: {
-            role_id: role.id,
-            permission_id: permission.id,
-          },
-        },
-      });
-      
-      if (!existingMapping) {
-        await prisma.rolePermission.create({
-          data: {
-            role_id: role.id,
-            permission_id: permission.id,
-          },
-        });
-        createdCount++;
+      const key = `${roleId}-${permissionId}`;
+      if (!existingSet.has(key)) {
+        newMappings.push({ role_id: roleId, permission_id: permissionId });
       } else {
         skippedCount++;
       }
     }
     
-    console.log(`    ✓ ${roleName}: ${createdCount} mappings created, ${skippedCount} skipped`);
-    totalCreated += createdCount;
+    // Batch create mappings for this role
+    if (newMappings.length > 0) {
+      await prisma.rolePermission.createMany({
+        data: newMappings,
+        skipDuplicates: true,
+      });
+    }
+    
+    console.log(`    ✓ ${roleName}: ${newMappings.length} mappings created, ${skippedCount} skipped`);
+    totalCreated += newMappings.length;
     totalSkipped += skippedCount;
   }
   

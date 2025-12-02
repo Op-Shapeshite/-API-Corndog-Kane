@@ -19,6 +19,8 @@ const sendFailureResponse = (
 };
 
 // Cache for role permissions to reduce database queries
+// Note: This in-memory cache is suitable for single-instance deployments.
+// For multi-instance deployments, consider using Redis or another distributed cache.
 const permissionCache: Map<string, { permissions: string[]; timestamp: number }> = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
 
