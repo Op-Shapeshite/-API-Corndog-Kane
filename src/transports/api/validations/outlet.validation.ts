@@ -111,9 +111,8 @@ const settingItemUpdateSchema = settingItemSchema.extend({
 });
 
 export const updateOutletSchema = z.object({
-	parmas: z.object({
-		id: z.string()
-			.regex(/^\d+$/, { message: 'ID must be a number' })
+	params: z.object({
+		id: z.string().regex(/^\d+$/, { message: "ID must be a number" }),
 	}),
 	body: z.object({
 		name: z
@@ -123,16 +122,20 @@ export const updateOutletSchema = z.object({
 			.optional(),
 		location: z
 			.string()
-			.max(100, { message: "Location must be at most 100 characters long" })
+			.max(100, {
+				message: "Location must be at most 100 characters long",
+			})
 			.optional(),
 		code: z
 			.string()
 			.max(50, { message: "Code must be at most 50 characters long" })
 			.optional(),
-	
+
 		description: z
 			.string()
-			.max(255, { message: "Description must be at most 255 characters long" })
+			.max(255, {
+				message: "Description must be at most 255 characters long",
+			})
 			.optional(),
 		is_active: z.boolean().optional(),
 		income_target: z
