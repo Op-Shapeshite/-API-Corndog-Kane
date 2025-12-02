@@ -9,7 +9,8 @@ export const getPaginationSchema = z.object({
         .transform(Number)
         .refine(val => val > 0, { message: 'Page must be greater than 0' })
     ),
-    
+    type: z.string()
+      .optional(),
     limit: z.preprocess(
       (val) => val ?? '10',
       z.string()
