@@ -36,23 +36,42 @@ export default class QuantityUnitRepository extends Repository<TQuantityUnit | T
     }
 
     /**
-     * Get quantity unit by code
+     * Get quantity unit by code (case-insensitive)
      */
     async getByCode(code: string): Promise<TQuantityUnitWithID | null> {
-        const record = await this.getModel().findUnique({
+        // Try exact match first
+        let record = await this.getModel().findUnique({
             where: { code },
         });
+
+        // If not found, try case-insensitive search
+        if (!record) {
+            const allUnits = await this.getModel().findMany({
+                where: { is_active: true }
+            });
+            record = allUnits.find(unit => unit.code.toLowerCase() === code.toLowerCase()) || null;
+        }
 
         return record ? (this.mapper.mapToEntity(record) as TQuantityUnitWithID) : null;
     }
 
     /**
-     * Validate that a unit code exists
+     * Validate that a unit code exists (case-insensitive)
      */
     async validateUnitCode(code: string): Promise<boolean> {
-        const count = await this.getModel().count({
+        // Try exact match first
+        let count = await this.getModel().count({
             where: { code, is_active: true },
         });
+
+        // If not found, try case-insensitive search
+        if (count === 0) {
+            const allUnits = await this.getModel().findMany({
+                where: { is_active: true }
+            });
+            const foundUnit = allUnits.find(unit => unit.code.toLowerCase() === code.toLowerCase());
+            count = foundUnit ? 1 : 0;
+        }
 
         return count > 0;
     }
