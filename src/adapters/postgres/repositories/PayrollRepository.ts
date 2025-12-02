@@ -706,5 +706,59 @@ export default class PayrollRepository
 
     return combined.sort((a, b) => a.employee_name.localeCompare(b.employee_name));
   }
+
+  async getLatestPayrollPeriod(employeeId: number): Promise<{ start: Date; end: Date } | null> {
+    // First check for outlet payrolls (daily)
+    const latestOutletPayroll = await this.prisma.payroll.findFirst({
+      where: {
+        employee_id: employeeId,
+        is_active: true,
+      },
+      orderBy: {
+        work_date: 'desc',
+      },
+    });
+
+    // Also check for internal payrolls (monthly)
+    const latestInternalPayroll = await this.prisma.internalPayroll.findFirst({
+      where: {
+        employee_id: employeeId,
+        is_active: true,
+      },
+      orderBy: {
+        period_end: 'desc',
+      },
+    });
+
+    // If we have outlet payroll, find the week it belongs to
+    if (latestOutletPayroll) {
+      const workDate = latestOutletPayroll.work_date;
+      
+      // Calculate the Monday of that week
+      const dayOfWeek = workDate.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, Monday = 1
+      const monday = new Date(workDate);
+      monday.setDate(workDate.getDate() + diff);
+      monday.setHours(0, 0, 0, 0);
+      
+      // Calculate the Sunday of that week
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      
+      return { start: monday, end: sunday };
+    }
+
+    // If we have internal payroll, use its period
+    if (latestInternalPayroll) {
+      return {
+        start: latestInternalPayroll.period_start,
+        end: latestInternalPayroll.period_end,
+      };
+    }
+
+    // No payrolls found
+    return null;
+  }
 }
 
