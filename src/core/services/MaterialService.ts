@@ -84,6 +84,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		// Create stock in record through repository
 		const stockInRecord = await this.repository.createStockIn({
 			materialId: data.material_id,
+			suplierId: data.suplier_id,
 			quantity: data.quantity,
 			price: data.price || 0,
 			quantityUnit: data.unit_quantity,

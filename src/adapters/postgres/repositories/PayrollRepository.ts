@@ -286,8 +286,9 @@ export default class PayrollRepository
     total_deduction: number;
     final_amount: number;
     status: string;
+    source: string;
   }[]> {
-    // Get latest payment batch or unpaid payrolls for each employee
+    // Get latest payment batch, unpaid payrolls, and internal payrolls for each employee
     const result = await this.prisma.$queryRaw<any[]>`
       WITH LatestBatch AS (
         SELECT DISTINCT ON (employee_id)
@@ -300,7 +301,8 @@ export default class PayrollRepository
           total_deduction,
           final_amount,
           status,
-          "createdAt"
+          "createdAt",
+          'PAYMENT_BATCH' as source
         FROM payment_batches
         WHERE period_start >= ${startDate}
           AND period_end <= ${endDate}
@@ -315,29 +317,52 @@ export default class PayrollRepository
           SUM(p.total_bonus) as total_bonus,
           SUM(p.total_deduction) as total_deduction,
           SUM(p.final_salary) as final_amount,
-          'PENDING'::"PaymentStatus" as status
+          'PENDING'::"PaymentStatus" as status,
+          'EMPLOYEE_PAYROLL' as source
         FROM employee_payrolls p
         WHERE p.payment_batch_id IS NULL
           AND p.work_date >= ${startDate}
           AND p.work_date <= ${endDate}
           AND p.is_active = true
         GROUP BY p.employee_id
+      ),
+      InternalPayrolls AS (
+        SELECT
+          ip.employee_id,
+          ip.period_start,
+          ip.period_end,
+          ip.base_salary as total_base_salary,
+          ip.total_bonus,
+          ip.total_deduction,
+          ip.final_salary as final_amount,
+          CASE 
+            WHEN ip.payment_batch_id IS NULL THEN 'PENDING'::"PaymentStatus"
+            ELSE pb.status
+          END as status,
+          'INTERNAL_PAYROLL' as source
+        FROM internal_payrolls ip
+        LEFT JOIN payment_batches pb ON ip.payment_batch_id = pb.id
+        WHERE ip.period_start >= ${startDate}
+          AND ip.period_end <= ${endDate}
+          AND ip.is_active = true
       )
       SELECT
-        COALESCE(lb.employee_id, up.employee_id) as employee_id,
+        COALESCE(lb.employee_id, up.employee_id, ip.employee_id) as employee_id,
         e.name as employee_name,
-        COALESCE(lb.period_start, up.period_start) as period_start,
-        COALESCE(lb.period_end, up.period_end) as period_end,
-        COALESCE(lb.total_base_salary, up.total_base_salary, 0) as total_base_salary,
-        COALESCE(lb.total_bonus, up.total_bonus, 0) as total_bonus,
-        COALESCE(lb.total_deduction, up.total_deduction, 0) as total_deduction,
-        COALESCE(lb.final_amount, up.final_amount, 0) as final_amount,
-        COALESCE(lb.status, up.status, 'PENDING'::"PaymentStatus") as status
+        COALESCE(lb.period_start, up.period_start, ip.period_start) as period_start,
+        COALESCE(lb.period_end, up.period_end, ip.period_end) as period_end,
+        COALESCE(lb.total_base_salary, up.total_base_salary, ip.total_base_salary, 0) as total_base_salary,
+        COALESCE(lb.total_bonus, up.total_bonus, ip.total_bonus, 0) as total_bonus,
+        COALESCE(lb.total_deduction, up.total_deduction, ip.total_deduction, 0) as total_deduction,
+        COALESCE(lb.final_amount, up.final_amount, ip.final_amount, 0) as final_amount,
+        COALESCE(lb.status, up.status, ip.status, 'PENDING'::"PaymentStatus") as status,
+        COALESCE(lb.source, up.source, ip.source, 'UNKNOWN') as source
       FROM employees e
       LEFT JOIN LatestBatch lb ON e.id = lb.employee_id
       LEFT JOIN UnpaidPayrolls up ON e.id = up.employee_id
-      WHERE (lb.employee_id IS NOT NULL OR up.employee_id IS NOT NULL)
-      ORDER BY e.name
+      LEFT JOIN InternalPayrolls ip ON e.id = ip.employee_id
+      WHERE (lb.employee_id IS NOT NULL OR up.employee_id IS NOT NULL OR ip.employee_id IS NOT NULL)
+      ORDER BY e.name, source
     `;
 
     return result;

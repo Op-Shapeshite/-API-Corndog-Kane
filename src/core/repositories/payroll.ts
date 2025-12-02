@@ -145,6 +145,7 @@ export interface PayrollRepository extends Repository<TPayroll> {
     total_deduction: number;
     final_amount: number;
     status: string;
+    source: string;
   }[]>;
   
   /**

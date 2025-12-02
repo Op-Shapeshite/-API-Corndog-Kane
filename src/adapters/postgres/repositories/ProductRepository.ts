@@ -467,7 +467,6 @@ export class ProductRepository
 				(inventory) => ({
 					id: inventory.material.id,
 					name: inventory.material.name,
-					suplier_id: inventory.material.suplier_id,
 					is_active: inventory.material.is_active,
 					created_at: inventory.material.createdAt.toISOString(),
 					updated_at: inventory.material.updatedAt.toISOString(),

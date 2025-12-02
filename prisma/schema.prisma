@@ -413,7 +413,7 @@ model Supplier {
   is_active Boolean              @default(true)
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
-  materials material[]
+  materials MaterialIn[]       // Changed from materials to materialIns
   product   ProductStockDetail[]
 
   @@map("supliers")
@@ -425,8 +425,6 @@ model Supplier {
 
 model material {
   id                           Int                           @id @default(autoincrement())
-  suplier_id                   Int
-  suplier                      Supplier                      @relation(fields: [suplier_id], references: [id])
   name                         String
   is_active                    Boolean                       @default(true)
   createdAt                    DateTime                      @default(now())
@@ -444,6 +442,8 @@ model material {
 model MaterialIn {
   id            Int      @id @default(autoincrement())
   material_id   Int
+  suplier_id    Int
+  suplier       Supplier @relation(fields: [suplier_id], references: [id])
   price         Int
   quantity_unit String
   quantity      Int

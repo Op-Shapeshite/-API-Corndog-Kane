@@ -37,20 +37,9 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
   }
 
   async createProductInventory(data: TProductInventoryCreateRequest): Promise<TProductInventory> {
-    let productId = data.product_id;
-    if (data.product_id === undefined) {
-      const pyaload: TMasterProduct = {
-        name: data.product_name || "Unnamed Product",
-        categoryId: data.category_id, // Default category, adjust as needed
-        isActive: true,
-      };
-      const createdMasterProduct = await this.repository.create(pyaload);
-      productId = createdMasterProduct.id;
-
-    }
-    data.product_id = productId!;
     const materials = data.materials;
-
+    
+    // STEP 1: VALIDATION - Do all validation BEFORE any database writes
     // VALIDATION: Check material stock availability before creating inventory
     for (const material of materials) {
       const requiredQuantity = material.quantity * data.quantity;
@@ -85,41 +74,52 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       }
     }
 
-    // Here you might want to create entries in a product inventory table for each material
-    // associated with the master product. This depends on your database schema.
-    const materialsCreaated = materials.map(async (material) => new Promise((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inventoryData: any = {
-        product_id: productId!,
-        material_id: material.material_id,
-        quantity: material.quantity,
-        unit_quantity: material.unit,
+    // STEP 2: DATABASE OPERATIONS - All validation passed, now create everything in transaction
+    let masterProduct: TMasterProduct | undefined;
+    
+    // Prepare master product creation data if needed
+    if (data.product_id === undefined) {
+      masterProduct = {
+        name: data.product_name || "Unnamed Product",
+        categoryId: data.category_id,
+        isActive: true,
       };
-      resolve(this.repository.createProductInventory(inventoryData));
-    }));
-    this.productRepository.createStockInProduction(
-      productId!,
-      data.quantity,
-      data.unit,
-    )
-    await Promise.all(materials.map(async (material) => new Promise((resolve) => {
-      resolve(this.materialRepository.createStockOut({
-        materialId: material.material_id,
-        quantityUnit: material.unit,
-        quantity: material.quantity * data.quantity,
-      }));
-    })));
+    }
 
-    // eslint-disable-entiere-file @typescript-eslint/no-explicit-any
-    return {
-      id: productId!,
-      quantity: data.quantity,
-      unit_quantity: data.unit,
-      material: (await Promise.all(materialsCreaated)).map((m: any) => (m.materials)) as any[],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    // return await this.repository.createProductInventory(data);
+    try {
+      // Use transaction to create everything atomically
+      const result = await this.repository.createProductInventoryWithTransaction({
+        masterProduct,
+        productId: data.product_id,
+        inventoryItems: materials.map(material => ({
+          material_id: material.material_id,
+          quantity: material.quantity,
+          unit_quantity: material.unit,
+        })),
+        productionStockIn: {
+          quantity: data.quantity,
+          unit_quantity: data.unit,
+        },
+        materialStockOuts: materials.map(material => ({
+          material_id: material.material_id,
+          quantity: material.quantity * data.quantity,
+          unit_quantity: material.unit,
+        })),
+      });
+
+      return {
+        id: result.productId,
+        quantity: data.quantity,
+        unit_quantity: data.unit,
+        material: result.inventoryItems.map((m: any) => m.materials) as any[],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+    } catch (error) {
+      // Transaction ensures no partial data is created, so no manual cleanup needed
+      throw error;
+    }
   }
 
   async updateProductInventory(

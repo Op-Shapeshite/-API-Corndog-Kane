@@ -111,6 +111,10 @@ const settingItemUpdateSchema = settingItemSchema.extend({
 });
 
 export const updateOutletSchema = z.object({
+	parmas: z.object({
+		id: z.string()
+			.regex(/^\d+$/, { message: 'ID must be a number' })
+	}),
 	body: z.object({
 		name: z
 			.string()

@@ -82,7 +82,7 @@ router.put('/:id',
   validate(updateEmployeeSchema),
   (req, res) => employeeController.updateEmployee(req, res, employeeService)
 );
-// router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
+router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
 
 // Delete schedule by outlet_id and date
 router.delete(

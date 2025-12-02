@@ -8,7 +8,6 @@ export class MaterialResponseMapper {
     return {
       id: material.id,
       name: material.name,
-      supplier_id: material.suplierId,
       is_active: material.isActive ?? true,
       stock: material.stock,
       created_at: material.createdAt ?? new Date(),

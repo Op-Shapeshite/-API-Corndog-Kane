@@ -68,7 +68,24 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         
         // If Excel export requested, generate and return Excel file
         if (type === 'xlsx') {
-          return this.generateTransactionsExcel(res, mappedData);
+          try {
+            await this.generateTransactionsExcel(res, mappedData);
+            return; // Important: return here to prevent JSON response
+          } catch (excelError) {
+            console.error('Error generating Excel:', excelError);
+            // Return error response for Excel generation failure
+            return res.status(500).json({
+              status: 'error',
+              message: 'Gagal membuat file Excel. Silakan coba lagi.',
+              data: [],
+              metadata: {
+                page: 1,
+                limit: 10,
+                total_records: 0,
+                total_pages: 0,
+              }
+            });
+          }
         }
         
         const metadata: TMetadataResponse = {
@@ -84,13 +101,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedData,
             metadata,
           },
-          "Transactions retrieved successfully"
+          "Transaksi berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve transactions",
+          "Gagal mengambil transaksi",
           500,
           [] as TTransactionGetResponse[],
           {
@@ -113,8 +130,8 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         if (!transaction) {
           return this.handleError(
             res,
-            new Error('Transaction not found'),
-            "Transaction not found",
+            new Error('Transaksi tidak ditemukan'),
+            "Transaksi tidak ditemukan",
             404,
             {} as TTransactionGetResponse,
             {} as TMetadataResponse
@@ -129,13 +146,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction retrieved successfully"
+          "Transaksi berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve transaction",
+          "Gagal mengambil transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -166,13 +183,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction created successfully"
+          "Transaksi berhasil dibuat"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to create transaction",
+          "Gagal membuat transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -204,13 +221,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction updated successfully"
+          "Transaksi berhasil diperbarui"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to update transaction",
+          "Gagal memperbarui transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -232,13 +249,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: {} as TTransactionGetResponse,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction deleted successfully"
+          "Transaksi berhasil dihapus"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to delete transaction",
+          "Gagal menghapus transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -471,52 +488,47 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
   /**
    * Generate Excel file for transactions
    */
-  private async generateTransactionsExcel(res: Response, transactions: TTransactionGetResponse[]) {
-    try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Transactions');
+  private async generateTransactionsExcel(res: Response, transactions: TTransactionGetResponse[]): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Transactions');
 
-      // Add headers
-      const headerRow = worksheet.addRow([
-        'Transaction ID',
-        'Date',
-        'Account Name',
-        'Account Number',
-        'Type',
-        'Amount',
-        'Description',
-        'Reference'
+    // Add headers
+    const headerRow = worksheet.addRow([
+      'ID Transaksi',
+      'Tanggal',
+      'Nama Akun',
+      'Nomor Akun',
+      'Jenis',
+      'Jumlah',
+      'Deskripsi',
+      'Referensi'
+    ]);
+    styleHeaderRow(headerRow);
+
+    // Add data rows
+    transactions.forEach(transaction => {
+      const txn = transaction as any; // Runtime has more fields than type definition
+      worksheet.addRow([
+        txn.id || '-',
+        txn.date ? formatDate(txn.date) : '-',
+        txn.account_name || '-',
+        txn.account_number || '-',
+        txn.credit > 0 ? 'PEMASUKAN' : 'PENGELUARAN',
+        (txn.credit || txn.debit || 0),
+        txn.description || '-',
+        txn.reference_number || '-'
       ]);
-      styleHeaderRow(headerRow);
+    });
 
-      // Add data rows
-      transactions.forEach(transaction => {
-        const txn = transaction as any; // Runtime has more fields than type definition
-        worksheet.addRow([
-          txn.id || '-',
-          txn.date ? formatDate(txn.date) : '-',
-          txn.account_name || '-',
-          txn.account_number || '-',
-          txn.credit > 0 ? 'INCOME' : 'EXPENSE',
-          (txn.credit || txn.debit || 0),
-          txn.description || '-',
-          txn.reference_number || '-'
-        ]);
-      });
+    // Auto-size columns
+    autoSizeColumns(worksheet);
 
-      // Auto-size columns
-      autoSizeColumns(worksheet);
+    // Set response headers and send file
+    const filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
+    setExcelHeaders(res, filename);
 
-      // Set response headers and send file
-      const filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
-      setExcelHeaders(res, filename);
-
-      await workbook.xlsx.write(res);
-      res.end();
-    } catch (error) {
-      console.error('Error generating Excel:', error);
-      throw error;
-    }
+    await workbook.xlsx.write(res);
+    res.end();
   }
 
   /**

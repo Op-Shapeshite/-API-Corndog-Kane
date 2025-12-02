@@ -50,16 +50,14 @@ export default class MaterialRepository
 		const dbRecord = await this.prisma.materialIn.create({
 			data: {
 				material_id: data.materialId,
+				suplier_id: data.suplierId,
 				price: data.price,
 				quantity_unit: data.quantityUnit,
 				quantity: data.quantity,
 			},
 			include: {
-				material: {
-					include: {
-						suplier: true,
-					},
-				},
+				material: true,
+				suplier: true,
 			},
 		});
 
@@ -72,6 +70,7 @@ export default class MaterialRepository
 			where: { id },
 			data: {
 				material_id: data.materialId,
+				suplier_id: data.suplierId,
 				price: data.price,
 				quantity_unit: data.quantityUnit,
 				quantity: data.quantity,
@@ -89,7 +88,6 @@ export default class MaterialRepository
 		const material = await this.getModel().create({
 			data: {
 				name: data.name,
-				suplier_id: data.suplierId,
 				is_active: data.isActive,
 			},
 		});
@@ -130,11 +128,8 @@ export default class MaterialRepository
 				skip,
 				take,
 				include: {
-					material: {
-						include: {
-							suplier: true,
-						},
-					},
+					material: true,
+					suplier: true,
 				},
 				orderBy: {
 					createdAt: 'desc',

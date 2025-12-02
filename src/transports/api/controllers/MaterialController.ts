@@ -149,8 +149,8 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         const mappedResults: TMaterialStockInGetResponse[] = data.map(item => ({
           id: item.id,
           date: item.receivedAt.toISOString(),
-          suplier_id: item.material.suplierId,
-          suplier_name: item.material.suplier?.name || '',
+          suplier_id: item.suplierId,
+          suplier_name: item.suplier?.name || '',
           material_id: item.materialId,
           material_name: item.material.name,
           price: item.price,
