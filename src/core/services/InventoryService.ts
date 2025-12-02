@@ -159,7 +159,6 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		if (data.material && !data.material_id) {
 			const newMaterial = await this.materialRepository.createMaterial({
 				name: data.material.name,
-				suplierId: data.supplier_id,
 				isActive: data.material.is_active ?? true,
 			});
 			materialId = newMaterial.id;
@@ -175,6 +174,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		// Create stock in record
 		const stockInRecord = await this.materialRepository.createStockIn({
 			materialId,
+			suplierId: data.supplier_id,
 			quantity: data.quantity,
 			price: data.price,
 			quantityUnit: data.unit_quantity,
@@ -226,8 +226,8 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			unitQuantity: materialIn.quantityUnit,
 			price: materialIn.price,
 			supplier: {
-				id: materialIn.material.suplier?.id || 0,
-				name: materialIn.material.suplier?.name || "Unknown",
+				id: materialIn.suplier?.id || 0,
+				name: materialIn.suplier?.name || "Unknown",
 			},
 			purchasedAt: materialIn.receivedAt,
 		}));
@@ -254,7 +254,6 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		if (data.material && !data.material_id) {
 			const newMaterial = await this.materialRepository.createMaterial({
 				name: data.material.name,
-				suplierId: data.supplier_id,
 				isActive: data.material.is_active ?? true,
 			});
 			materialId = newMaterial.id;
@@ -270,6 +269,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		// Update stock in record
 		await this.materialRepository.updateStockIn(id, {
 			materialId,
+			suplierId: data.supplier_id,
 			quantity: data.quantity,
 			price: data.price,
 			quantityUnit: data.unit_quantity,

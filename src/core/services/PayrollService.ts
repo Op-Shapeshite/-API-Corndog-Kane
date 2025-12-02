@@ -112,6 +112,7 @@ export default class PayrollService extends Service<TPayroll> {
       total_deduction: s.total_deduction,
       final_amount: s.final_amount,
       status: s.status,
+      source: s.source,
     }));
   }
 

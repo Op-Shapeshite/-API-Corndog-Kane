@@ -15,7 +15,6 @@
  */
 export type TMaterial = {
   name: string;
-  suplierId: number;
   isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -31,8 +30,7 @@ export type TMaterialUpdate = Partial<TMaterialCreate>;
 // API REQUEST/RESPONSE TYPES (snake_case untuk API contract)
 // ============================================================================
 
-export type TMaterialGetResponse = Omit<TMaterialWithID, 'isActive' | 'createdAt' | 'updatedAt' | 'suplierId'> & {
-  supplier_id: number;
+export type TMaterialGetResponse = Omit<TMaterialWithID, 'isActive' | 'createdAt' | 'updatedAt'> & {
   is_active: boolean;
   stock?: number;
   created_at: Date;
@@ -145,16 +143,15 @@ type SuplierBasicInfo = {
 export type MaterialStockInRawData = {
   id: number;
   material_id: number;
+  suplier_id: number;  // Direct field now
   price: number;
   quantity_unit: string;
   quantity: number;
   received_at: Date;
   createdAt: Date;
   updatedAt: Date;
-  material: Pick<TMaterial, 'name'> & {
-    suplier_id: number;
-    suplier: SuplierBasicInfo;
-  };
+  material: Pick<TMaterial, 'name'>;
+  suplier: SuplierBasicInfo;
 }
 
 // ============================================================================
@@ -168,7 +165,7 @@ export type MaterialStockInRawData = {
 export type MaterialEntity = Required<TMaterialWithID>;
 
 // Helper types untuk nested relations
-export type MaterialInfo = Pick<MaterialEntity, 'name' | 'suplierId'>;
+export type MaterialInfo = Pick<MaterialEntity, 'name'>;
 
 // ============================================================================
 // STOCK ENTITY TYPES
@@ -177,15 +174,15 @@ export type MaterialInfo = Pick<MaterialEntity, 'name' | 'suplierId'>;
 export interface MaterialStockInEntity {
   id: number;
   materialId: number;
+  suplierId: number;  // Moved from MaterialEntity
   price: number;
   quantityUnit: string;
   quantity: number;
   receivedAt: Date;
   createdAt: Date;
   updatedAt: Date;
-  material: MaterialInfo & {
-    suplier?: SuplierBasicInfo;
-  };
+  material: MaterialInfo;
+  suplier?: SuplierBasicInfo;
 }
 
 export interface MaterialStockOutEntity {
@@ -213,9 +210,9 @@ export interface MaterialWithStocksEntity extends MaterialEntity {
 // REPOSITORY INPUT/OUTPUT TYPES
 // ============================================================================
 
-export type CreateMaterialInput = Pick<MaterialEntity, 'name' | 'suplierId' | 'isActive'>;
+export type CreateMaterialInput = Pick<MaterialEntity, 'name' | 'isActive'>;
 
-export type CreateStockInInput = Pick<MaterialStockInEntity, 'materialId' | 'price' | 'quantityUnit' | 'quantity'>;
+export type CreateStockInInput = Pick<MaterialStockInEntity, 'materialId' | 'suplierId' | 'price' | 'quantityUnit' | 'quantity'>;
 
 export type CreateStockOutInput = Pick<MaterialStockOutEntity, 'materialId' | 'quantity' | 'quantityUnit'>;
 

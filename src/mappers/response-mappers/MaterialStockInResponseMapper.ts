@@ -5,8 +5,8 @@ export class MaterialStockInResponseMapper {
     return {
       id: data.id,
       date: data.received_at.toISOString(),
-      suplier_name: data.material.suplier.name,
-      suplier_id: data.material.suplier_id,
+      suplier_name: data.suplier.name,
+      suplier_id: data.suplier_id,
       material_id: data.material_id,
       material_name: data.material.name,
       quantity: data.quantity,
