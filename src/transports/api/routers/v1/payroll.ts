@@ -4,6 +4,7 @@ import PayrollService from '../../../../core/services/PayrollService';
 import PayrollRepository from '../../../../adapters/postgres/repositories/PayrollRepository';
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
 import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 const payrollController = new PayrollController();
@@ -18,42 +19,66 @@ router.use(authMiddleware);
  * POST /api/v1/finance/payroll
  * Create payroll template for internal employees (HR, Finance, Warehouse, etc.)
  * Body: { employee_id: number, salary: number }
+ * @access FINANCE | ADMIN | SUPERADMIN
  */
-router.post('/', (req, res) => payrollController.createInternalPayrollTemplate(req, res, payrollService));
+router.post('/', 
+  permissionMiddleware(['finance:payroll:create']),
+  (req, res) => payrollController.createInternalPayrollTemplate(req, res, payrollService)
+);
 
 /**
  * GET /api/v1/finance/payroll
  * Get all employee payroll summary
  * Query params: start_date, end_date
+ * @access FINANCE | ADMIN | SUPERADMIN
  */
-router.get('/', (req, res) => payrollController.getAllPayrolls(req, res, payrollService));
+router.get('/', 
+  permissionMiddleware(['finance:payroll:read']),
+  (req, res) => payrollController.getAllPayrolls(req, res, payrollService)
+);
 
 /**
  * GET /api/v1/finance/payroll/pay/:employee_id
  * Get payment slip (preview or paid)
  * Query params: start_date, end_date
+ * @access FINANCE | ADMIN | SUPERADMIN
  */
-router.get('/pay/:employee_id', (req, res) => payrollController.getPaymentSlip(req, res, payrollService));
+router.get('/pay/:employee_id', 
+  permissionMiddleware(['finance:payroll:read']),
+  (req, res) => payrollController.getPaymentSlip(req, res, payrollService)
+);
 
 /**
  * GET /api/v1/finance/payroll/:employee_id
  * Get payroll detail for editing
  * Query params: start_date, end_date
+ * @access FINANCE | ADMIN | SUPERADMIN
  */
-router.get('/:employee_id', (req, res) => payrollController.getPayrollDetail(req, res, payrollService));
+router.get('/:employee_id', 
+  permissionMiddleware(['finance:payroll:read']),
+  (req, res) => payrollController.getPayrollDetail(req, res, payrollService)
+);
 
 /**
  * PUT /api/v1/finance/payroll/:employee_id
  * Update period and add manual adjustments
  * Body: { start_period, end_period, bonus?, deductions? }
+ * @access FINANCE | ADMIN | SUPERADMIN
  */
-router.put('/:employee_id', (req, res) => payrollController.updatePayroll(req, res, payrollService));
+router.put('/:employee_id', 
+  permissionMiddleware(['finance:payroll:update']),
+  (req, res) => payrollController.updatePayroll(req, res, payrollService)
+);
 
 /**
  * POST /api/v1/finance/payroll/:employee_id
  * Create payment batch (pay salary)
  * No request body required
+ * @access FINANCE | ADMIN | SUPERADMIN
  */
-router.post('/pay/:employee_id', (req, res) => payrollController.createPayment(req, res, payrollService));
+router.post('/pay/:employee_id', 
+  permissionMiddleware(['finance:payroll:create']),
+  (req, res) => payrollController.createPayment(req, res, payrollService)
+);
 
 export default router;

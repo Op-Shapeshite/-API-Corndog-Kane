@@ -2,6 +2,8 @@ import express from 'express';
 import { validate } from '../../validations/validate.middleware';
 import { dashboardSchema } from '../../validations/dashboard.validation';
 import { DashboardController } from '../../controllers/DashboardController';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 const dashboardController = new DashboardController();
@@ -21,9 +23,13 @@ const dashboardController = new DashboardController();
  * - accounts_ids: comma-separated numbers (e.g., 1,2,3)
  * - cashflow_type: yearly|monthly|weekly|daily
  * - customer_growth_type: daily|monthly|weekly|yearly
+ * 
+ * @access ADMIN | SUPERADMIN
  */
 router.get(
     '/',
+    authMiddleware,
+    permissionMiddleware(['dashboard:read']),
     validate(dashboardSchema),
     dashboardController.getDashboard()
 );

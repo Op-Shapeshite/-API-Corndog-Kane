@@ -11,6 +11,7 @@ import { OutletRequestService } from '../../../../core/services/OutletRequestSer
 import { OutletProductRequestRepository } from '../../../../adapters/postgres/repositories/OutletProductRequestRepository';
 import { OutletMaterialRequestRepository } from '../../../../adapters/postgres/repositories/OutletMaterialRequestRepository';
 import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 
@@ -30,11 +31,12 @@ const outletRequestController = new OutletRequestController(outletRequestService
 /**
  * @route   POST /api/v1/outlet-requests
  * @desc    Create a new batch request (products and/or materials)
- * @access  Private (requires authentication to get outlet_id)
+ * @access  OUTLET | EMPLOYEE (Mobile)
  */
 router.post(
   '/',
   authMiddleware,
+  permissionMiddleware(['mobile:outlet-requests:create']),
   validate(createOutletRequestSchema),
   outletRequestController.createBatchRequest
 );
@@ -42,44 +44,48 @@ router.post(
 /**
  * @route   GET /api/v1/outlet-requests/:date/:outlet_id
  * @desc    Get detailed outlet requests by date and outlet
- * @access  Private
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.get(
   '/:date/:outlet_id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   outletRequestController.getDetailedByDateAndOutlet
 );
 
 /**
  * @route   GET /api/v1/outlet-requests
  * @desc    Get all requests with pagination (admin)
- * @access  Private
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.get(
   '/',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   outletRequestController.getAllRequests
 );
 
 /**
  * @route   GET /api/v1/outlet-requests/my
  * @desc    Get requests for the authenticated user's outlet
- * @access  Private (requires authentication to get outlet_id)
+ * @access  OUTLET | EMPLOYEE
  */
 router.get(
   '/my',
   authMiddleware,
+  permissionMiddleware(['mobile:outlet-requests:create']),
   outletRequestController.getMyRequests
 );
 
 /**
  * @route   PUT /api/v1/outlet-requests/products/:id
  * @desc    Update a product request (only productId and quantity)
- * @access  Private
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.put(
   '/products/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   validate(updateProductRequestSchema),
   outletRequestController.updateProductRequest
 );
@@ -87,11 +93,12 @@ router.put(
 /**
  * @route   PUT /api/v1/outlet-requests/materials/:id
  * @desc    Update a material request (only materialId and quantity)
- * @access  Private
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.put(
   '/materials/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   validate(updateMaterialRequestSchema),
   outletRequestController.updateMaterialRequest
 );
@@ -99,44 +106,48 @@ router.put(
 /**
  * @route   DELETE /api/v1/outlet-requests/:date
  * @desc    Delete all requests for a specific date (authenticated user's outlet only)
- * @access  Private (requires authentication, outlet_id from token)
+ * @access  OUTLET | EMPLOYEE
  */
 router.delete(
   '/:date',
   authMiddleware,
+  permissionMiddleware(['mobile:outlet-requests:create']),
   outletRequestController.deleteByDate
 );
 
 /**
  * @route   DELETE /api/v1/outlet-requests/products/:id
  * @desc    Delete a product request (soft delete)
- * @access  Private
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.delete(
   '/products/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   outletRequestController.deleteProductRequest
 );
 
 /**
  * @route   DELETE /api/v1/outlet-requests/materials/:id
  * @desc    Delete a material request (soft delete)
- * @access  Private
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.delete(
   '/materials/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   outletRequestController.deleteMaterialRequest
 );
 
 /**
  * @route   PATCH /api/v1/outlet-requests/approve
  * @desc    Approve multiple requests with approval quantities
- * @access  Private (admin/manager)
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.patch(
   '/approve',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:approve']),
   validate(approveRequestsSchema),
   outletRequestController.approveRequests
 );
@@ -144,22 +155,24 @@ router.patch(
 /**
  * @route   PATCH /api/v1/outlet-requests/products/:id/reject
  * @desc    Reject a product request
- * @access  Private (admin/manager)
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.patch(
   '/products/:id/reject',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:approve']),
   outletRequestController.rejectProductRequest
 );
 
 /**
  * @route   PATCH /api/v1/outlet-requests/materials/:id/reject
  * @desc    Reject a material request
- * @access  Private (admin/manager)
+ * @access  WAREHOUSE | ADMIN | SUPERADMIN
  */
 router.patch(
   '/materials/:id/reject',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:approve']),
   outletRequestController.rejectMaterialRequest
 );
 

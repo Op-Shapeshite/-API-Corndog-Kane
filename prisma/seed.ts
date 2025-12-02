@@ -13,6 +13,7 @@ import { seedOutletProductRequests, seedOutletMaterialRequests } from './seed/ou
 import { seedPayrolls, seedPaymentBatches } from './seed/payroll.seeder';
 import { seedLogins } from './seed/login.seeder';
 import { seedFinance } from './seed/finance.seeder';
+import { seedPermissionSystem } from './seed/permission.seeder';
 
 async function main() {
   console.log('🚀 Starting comprehensive database seeding...\n');
@@ -27,6 +28,14 @@ async function main() {
     
     await seedAll(); // Roles and Users
     await seedLogins(); // Login records
+    
+    // ============================================================================
+    // PHASE 1.5: PERMISSION SYSTEM - Permissions & Role-Permission Mappings
+    // ============================================================================
+    console.log('\n\n🔑 PHASE 1.5: Permission System\n');
+    console.log('═'.repeat(70));
+    
+    await seedPermissionSystem(); // Permissions and role-permission mappings
     
     // ============================================================================
     // PHASE 2: CORE MODULE - Product Categories & Masters
@@ -48,6 +57,7 @@ async function main() {
     console.log('═'.repeat(70));
     console.log('\n📊 Summary:');
     console.log('   - Authentication: Users, Roles, Login Records');
+    console.log('   - Permissions: Permissions, Role-Permission Mappings');
     console.log('   - Products: Categories, Masters, Variants, Inventory, Stocks');
     console.log('   - Warehouse: Suppliers, Materials, Material In/Out');
     console.log('   - HR: Employees, Attendance, Payroll, Payment Batches');

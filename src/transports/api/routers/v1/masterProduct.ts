@@ -7,19 +7,56 @@ import {
 } from '../../validations/productInventory.validation';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { validateUnit } from '../../middlewares/unitValidation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 
 const masterProductController = new MasterProductController();
 
-// Get all master products with pagination
-router.get('/', validate(getPaginationSchema), masterProductController.getAllMasterProducts);
+/**
+ * @route GET /api/v1/master-products
+ * @access WAREHOUSE | ADMIN | SUPERADMIN
+ */
+router.get('/', 
+  authMiddleware,
+  permissionMiddleware(['warehouse:master-products:read']),
+  validate(getPaginationSchema), 
+  masterProductController.getAllMasterProducts
+);
 
-// Get product inventory for a master product
-router.get('/:id/inventory', masterProductController.getProductInventory);
+/**
+ * @route GET /api/v1/master-products/:id/inventory
+ * @access WAREHOUSE | ADMIN | SUPERADMIN
+ */
+router.get('/:id/inventory', 
+  authMiddleware,
+  permissionMiddleware(['warehouse:master-products:inventory:read']),
+  masterProductController.getProductInventory
+);
 
-// Create or update product inventory
-router.post('/inventory', validate(productInventoryCreateSchema), validateUnit, masterProductController.createProductInventory);
-router.put('/inventory/:id', validate(productInventoryUpdateSchema), validateUnit, masterProductController.updateProductInventory);
+/**
+ * @route POST /api/v1/master-products/inventory
+ * @access WAREHOUSE | ADMIN | SUPERADMIN
+ */
+router.post('/inventory', 
+  authMiddleware,
+  permissionMiddleware(['warehouse:master-products:inventory:read']),
+  validate(productInventoryCreateSchema), 
+  validateUnit, 
+  masterProductController.createProductInventory
+);
+
+/**
+ * @route PUT /api/v1/master-products/inventory/:id
+ * @access WAREHOUSE | ADMIN | SUPERADMIN
+ */
+router.put('/inventory/:id', 
+  authMiddleware,
+  permissionMiddleware(['warehouse:master-products:inventory:read']),
+  validate(productInventoryUpdateSchema), 
+  validateUnit, 
+  masterProductController.updateProductInventory
+);
 
 export default router;

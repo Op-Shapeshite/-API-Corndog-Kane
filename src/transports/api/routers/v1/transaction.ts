@@ -9,41 +9,68 @@ import {
 } from '../../validations/transaction.validation';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { TransactionController } from '../../controllers/TransactionController';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 const transactionController = new TransactionController();
 
-// GET all transactions with pagination
+/**
+ * @route GET /api/v1/finance/transactions
+ * @access FINANCE | ADMIN | SUPERADMIN
+ */
 router.get(
   "/",
+  authMiddleware,
+  permissionMiddleware(['finance:transactions:read']),
   validate(getPaginationSchema),
   transactionController.getAll()
 );
 
-// GET transaction by ID
+/**
+ * @route GET /api/v1/finance/transactions/:id
+ * @access FINANCE | ADMIN | SUPERADMIN
+ */
 router.get(
   "/:id",
+  authMiddleware,
+  permissionMiddleware(['finance:transactions:read']),
   validate(getTransactionByIdSchema),
   transactionController.getById()
 );
 
-// POST create transaction
+/**
+ * @route POST /api/v1/finance/transactions
+ * @access FINANCE | ADMIN | SUPERADMIN
+ */
 router.post(
   "/",
+  authMiddleware,
+  permissionMiddleware(['finance:transactions:create']),
   validate(createTransactionSchema),
   transactionController.create()
 );
 
-// PUT update transaction
+/**
+ * @route PUT /api/v1/finance/transactions/:id
+ * @access FINANCE | ADMIN | SUPERADMIN
+ */
 router.put(
   "/:id",
+  authMiddleware,
+  permissionMiddleware(['finance:transactions:update']),
   validate(updateTransactionSchema),
   transactionController.update()
 );
 
-// DELETE transaction
+/**
+ * @route DELETE /api/v1/finance/transactions/:id
+ * @access FINANCE | ADMIN | SUPERADMIN
+ */
 router.delete(
   "/:id",
+  authMiddleware,
+  permissionMiddleware(['finance:transactions:delete']),
   validate(deleteTransactionSchema),
   transactionController.delete()
 );
