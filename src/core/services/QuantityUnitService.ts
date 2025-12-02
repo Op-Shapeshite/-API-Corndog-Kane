@@ -63,36 +63,46 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
         toCode: string,
         quantity: number
     ): Promise<number> {
-        // Get both units
-        const fromUnit = await this.repository.getByCode(fromCode);
-        const toUnit = await this.repository.getByCode(toCode);
+		// Get both units
+		const fromUnit = await this.repository.getByCode(fromCode);
+		const toUnit = await this.repository.getByCode(toCode);
 
-        if (!fromUnit || !toUnit) {
-            throw new Error(`Unit not found: ${!fromUnit ? fromCode : toCode}`);
-        }
+		if (!fromUnit || !toUnit) {
+			throw new Error(
+				`Unit not found: ${!fromUnit ? fromCode : toCode}`
+			);
+		}
+		// If same unit, return as is (this should be checked first!)
+		if (fromCode === toCode) {
+			return quantity;
+		}
 
-        // Validate: both units must be in same category
-        if (fromUnit.category !== toUnit.category) {
-            throw new Error(
-                `Cannot convert between different categories: ${fromUnit.category} and ${toUnit.category}`
-            );
-        }
+		// Validate: both units must be in same category
+		if (fromUnit.category !== toUnit.category) {
+			throw new Error(
+				`Cannot convert between different categories: ${fromUnit.category} and ${toUnit.category}`
+			);
+		}
 
-        // COUNT units cannot be converted
-        if (fromUnit.category === UnitCategory.COUNT || toUnit.category === UnitCategory.COUNT) {
-            throw new Error('Cannot convert COUNT units (pcs)');
-        }
+		// COUNT units cannot be converted
+		if (
+			fromUnit.category === UnitCategory.COUNT ||
+			toUnit.category === UnitCategory.COUNT
+		) {
+			throw new Error("Cannot convert COUNT units (pcs)");
+		}
 
-        // If same unit, return as is
-        if (fromCode === toCode) {
-            return quantity;
-        }
+		// If same unit, return as is
+		if (fromCode === toCode) {
+			return quantity;
+		}
 
-        // Convert via base unit
-        // Example: 1 kg to g => 1 * (1000 / 1) = 1000 g
-        const convertedQuantity = quantity * (fromUnit.conversionFactor / toUnit.conversionFactor);
+		// Convert via base unit
+		// Example: 1 kg to g => 1 * (1000 / 1) = 1000 g
+		const convertedQuantity =
+			quantity * (fromUnit.conversionFactor / toUnit.conversionFactor);
 
-        return convertedQuantity;
+		return convertedQuantity;
     }
 
     /**
