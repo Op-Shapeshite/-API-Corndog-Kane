@@ -117,7 +117,7 @@ export class MasterProductRepository
 		});
 
 		if (!existing) {
-			throw new Error(`Product inventory for product ${masterProductId} and material not found`);
+			throw new Error(`Product inventory for product ${masterProductId} and material ${materialId} not found`);
 		}
 
 		const updated = await this.prisma.productInventory.update({
@@ -126,6 +126,7 @@ export class MasterProductRepository
 			},
 			data: {
 				...(data.quantity !== undefined && { quantity: data.quantity }),
+				...(data.unit !== undefined && { unit_quantity: data.unit }), // Update unit if provided
 			},
 			include: {
 				material: true,
@@ -136,6 +137,7 @@ export class MasterProductRepository
 			id: updated.id,
 			productId: updated.product_id,
 			quantity: updated.quantity,
+			unit: updated.unit_quantity, // Return the unit for consistency
 			materialId: updated.material_id,
 			material: {
 				id: updated.material.id,
