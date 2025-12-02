@@ -65,11 +65,13 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       // Calculate available stock with conversion
       let totalStockIn = 0;
       for (const item of materialWithStocks.materialIn) {
+        console.log('item: MaterialsIn ', item);
         totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
       }
 
       let totalStockOut = 0;
       for (const item of materialWithStocks.materialOut) {
+        console.log('item: MaterialsOut ', item);
         totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
       }
 
