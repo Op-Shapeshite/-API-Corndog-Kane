@@ -37,7 +37,7 @@ export const validate = (schema: ZodObject<ZodRawShape>) => {
 
         return res.status(400).json({
           status: 'failed',
-          message: 'Validation failed',
+          message: 'Validasi data gagal',
           errors,
           data: null,
           metadata: {}
@@ -47,10 +47,10 @@ export const validate = (schema: ZodObject<ZodRawShape>) => {
       // Handle unexpected errors
       return res.status(500).json({
         status: 'failed',
-        message: 'Internal server error during validation',
+        message: 'Terjadi kesalahan server saat validasi data',
         errors: [{
           field: 'server',
-          message: 'An unexpected error occurred',
+          message: 'Terjadi kesalahan yang tidak terduga',
           type: 'internal_error'
         }],
         data: null,

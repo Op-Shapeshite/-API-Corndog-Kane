@@ -25,7 +25,7 @@ export const errorHandler = (
   if (prismaError) {
     res.status(prismaError.statusCode).json({
       status: 'failed',
-      message: prismaError.errors[0]?.message || 'Database operation failed',
+      message: prismaError.errors[0]?.message || 'Operasi database gagal',
       data: null,
       errors: prismaError.errors,
       metadata: {},
@@ -57,11 +57,11 @@ export const errorHandler = (
   // Handle unknown errors
   res.status(500).json({
     status: 'failed',
-    message: 'Internal server error',
+    message: 'Terjadi kesalahan server internal',
     data: null,
     errors: [{
       field: 'server',
-      message: 'An unexpected error occurred',
+      message: 'Terjadi kesalahan yang tidak terduga',
       type: 'internal_error',
     }],
     metadata: {},

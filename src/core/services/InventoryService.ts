@@ -38,7 +38,7 @@ function validateUnit(unit: string): void {
 	
 	if (!isValid) {
 		throw new Error(
-			`Invalid unit "${unit}". Allowed units: ${ALLOWED_UNITS.join(', ')}`
+			`Satuan "${unit}" tidak valid. Satuan yang diizinkan: ${ALLOWED_UNITS.join(', ')}. Pastikan menggunakan satuan yang sudah terdaftar di sistem`
 		);
 	}
 }
@@ -130,7 +130,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		// Validate supplier exists
 		const supplierRecord = await this.supplierRepository.getById(data.supplier_id.toString());
 		if (!supplierRecord) {
-			throw new Error(`Supplier with ID ${data.supplier_id} not found`);
+			throw new Error(`Supplier dengan ID ${data.supplier_id} tidak ditemukan. Pastikan supplier sudah terdaftar di sistem sebelum melakukan stock-in`);
 		}
 		
 		// Extract supplier info (handle both TSupplier and TSupplierWithID)
@@ -169,7 +169,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			// Check unit consistency with product_inventory
 			await checkUnitConsistency(this.materialRepository, materialId, data.unit_quantity);
 		} else {
-			throw new Error("Either material_id or material must be provided");
+			throw new Error("Material harus disediakan. Silakan sediakan material_id untuk material yang sudah ada atau data material untuk membuat material baru");
 		}
 
 		// Create stock in record
@@ -183,7 +183,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		// Get material with stocks to calculate current stock
 		const material = await this.materialRepository.getMaterialWithStocks(materialId);
 		if (!material) {
-			throw new Error("Material not found after creation");
+			throw new Error("Material tidak ditemukan setelah pembuatan stock-in. Terjadi kesalahan sistem dalam menyimpan data");
 		}
 
 		// Calculate current stock
@@ -264,7 +264,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			// Check unit consistency
 			await checkUnitConsistency(this.materialRepository, materialId, data.unit_quantity);
 		} else {
-			throw new Error("Either material_id or material must be provided");
+			throw new Error("Material harus disediakan untuk update. Silakan sediakan material_id untuk material yang sudah ada atau data material untuk membuat material baru");
 		}
 
 		// Update stock in record
@@ -278,7 +278,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		// Get supplier info
 		const supplierRecord = await this.supplierRepository.getById(data.supplier_id.toString());
 		if (!supplierRecord) {
-			throw new Error(`Supplier with ID ${data.supplier_id} not found`);
+			throw new Error(`Supplier dengan ID ${data.supplier_id} tidak ditemukan. Pastikan supplier sudah terdaftar di sistem`);
 		}
 
 		const supplier = {
@@ -289,13 +289,13 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		// Get material with stocks to calculate current stock
 		const material = await this.materialRepository.getMaterialWithStocks(materialId);
 		if (!material) {
-			throw new Error("Material not found after update");
+			throw new Error("Material tidak ditemukan setelah update stock-in. Terjadi kesalahan sistem dalam memperbarui data");
 		}
 
 		// Get the updated record
 		const updatedRecord = material.materialIn.find(item => item.id === id);
 		if (!updatedRecord) {
-			throw new Error("Updated record not found");
+			throw new Error("Data stock-in yang telah diperbarui tidak ditemukan. Terjadi kesalahan dalam proses update");
 		}
 
 		// Calculate current stock

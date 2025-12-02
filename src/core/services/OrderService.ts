@@ -22,19 +22,19 @@ export default class OrderService extends Service<TOrder> {
 		// 1. Get employee assigned today
 		const employeeId = await this.repository.getEmployeeAssignedToday(outletId);
 		if (!employeeId) {
-			throw new Error('No employee assigned to this outlet today');
+			throw new Error('Tidak ada karyawan yang ditugaskan untuk outlet ini hari ini. Pastikan ada karyawan yang dijadwalkan sebelum membuat pesanan');
 		}
 
 		// 2. Get outlet location
 		const outletLocation = await this.repository.getOutletLocation(outletId);
 		if (!outletLocation) {
-			throw new Error('Outlet not found');
+			throw new Error('Outlet tidak ditemukan. Pastikan outlet ID yang digunakan valid dan terdaftar di sistem');
 		}
 
 		// 3. Get outlet code for invoice
 		const outletCode = await this.repository.getOutletCode(outletId);
 		if (!outletCode) {
-			throw new Error('Outlet code not found');
+			throw new Error('Kode outlet tidak ditemukan. Pastikan data outlet lengkap dan memiliki kode outlet yang valid');
 		}
 
 		// 4. Validate items and fetch prices
@@ -45,7 +45,7 @@ export default class OrderService extends Service<TOrder> {
 			// Check product exists and get price
 			const price = await this.repository.getProductPrice(item.productId);
 			if (price === null) {
-				throw new Error(`Product with ID ${item.productId} not found`);
+				throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan. Pastikan produk sudah terdaftar di sistem dan memiliki harga yang valid`);
 			}
 
 			// Check available stock for this outlet
@@ -72,7 +72,7 @@ export default class OrderService extends Service<TOrder> {
 					// Get sub item price
 					const subItemUnitPrice = await this.repository.getProductPrice(subItem.productId);
 					if (subItemUnitPrice === null) {
-						throw new Error(`Product with ID ${subItem.productId} not found`);
+						throw new Error(`Sub produk dengan ID ${subItem.productId} tidak ditemukan. Pastikan semua produk dan sub produk sudah terdaftar di sistem`);
 					}
 
 					// Calculate child quantity: parent_qty × child_qty
@@ -145,7 +145,7 @@ export default class OrderService extends Service<TOrder> {
 	async getOrderById(orderId: number) {
 		const order = await this.repository.getOrderById(orderId);
 		if (!order) {
-			throw new Error('Order not found');
+			throw new Error(`Pesanan dengan ID ${orderId} tidak ditemukan. Pastikan ID pesanan yang dicari sudah benar`);
 		}
 		return order;
 	}
@@ -156,7 +156,7 @@ export default class OrderService extends Service<TOrder> {
 	async getOrderForBroadcast(orderId: number) {
 		const order = await this.repository.getOrderForBroadcast(orderId);
 		if (!order) {
-			throw new Error('Order not found');
+			throw new Error(`Pesanan dengan ID ${orderId} tidak ditemukan untuk broadcast. Pastikan pesanan masih tersedia di sistem`);
 		}
 		return order;
 	}

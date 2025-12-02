@@ -72,7 +72,7 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
         console.log('fromCode:', fromCode, 'toCode:', toCode);
 		if (!fromUnit || !toUnit) {
 			throw new Error(
-				`Unit not found: ${!fromUnit ? fromCode : toCode}`
+				`Satuan tidak ditemukan: ${!fromUnit ? fromCode : toCode}. Pastikan kode satuan yang digunakan terdaftar di sistem`
 			);
 		}
 		// If same unit, return as is (this should be checked first!)
@@ -83,7 +83,7 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
 		// Validate: both units must be in same category
 		if (fromUnit.category !== toUnit.category) {
 			throw new Error(
-				`Cannot convert between different categories: ${fromUnit.category} and ${toUnit.category}`
+				`Tidak dapat mengkonversi antara kategori satuan yang berbeda: ${fromUnit.category} dan ${toUnit.category}. Pastikan kedua satuan dalam kategori yang sama (WEIGHT, VOLUME, atau COUNT)`
 			);
 		}
 
@@ -92,7 +92,7 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
 			fromUnit.category === UnitCategory.COUNT ||
 			toUnit.category === UnitCategory.COUNT
 		) {
-			throw new Error("Cannot convert COUNT units (pcs)");
+			throw new Error("Tidak dapat mengkonversi satuan COUNT (pcs). Satuan hitungan seperti pieces tidak dapat dikonversi ke satuan lain");
 		}
 
 		// If same unit, return as is
@@ -116,11 +116,11 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
         const toUnit = await this.repository.getByCode(toCode);
 
         if (!fromUnit || !toUnit) {
-            throw new Error('Unit not found');
+            throw new Error(`Satuan tidak ditemukan: ${!fromUnit ? fromCode : toCode}. Pastikan kedua kode satuan terdaftar di sistem`);
         }
 
         if (fromUnit.category !== toUnit.category) {
-            throw new Error('Units must be in same category');
+            throw new Error(`Satuan harus dalam kategori yang sama. ${fromCode} (${fromUnit.category}) tidak dapat dibandingkan dengan ${toCode} (${toUnit.category})`);
         }
 
         const factor = fromUnit.conversionFactor / toUnit.conversionFactor;

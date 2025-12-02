@@ -3,20 +3,20 @@ import z from 'zod';
 export const createProductSchema = z.object({
   body: z.object({
     master_product_id: z.string()
-      .min(1, 'Master Product ID is required')
+      .min(1, 'ID Produk Master wajib diisi')
       .transform((val) => {
         const num = Number(val);
         if (isNaN(num) || num < 1) {
-          throw new Error('Invalid Master Product ID');
+          throw new Error('ID Produk Master tidak valid');
         }
         return num;
       }),
     price: z.string()
-      .min(1, 'Price is required')
+      .min(1, 'Harga wajib diisi')
       .transform((val) => {
         const num = Number(val);
         if (isNaN(num) || num < 0) {
-          throw new Error('Price must be a positive number');
+          throw new Error('Harga harus berupa angka positif');
         }
         return num;
       }),
@@ -26,7 +26,7 @@ export const createProductSchema = z.object({
         if (!val) return undefined;
         const num = Number(val);
         if (isNaN(num) || num < 0) {
-          throw new Error('HPP must be a positive number');
+          throw new Error('HPP harus berupa angka positif');
         }
         return num;
       }),
