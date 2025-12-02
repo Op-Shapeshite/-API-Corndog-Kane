@@ -45,7 +45,7 @@ export const validateUnit = async (req: Request, res: Response, next: NextFuncti
             if (!isValid) {
                 return res.status(400).json({
                     status: 'error',
-                    message: `Invalid unit code: "${unitCode}". Please use a valid unit code (e.g., kg, g, pcs).`
+                    message: `Kode satuan tidak valid: "${unitCode}". Gunakan kode satuan yang valid seperti kg, g, pcs, L, ml, dll. Pastikan satuan sudah terdaftar di sistem`
                 });
             }
         }
@@ -55,7 +55,7 @@ export const validateUnit = async (req: Request, res: Response, next: NextFuncti
         console.error('Unit validation error:', error);
         return res.status(500).json({
             status: 'error',
-            message: 'Internal server error during unit validation'
+            message: 'Terjadi kesalahan server saat validasi satuan. Silakan coba lagi atau hubungi administrator'
         });
     }
 };

@@ -94,16 +94,16 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     if (error instanceof jwt.TokenExpiredError) {
       return sendFailureResponse(
         res,
-        [{ field: 'token', message: 'Token expired', type: 'invalid' }],
-        'Token expired',
+        [{ field: 'token', message: 'Token telah kedaluwarsa', type: 'invalid' }],
+        'Token telah kedaluwarsa',
         401
       );
     }
 
     return sendFailureResponse(
       res,
-      [{ field: 'authentication', message: 'Authentication error', type: 'internal_error' }],
-      'Authentication error',
+      [{ field: 'authentication', message: 'Error autentikasi sistem', type: 'internal_error' }],
+      'Error autentikasi sistem',
       500
     );
   }

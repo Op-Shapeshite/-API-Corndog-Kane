@@ -59,7 +59,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
 
       if (!materialWithStocks) {
-        throw new Error(`Material with ID ${material.material_id} not found`);
+        throw new Error(`Material dengan ID ${material.material_id} tidak ditemukan di database. Pastikan material sudah terdaftar sebelum digunakan dalam produk master`);
       }
 
       // Calculate available stock with conversion
@@ -80,8 +80,9 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       // Check if sufficient stock
       if (availableStock < requiredQuantity) {
         throw new Error(
-          `Insufficient stock for material "${materialWithStocks.name}". ` +
-          `Available: ${availableStock} ${material.unit}, Required: ${requiredQuantity} ${material.unit}`
+          `Stok material "${materialWithStocks.name}" tidak mencukupi. ` +
+          `Stok tersedia: ${availableStock} ${material.unit}, Dibutuhkan: ${requiredQuantity} ${material.unit}. ` +
+          `Silakan lakukan stock-in material terlebih dahulu`
         );
       }
     }
@@ -130,7 +131,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
 
     const masterProduct = await this.repository.getById(masterProductId);
     if (!masterProduct) {
-      throw new Error(`Master product with ID ${masterProductId} not found`);
+      throw new Error(`Produk master dengan ID ${masterProductId} tidak ditemukan. Pastikan ID produk master yang digunakan sudah benar`);
     }
 
     let materialsUpdated: any[] = (await this.repository
@@ -150,7 +151,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
         const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
 
         if (!materialWithStocks) {
-          throw new Error(`Material with ID ${material.material_id} not found`);
+          throw new Error(`Material dengan ID ${material.material_id} tidak ditemukan di database. Pastikan material sudah terdaftar sebelum digunakan`);
         }
 
         // Calculate available stock with conversion
@@ -169,8 +170,9 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
         // Check if sufficient stock
         if (availableStock < requiredQuantity) {
           throw new Error(
-            `Insufficient stock for material "${materialWithStocks.name}". ` +
-            `Available: ${availableStock} ${material.unit}, Required: ${requiredQuantity} ${material.unit}`
+            `Stok material "${materialWithStocks.name}" tidak mencukupi untuk update produk inventori. ` +
+            `Stok tersedia: ${availableStock} ${material.unit}, Dibutuhkan: ${requiredQuantity} ${material.unit}. ` +
+            `Silakan lakukan stock-in material terlebih dahulu`
           );
         }
       }

@@ -61,7 +61,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           res,
           { data: null, metadata: {} as TMetadataResponse },
           null,
-          'Employee not found',
+          'Karyawan tidak ditemukan',
           404
         );
       }
@@ -74,13 +74,13 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: responseData,
           metadata: {} as TMetadataResponse
         },
-        'Employee retrieved successfully'
+        'Berhasil mengambil data karyawan'
       );
     } catch (error) {
       return this.handleError(
         res,
         error,
-        'Failed to retrieve employee',
+        'Gagal mengambil data karyawan',
         500,
         [],
         {} as TMetadataResponse
@@ -100,8 +100,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'image_path', message: 'Employee image is required', type: 'required' }],
-          'Validation error',
+          [{ field: 'image_path', message: 'Foto karyawan wajib diupload', type: 'required' }],
+          'Error validasi',
           400
         );
       }
@@ -132,7 +132,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: EmployeeResponseMapper.toResponse(newEmployee),
           metadata: {} as TMetadataResponse,
         },
-        'Employee created successfully'
+        'Berhasil membuat data karyawan baru'
       );
     } catch (error) {
       // Delete uploaded image if creation fails
@@ -146,7 +146,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       return this.handleError(
         res,
         error,
-        'Failed to create employee',
+        'Gagal membuat data karyawan baru',
         500,
         {} as TEmployeeGetResponse,
         {} as TMetadataResponse
@@ -363,8 +363,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       if (!imagePath) {
         return this.getFailureResponse(res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: "image_proof", message: "Image proof is required", type: "required" }],
-          'Image proof is required',
+          [{ field: "image_proof", message: "Bukti foto check-in wajib diupload", type: "required" }],
+          'Bukti foto check-in diperlukan',
           400
         )
       }
@@ -376,8 +376,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'employee', message: 'No employee scheduled for this outlet today', type: 'not_found' }],
-          'No employee scheduled for this outlet',
+          [{ field: 'employee', message: 'Tidak ada karyawan yang dijadwalkan untuk outlet ini hari ini', type: 'not_found' }],
+          'Tidak ada karyawan yang dijadwalkan untuk outlet ini',
           404
         );
       }
@@ -397,10 +397,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: responseData,
           metadata: {} as TMetadataResponse,
         },
-        'Check-in successful'
+        'Check-in berhasil'
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to check in';
+      const errorMessage = error instanceof Error ? error.message : 'Gagal melakukan check-in';
 
       return this.handleError(
         res,

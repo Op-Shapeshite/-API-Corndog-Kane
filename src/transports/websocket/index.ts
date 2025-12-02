@@ -25,7 +25,7 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
 
 export function getWebSocketInstance(): SocketIOServer {
   if (!io) {
-    throw new Error('WebSocket not initialized. Call initializeWebSocket first.');
+    throw new Error('WebSocket belum diinisialisasi. Panggil initializeWebSocket terlebih dahulu.');
   }
   return io;
 }
