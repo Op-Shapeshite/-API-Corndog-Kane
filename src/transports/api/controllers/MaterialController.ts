@@ -19,12 +19,12 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
       try {
         const data = req.body;
         const result = await this.materialService.create(data);
-        return this.getSuccessResponse(res, { data: result as any, metadata: {} as TMetadataResponse }, "Material created successfully");
+        return this.getSuccessResponse(res, { data: result as any, metadata: {} as TMetadataResponse }, "Bahan berhasil dibuat");
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to create material",
+          "Gagal membuat bahan",
           500,
           {} as any,
           {} as TMetadataResponse
@@ -89,13 +89,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
             data: responseData,
             metadata: {} as TMetadataResponse,
           },
-          "Stock in created successfully"
+          "Stok masuk berhasil dibuat"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to create stock in",
+          "Gagal membuat stok masuk",
           500,
           {} as TMaterialInventoryGetResponse,
           {} as TMetadataResponse
@@ -121,13 +121,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Stock out created successfully"
+          "Stok keluar berhasil dibuat"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to create stock out",
+          "Gagal membuat stok keluar",
           500,
           {} as TMaterialInventoryGetResponse,
           {} as TMetadataResponse
@@ -174,13 +174,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
             data: mappedResults,
             metadata,
           },
-          "Material purchase list retrieved successfully"
+          "Daftar pembelian bahan berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve buy list",
+          "Gagal mengambil daftar pembelian",
           500,
           [] as TMaterialStockInGetResponse[],
           {} as TMetadataResponse
@@ -214,13 +214,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
             data: mappedResults,
             metadata,
           },
-          "Material stocks inventory retrieved successfully"
+          "Inventori stok bahan berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve stocks list",
+          "Gagal mengambil daftar stok",
           500,
           [] as TMaterialInventoryGetResponse[],
           {} as TMetadataResponse
@@ -264,13 +264,13 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
             data: materialOutList as any,
             metadata: {} as TMetadataResponse,
           },
-          "Material out list retrieved successfully"
+          "Daftar bahan keluar berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve material out",
+          "Gagal mengambil data bahan keluar",
           500,
           {} as any,
           {} as TMetadataResponse

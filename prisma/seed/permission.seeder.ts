@@ -224,7 +224,7 @@ const rolePermissionMappings: Record<string, string[]> = {
     'common:categories:read', 'common:quantity-units:read',
   ],
   
-  'HR': [
+  'Human Resource': [
     // HR module
     'hr:employees:read', 'hr:employees:read:detail', 'hr:employees:create', 'hr:employees:update', 'hr:employees:delete',
     'hr:schedules:read', 'hr:schedules:create', 'hr:schedules:update', 'hr:schedules:delete',
@@ -245,7 +245,7 @@ const rolePermissionMappings: Record<string, string[]> = {
     'common:categories:read', 'common:quantity-units:read',
   ],
   
-  'Warehouse': [
+  'Gudang': [
     // Warehouse module
     'warehouse:outlet-stocks:read', 'warehouse:outlet-stocks:summarize',
     'warehouse:outlet-requests:read', 'warehouse:outlet-requests:approve', 'warehouse:outlet-requests:update', 'warehouse:outlet-requests:delete',
@@ -265,7 +265,7 @@ const rolePermissionMappings: Record<string, string[]> = {
     'common:categories:read', 'common:quantity-units:read',
   ],
   
-  'Outlet': [
+  'Karyawan': [
     // Mobile/Outlet endpoints
     'mobile:schedule:read', 'mobile:attendance:checkin', 'mobile:attendance:checkout',
     'mobile:outlet-requests:create',

@@ -10,33 +10,33 @@ import { z } from 'zod';
 export const createUserSchema = z.object({
   body: z.object({
     name: z.string({
-      message: 'Name is required'
+      message: 'Nama wajib diisi'
     })
-    .min(2, { message: 'Name must be at least 2 characters' })
-    .max(100, { message: 'Name must not exceed 100 characters' }),
+    .min(2, { message: 'Nama minimal 2 karakter' })
+    .max(100, { message: 'Nama maksimal 100 karakter' }),
     
     username: z.string({
-      message: 'Username is required'
+      message: 'Username wajib diisi'
     })
-    .min(3, { message: 'Username must be at least 3 characters' })
-    .max(50, { message: 'Username must not exceed 50 characters' })
-    .regex(/^[a-zA-Z0-9_-]+$/, { message: 'Username can only contain letters, numbers, underscores, and hyphens' }),
+    .min(3, { message: 'Username minimal 3 karakter' })
+    .max(50, { message: 'Username maksimal 50 karakter' })
+    .regex(/^[a-zA-Z0-9_-]+$/, { message: 'Username hanya boleh berisi huruf, angka, garis bawah, dan tanda hubung' }),
     
     password: z.string({
-      message: 'Password is required'
+      message: 'Password wajib diisi'
     })
-    .min(8, { message: 'Password must be at least 8 characters' })
-    .max(100, { message: 'Password must not exceed 100 characters' })
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }),
+    .min(8, { message: 'Password minimal 8 karakter' })
+    .max(100, { message: 'Password maksimal 100 karakter' })
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { message: 'Password harus mengandung minimal satu huruf besar, satu huruf kecil, dan satu angka' }),
     
     role_id: z.number({
-      message: 'Role ID is required'
+      message: 'ID Role wajib diisi'
     })
-    .int({ message: 'Role ID must be an integer' })
-    .positive({ message: 'Role ID must be positive' }),
+    .int({ message: 'ID Role harus berupa angka' })
+    .positive({ message: 'ID Role harus positif' }),
     
     is_active: z.boolean({
-      message: 'Active status is required'
+      message: 'Status aktif wajib diisi'
     })
   })
 });

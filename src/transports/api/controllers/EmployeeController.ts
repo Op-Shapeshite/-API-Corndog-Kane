@@ -189,7 +189,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: EmployeeResponseMapper.toResponse(updatedEmployee),
           metadata: {} as TMetadataResponse,
         },
-        'Employee updated successfully'
+        'Data karyawan berhasil diperbarui'
       );
     } catch (error) {
       // Delete uploaded image if update fails
@@ -292,7 +292,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
               total_pages: resultWithPagination.pagination.totalPages,
             } as TMetadataResponse,
           },
-          'Employee attendance table retrieved successfully'
+          'Data kehadiran karyawan berhasil diambil'
         );
       }
 
@@ -317,7 +317,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: schedulesResponse,
           metadata: {} as TMetadataResponse,
         },
-        'Employee schedules retrieved successfully'
+        'Jadwal karyawan berhasil diambil'
       );
     } catch (error) {
       return this.handleError(
@@ -346,8 +346,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'authentication', message: 'User or outlet information not found', type: 'invalid' }],
-          'Authentication error',
+          [{ field: 'authentication', message: 'Informasi pengguna atau outlet tidak ditemukan', type: 'invalid' }],
+          'Kesalahan autentikasi',
           401
         );
       }
@@ -427,8 +427,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'authentication', message: 'User or outlet information not found', type: 'invalid' }],
-          'Authentication error',
+          [{ field: 'authentication', message: 'Informasi pengguna atau outlet tidak ditemukan', type: 'invalid' }],
+          'Kesalahan autentikasi',
           401
         );
       }
@@ -443,8 +443,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'employee', message: 'No employee scheduled for this outlet', type: 'not_found' }],
-          'No employee scheduled for this outlet',
+          [{ field: 'employee', message: 'Tidak ada karyawan yang dijadwalkan untuk outlet ini', type: 'not_found' }],
+          'Tidak ada karyawan yang dijadwalkan untuk outlet ini',
           404
         );
       }
@@ -457,8 +457,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'outlet', message: 'Outlet not found', type: 'not_found' }],
-          'Outlet not found',
+          [{ field: 'outlet', message: 'Outlet tidak ditemukan', type: 'not_found' }],
+          'Outlet tidak ditemukan',
           404
         );
       }
@@ -471,8 +471,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ field: 'attendance', message: 'No check-in record found for today', type: 'not_found' }],
-          'No check-in record found for today',
+          [{ field: 'attendance', message: 'Tidak ditemukan data absensi masuk untuk hari ini', type: 'not_found' }],
+          'Tidak ditemukan data absensi masuk untuk hari ini',
           404
         );
       }
@@ -511,10 +511,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: responseData,
           metadata: {} as TMetadataResponse,
         },
-        'Check-out successful'
+        'Absensi keluar berhasil'
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to check out';
+      const errorMessage = error instanceof Error ? error.message : 'Gagal melakukan absensi keluar';
 
       return this.handleError(
         res,
@@ -564,10 +564,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           data: mappedData,
           metadata,
         },
-        'Attendances retrieved successfully'
+        'Data kehadiran berhasil diambil'
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to retrieve attendances';
+      const errorMessage = error instanceof Error ? error.message : 'Gagal mengambil data kehadiran';
 
       return this.handleError(
         res,

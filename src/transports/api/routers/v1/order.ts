@@ -4,6 +4,7 @@ import { validate } from '../../validations/validate.middleware';
 import { createOrderSchema } from '../../validations/order.validation';
 import { authMiddleware } from '../../../../policies/authMiddleware';
 import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
+import { checkinMiddleware } from '../../../../policies/checkinMiddleware';
 
 const router = express.Router();
 
@@ -50,6 +51,7 @@ router.post(
 	"/",
 	authMiddleware,
 	permissionMiddleware(['orders:create']),
+	checkinMiddleware,
 	validate(createOrderSchema),
 	(req, res) => orderController.createOrder(req, res)
 );

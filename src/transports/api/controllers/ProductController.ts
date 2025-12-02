@@ -64,14 +64,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
           metadata: {} as TMetadataResponse,
         },
-        "Product created successfully"
+        "Produk berhasil dibuat"
       );
     } catch (error) {
       logger.error("Error creating product:", { error });
       return this.handleError(res,
 
         error,
-        "Failed to create product",
+        "Gagal membuat produk",
         500,
         {} as TProductGetResponse,
         {} as TMetadataResponse
@@ -116,14 +116,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: ProductResponseMapper.toResponse(updatedProduct as TProductWithID),
           metadata: {} as TMetadataResponse,
         },
-        "Product updated successfully"
+        "Produk berhasil diperbarui"
       );
     } catch (error) {
       logger.error("Error updating product:", { error });
       return this.handleError(
         res,
         error,
-        "Failed to update product",
+        "Gagal memperbarui produk",
         500,
         {} as TProductGetResponse,
         {} as TMetadataResponse
@@ -154,14 +154,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: {} as TProductGetResponse,
           metadata: {} as TMetadataResponse,
         },
-        "Product deleted successfully"
+        "Produk berhasil dihapus"
       );
     } catch (error) {
       logger.error("Error deleting product:", { error });
       return this.handleError(
         res,
         error,
-        "Failed to delete product",
+        "Gagal menghapus produk",
         500,
         {} as TProductGetResponse,
         {} as TMetadataResponse
@@ -193,7 +193,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: mappedResults,
           metadata,
         },
-        "Product stocks inventory retrieved successfully"
+        "Inventori stok produk berhasil diambil"
       );
     };
   }
@@ -279,14 +279,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: responseData,
           metadata: {} as TMetadataResponse,
         },
-        "Product stock in added successfully"
+        "Stok produk berhasil ditambahkan"
       );
     } catch (error) {
       logger.error("Error adding product stock in:", { error });
       return this.handleError(
         res,
         error,
-        "Failed to add product stock in",
+        "Gagal menambahkan stok produk",
         500,
         {} as TProductStockInResponse,
         {} as TMetadataResponse
@@ -318,14 +318,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: mappedResult,
           metadata: {} as TMetadataResponse,
         },
-        "Product retrieved successfully"
+        "Data produk berhasil diambil"
       );
     } catch (error) {
       logger.error("Error getting detailed product:", { error });
       return this.handleError(
         res,
         error,
-        "Failed to get detailed product",
+        "Gagal mengambil detail produk",
         500,
         {} as TProductDetailGetResponse,
         {} as TMetadataResponse
@@ -345,14 +345,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
           data: ProductResponseMapper.toResponseWithMaterial(product),
           metadata: {} as TMetadataResponse,
         },
-        "Materials assigned to product successfully"
+        "Bahan berhasil ditetapkan ke produk"
       );
     } catch (error) {
       logger.error("Error assigning materials to product:", { error });
       return this.handleError(
         res,
         error,
-        "Failed to assign materials to product",
+        "Gagal menetapkan bahan ke produk",
         500,
         {} as TProductGetResponse,
         {} as TMetadataResponse

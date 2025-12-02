@@ -18,12 +18,11 @@ export async function seedRoles(): Promise<RoleData[]> {
   console.log('📝 Seeding roles...');
 
   const roles = [
-    { name: 'Super Admin', description: 'SUPER_ADMIN' },
-    { name: 'Admin', description: 'ADMIN' },
-    { name: 'HR', description: 'HR' },
+    { name: 'Human Resource', description: 'Mengkoordinir pegawai' },
+    { name: 'Super Admin', description: 'All akses' },
     { name: 'Finance', description: 'FINANCE' },
-    { name: 'Warehouse', description: 'WAREHOUSE' },
-    { name: 'Outlet', description: 'OUTLET' },
+    { name: 'Gudang', description: 'Menginput data pembelian bahan baku' },
+    { name: 'Karyawan', description: 'Karyawan onsite ( Outlet )' },
   ];
 
   let createdRoles: RoleData[] = [];
@@ -59,11 +58,11 @@ export async function seedUsers(roles: RoleData[]): Promise<void> {
 
   // Get role IDs
   const superAdminRole = roles.find((r) => r.name === "Super Admin");
-  const adminRole = roles.find(r => r.name === 'Admin');
-  const hrRole = roles.find(r => r.name === 'HR');
+  const adminRole = roles.find(r => r.name === 'Super Admin');
+  const hrRole = roles.find(r => r.name === 'Human Resource');
   const financeRole = roles.find(r => r.name === 'Finance');
-  const warehouseRole = roles.find(r => r.name === 'Warehouse');
-  const outletRole = roles.find(r => r.name === 'Outlet');
+  const warehouseRole = roles.find(r => r.name === 'Gudang');
+  const outletRole = roles.find(r => r.name === 'Karyawan');
 
   if (!superAdminRole || !adminRole || !hrRole || !financeRole || !warehouseRole || !outletRole) {
     throw new Error('Failed to find all required roles');
