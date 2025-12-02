@@ -63,10 +63,13 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
         toCode: string,
         quantity: number
     ): Promise<number> {
-		// Get both units
+        // Get both units
+        
 		const fromUnit = await this.repository.getByCode(fromCode);
 		const toUnit = await this.repository.getByCode(toCode);
-
+        console.log('fromUnit:', fromUnit);
+        console.log('toUnit:', toUnit);
+        console.log('fromCode:', fromCode, 'toCode:', toCode);
 		if (!fromUnit || !toUnit) {
 			throw new Error(
 				`Unit not found: ${!fromUnit ? fromCode : toCode}`
