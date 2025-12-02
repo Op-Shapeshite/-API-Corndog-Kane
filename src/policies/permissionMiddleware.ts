@@ -114,8 +114,8 @@ export const permissionMiddleware = (requiredPermissions: string[]) => {
       if (!req.user.role) {
         return sendFailureResponse(
           res,
-          [{ field: 'role', message: 'User role not found', type: 'not_found' }],
-          'User role not found',
+          [{ field: 'role', message: 'Role pengguna tidak ditemukan', type: 'not_found' }],
+          'Role pengguna tidak ditemukan',
           403
         );
       }
@@ -178,8 +178,8 @@ export const requireAllPermissions = (requiredPermissions: string[]) => {
       if (!req.user.role) {
         return sendFailureResponse(
           res,
-          [{ field: 'role', message: 'User role not found', type: 'not_found' }],
-          'User role not found',
+          [{ field: 'role', message: 'Role pengguna tidak ditemukan', type: 'not_found' }],
+          'Role pengguna tidak ditemukan',
           403
         );
       }

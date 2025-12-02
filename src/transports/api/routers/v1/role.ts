@@ -34,7 +34,7 @@ router.post('/',
   authMiddleware,
   permissionMiddleware(['roles:create']),
   validate(createRoleSchema), 
-  roleController.create(roleService, RoleResponseMapper, 'Role created successfully')
+  roleController.create(roleService, RoleResponseMapper, 'Role berhasil dibuat')
 );
 
 /**
@@ -45,7 +45,7 @@ router.put('/:id',
   authMiddleware,
   permissionMiddleware(['roles:update']),
   validate(updateRoleSchema), 
-  roleController.update(roleService, RoleResponseMapper, 'Role updated successfully')
+  roleController.update(roleService, RoleResponseMapper, 'Role berhasil diperbarui')
 );
 
 /**
@@ -56,7 +56,7 @@ router.delete('/:id',
   authMiddleware,
   permissionMiddleware(['roles:delete']),
   validate(deleteRoleSchema), 
-  roleController.delete(roleService, 'Role deleted successfully')
+  roleController.delete(roleService, 'Role berhasil dihapus')
 );
 
 export default router;

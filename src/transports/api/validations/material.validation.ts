@@ -15,7 +15,7 @@ export const stockInSchema = z.object({
     price: z.number().positive('price must be positive'),
   }).refine(
     (data) => data.material_id || data.material,
-    { message: 'Either material_id or material must be provided' }
+    { message: 'ID material atau material harus disediakan' }
   ),
 });
 

@@ -28,12 +28,12 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 				// Determine status code and message based on results
 				const statusCode = result.failedCount === 0 ? 201 : 207; // 207 Multi-Status if partial success
 				const message = result.failedCount === 0
-					? `All ${result.successCount} items recorded successfully`
-					: `${result.successCount} items recorded, ${result.failedCount} failed`;
+					? `Semua ${result.successCount} item berhasil dicatat`
+					: `${result.successCount} item berhasil dicatat, ${result.failedCount} gagal`;
 
 				// Send success response
 				return res.status(statusCode).json({
-					status: "success",
+					status: "berhasil",
 					message,
 					data: responseData,
 					metadata: {} as TMetadataResponse,

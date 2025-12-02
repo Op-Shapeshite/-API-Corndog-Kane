@@ -76,7 +76,7 @@ router.delete(
 	authMiddleware,
 	permissionMiddleware(['outlets:delete']),
 	validate(deleteOutletSchema),
-	outletController.delete(outletService, "User deleted successfully")
+	outletController.delete(outletService, "Outlet berhasil dihapus")
 );
 
 /**

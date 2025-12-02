@@ -90,13 +90,13 @@ export class OutletController extends Controller<
 					data: dataWithPicName,
 					metadata: metadata,
 				},
-				"Outlets retrieved successfully"
+				"Daftar outlet berhasil diambil"
 			);
 		} catch (error) {
 			return this.handleError(
 				res,
 				error,
-				"Failed to retrieve outlets",
+				"Gagal mengambil data outlet",
 				500,
 				[],
 				{} as TMetadataResponse
@@ -143,7 +143,7 @@ export class OutletController extends Controller<
 				),
 				metadata: {} as TMetadataResponse,
 			},
-			"Outlet retrieved successfully"
+			"Detail outlet berhasil diambil"
 		);
 	};
 	// overide create method
@@ -173,7 +173,7 @@ export class OutletController extends Controller<
 					data: OutletResponseMapper.toDetailResponse(newOutlet),
 					metadata: {} as TMetadataResponse,
 				},
-				"Outlet created successfully"
+				"Outlet berhasil dibuat"
 			);
 		} catch (error) {
 			return this.handleError(

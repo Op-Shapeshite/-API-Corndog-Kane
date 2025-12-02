@@ -46,7 +46,7 @@ router.post(
 	productCategoryController.create(
 		productCategoryService,
 		ProductCategoryResponseMapper,
-		"Product Category created successfully"
+		"Kategori produk berhasil dibuat"
 	)
 );
 
@@ -61,7 +61,7 @@ router.put('/:id',
   productCategoryController.update(
     productCategoryService,
     ProductCategoryResponseMapper,
-    'Product Category updated successfully'
+    'Kategori produk berhasil diperbarui'
   )
 );
 
@@ -76,7 +76,7 @@ router.delete(
 	validate(deleteProductCategorySchema),
 	productCategoryController.delete(
 		productCategoryService,
-		"Product Category deleted successfully"
+		"Kategori produk berhasil dihapus"
 	)
 );
 

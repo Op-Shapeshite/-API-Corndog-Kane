@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 export const outletSummarizeSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, "id must be a number"),
+    id: z.string().regex(/^\d+$/, "ID harus berupa angka"),
   }),
   query: z.object({
     start_date: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
-      message: "Invalid start_date format",
+      message: "Format start_date tidak valid",
     }),
     end_date: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
-      message: "Invalid end_date format",
+      message: "Format end_date tidak valid",
     }),
     status: z.string().optional(),
   }).optional(),

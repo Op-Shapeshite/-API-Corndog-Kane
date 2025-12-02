@@ -55,13 +55,13 @@ export class DashboardController extends Controller<TDashboardResponse, TMetadat
                         data: dashboardData,
                         metadata: {} as TMetadataResponse
                     },
-                    'Dashboard data retrieved successfully'
+                    'Data dashboard berhasil diambil'
                 );
             } catch (error) {
                 return this.handleError(
                     res,
                     error,
-                    'Failed to retrieve dashboard data',
+                    'Gagal mengambil data dashboard',
                     500,
                     {
                         income: { value: 0, increase_percentage: 0 },

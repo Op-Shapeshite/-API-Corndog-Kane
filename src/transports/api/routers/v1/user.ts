@@ -51,7 +51,7 @@ router.post('/',
   authMiddleware,
   permissionMiddleware(['users:create']),
   validate(createUserSchema), 
-  userController.create(userService, UserResponseMapper, 'User created successfully')
+  userController.create(userService, UserResponseMapper, 'Pengguna berhasil dibuat')
 );
 
 /**
@@ -62,7 +62,7 @@ router.put('/:id',
   authMiddleware,
   permissionMiddleware(['users:update']),
   validate(updateUserSchema), 
-  userController.update(userService, UserResponseMapper, 'User updated successfully')
+  userController.update(userService, UserResponseMapper, 'Pengguna berhasil diperbarui')
 );
 
 /**
@@ -73,7 +73,7 @@ router.delete('/:id',
   authMiddleware,
   permissionMiddleware(['users:delete']),
   validate(deleteUserSchema), 
-  userController.delete(userService, 'User deleted successfully')
+  userController.delete(userService, 'Pengguna berhasil dihapus')
 );
 
 export default router;

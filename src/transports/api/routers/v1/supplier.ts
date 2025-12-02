@@ -39,7 +39,7 @@ router.post(
 	supplierController.create(
 		supplierService,
 		SupplierResponseMapper,
-		"Supplier created successfully"
+		"Supplier berhasil dibuat"
 	)
 );
 
@@ -55,7 +55,7 @@ router.put(
 	supplierController.update(
 		supplierService,
 		SupplierResponseMapper,
-		"Supplier updated successfully"
+		"Supplier berhasil diperbarui"
 	)
 );
 
@@ -68,7 +68,7 @@ router.delete(
 	authMiddleware,
 	permissionMiddleware(['warehouse:suppliers:delete']),
 	validate(deleteSupplierSchema),
-	supplierController.delete(supplierService, "Supplier deleted successfully")
+	supplierController.delete(supplierService, "Supplier berhasil dihapus")
 );
 
 export default router;

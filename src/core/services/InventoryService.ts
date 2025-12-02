@@ -107,7 +107,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 				errors.push({
 					index: i,
 					item,
-					error: error instanceof Error ? error.message : "Unknown error",
+					error: error instanceof Error ? error.message : "Error tidak diketahui",
 				});
 			}
 		}

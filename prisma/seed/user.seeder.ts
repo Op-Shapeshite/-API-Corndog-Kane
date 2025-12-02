@@ -65,7 +65,7 @@ export async function seedUsers(roles: RoleData[]): Promise<void> {
   const outletRole = roles.find(r => r.name === 'Karyawan');
 
   if (!superAdminRole || !adminRole || !hrRole || !financeRole || !warehouseRole || !outletRole) {
-    throw new Error('Failed to find all required roles');
+    new Error('Failed to find all required roles');
   }
 
   // Hash password for all users (using bcrypt with 10 rounds)

@@ -16,88 +16,88 @@ const settingItemSchema = z.object({
 	checkin_time: z
 		.string()
 		.regex(/^\d{2}:\d{2}:\d{2}$/, {
-			message: "Check-in time must be in HH:MM:SS format",
+			message: "Waktu check-in harus dalam format HH:MM:SS",
 		}),
 	checkout_time: z
 		.string()
 		.regex(/^\d{2}:\d{2}:\d{2}$/, {
-			message: "Check-out time must be in HH:MM:SS format",
+			message: "Waktu check-out harus dalam format HH:MM:SS",
 		}),
 	salary: z.number().int().positive({
-		message: "Salary must be a positive integer",
+		message: "Gaji harus berupa bilangan bulat positif",
 	}),
 	days: z
 		.array(DayEnum)
-		.min(1, { message: "At least one day must be specified" }),
+		.min(1, { message: "Setidaknya satu hari harus ditentukan" }),
 });
 
 export const createOutletSchema = z.object({
 	body: z.object({
 		name: z
 			.string()
-			.min(3, { message: "Name must be at least 3 characters long" })
-			.max(50, { message: "Name must be at most 50 characters long" }),
+			.min(3, { message: "Nama harus minimal 3 karakter" })
+			.max(50, { message: "Nama harus maksimal 50 karakter" }),
 		location: z
 			.string()
 			.max(100, {
-				message: "Location must be at most 100 characters long",
+				message: "Lokasi harus maksimal 100 karakter",
 			}),
 		code: z
 			.string()
 			.max(50, {
-				message: "Code must be at most 50 characters long",
+				message: "Kode harus maksimal 50 karakter",
 			}),
 
 		description: z
 			.string()
 			.max(255, {
-				message: "Description must be at most 255 characters long",
+				message: "Deskripsi harus maksimal 255 karakter",
 			})
 			.optional(),
 		is_active: z.boolean(),
 		income_target: z.number().int().nonnegative({
-			message: "Income target must be a non-negative integer",
+			message: "Target pendapatan harus berupa bilangan non-negatif",
 		}),
 		setting: z
 			.array(settingItemSchema)
-			.min(1, { message: "At least one setting must be provided" }),
+			.min(1, { message: "Setidaknya satu pengaturan harus disediakan" }),
 		user_id: z
 			.number()
-			.int({ message: "User ID must be an integer" })
-			.positive({ message: "User ID must be positive" })
+			.int({ message: "ID pengguna harus berupa bilangan bulat" })
+			.positive({ message: "ID pengguna harus positif" })
 			.optional(),
 		user: z
 			.object({
 				name: z
 					.string()
 					.min(3, {
-						message: "User name must be at least 3 characters long",
+						message: "Nama pengguna harus minimal 3 karakter",
 					})
 					.max(100, {
-						message: "User name must be at most 100 characters long",
+						message: "Nama pengguna harus maksimal 100 karakter",
 					}),
 				username: z
 					.string()
 					.min(3, {
-						message: "Username must be at least 3 characters long",
+						message: "Username harus minimal 3 karakter",
 					})
 					.max(50, {
-						message: "Username must be at most 50 characters long",
+						message: "Username harus maksimal 50 karakter",
 					})
 					.regex(/^[a-zA-Z0-9_-]+$/, {
-						message: "Username can only contain letters, numbers, underscores, and hyphens",
+						message: "Username hanya boleh mengandung huruf, angka, underscore, dan strip",
 					}),
 				password: z
 					.string()
 					.min(8, {
-						message: "Password must be at least 8 characters long",
+						message: "Password harus minimal 8 karakter",
 					})
 					.max(100, {
-						message: "Password must be at most 100 characters long",
+						message: "Password harus maksimal 100 karakter",
 					}),
 				role_id: z
 					.number()
-					.int({ message: "Role ID must be an integer" })
+					.int({ message: "ID role harus berupa bilangan bulat" })
 					.positive({ message: "Role ID must be positive" }),
 				is_active: z.boolean().default(true),
 			})
