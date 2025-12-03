@@ -33,7 +33,8 @@ export default class OutletRepository
     })
     if (!outlet) return null;
     
-    const mapped = this.mapper.mapToEntity(outlet) as TOutlet;
+    const mapped = this.mapper.mapToEntity(outlet) as TOutlet;
+
     type OutletWithSettings = typeof outlet & { 
       settings?: Array<{
         id: number;
@@ -89,9 +90,11 @@ export default class OutletRepository
       name: itemData.name,
       settings: itemData.settings,
       userId: itemData.userId
-    }, null, 2));
+    }, null, 2));
+
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
+
         const outlet = await tx.outlet.create({
           data: {
             name: itemData.name as string,
@@ -104,7 +107,8 @@ export default class OutletRepository
           },
         });
         
-        console.log('Outlet created with ID:', outlet.id);
+        console.log('Outlet created with ID:', outlet.id);
+
         const outletId = typeof outlet.id === 'string' ? parseInt(outlet.id) : outlet.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const settingsData = itemData.settings.map((s: any) => ({
@@ -139,7 +143,8 @@ export default class OutletRepository
    * Update outlet and its settings
    */
   override async update(id: string, item: Partial<TOutletWithSettings & { userId?: number }>): Promise<TOutlet> {
-    const outletId = parseInt(id);
+    const outletId = parseInt(id);
+
     const updateData: Record<string, unknown> = {};
     if (item.name !== undefined) updateData.name = item.name;
     if (item.location !== undefined) updateData.location = item.location;
@@ -154,7 +159,8 @@ export default class OutletRepository
         where: { id: outletId },
         data: updateData,
       });
-    }
+    }
+
     if (item.settings) {
       const providedIds = item.settings.filter(s => s.id).map(s => s.id as number);
       
@@ -164,12 +170,14 @@ export default class OutletRepository
           outlet_id: outletId,
           id: { notIn: providedIds },
         },
-      });
+      });
+
       console.log('Updating/Creating settings for outlet ID:', outletId);
 
       for (const setting of item.settings as any) {
         console.log('Processing setting:', setting);
-        if (setting.id) {
+        if (setting.id) {
+
           await this.prisma.outletSetting.update({
             where: { id: setting.id },
             data: {
@@ -179,7 +187,8 @@ export default class OutletRepository
               day: { set: setting.days as DAY[] },
             },
           });
-        } else {
+        } else {
+
           await this.prisma.outletSetting.create({
 			data: {
 				outlet_id: outletId,
@@ -212,7 +221,8 @@ export default class OutletRepository
       },
     });
     
-    if (settings.length === 0) return null;
+    if (settings.length === 0) return null;
+
     const setting = settings[0];
     return {
       id: setting.id,
@@ -294,10 +304,12 @@ export default class OutletRepository
     limit?: number,
     startDate?: Date,
     endDate?: Date
-  ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
+  ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
+
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    // today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    console.log(today)
     const productsWithActivity = await this.prisma.$queryRaw<Array<{ product_id: number; product_name: string }>>`
       SELECT DISTINCT p.id as product_id, pm.name as product_name
       FROM product_menus p
@@ -324,16 +336,20 @@ export default class OutletRepository
           )
         )
       ORDER BY p.id ASC
-    `;
+    `;
+    console.log(productsWithActivity,outletId)
     if (productsWithActivity.length === 0) {
       return { stocks: [], total: 0 };
-    }
-    const allRecords: TOutletStockItem[] = [];
+    }
+
+    const allRecords: TOutletStockItem[] = [];
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    for (const product of productsWithActivity) {
+    for (const product of productsWithActivity) {
+
       const yesterdayStockIn = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(opr."approval_quantity"), 0)::bigint as total
         FROM "outlet_requests" opr
@@ -358,7 +374,8 @@ export default class OutletRepository
       const yesterdayOut = Number(yesterdaySold[0]?.total || 0);
 
       // First stock is yesterday's stock_in minus yesterday's sold
-      const firstStock = yesterdayIn - yesterdayOut;
+      const firstStock = yesterdayIn - yesterdayOut;
+
       const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(opr."approval_quantity"), 0)::bigint as total
         FROM "outlet_requests" opr
@@ -368,7 +385,8 @@ export default class OutletRepository
           AND opr."is_active" = true
           AND DATE(opr."updatedAt") = ${todayStr}::date
       `;
-      const stockIn = Number(stockInResult[0]?.total || 0);
+      const stockIn = Number(stockInResult[0]?.total || 0);
+
       const soldStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(oi."quantity"), 0)::bigint as total
         FROM "order_items" oi
@@ -379,7 +397,8 @@ export default class OutletRepository
           AND oi."is_active" = true
           AND DATE(o."createdAt") = ${todayStr}::date
       `;
-      const soldStock = Number(soldStockResult[0]?.total || 0);
+      const soldStock = Number(soldStockResult[0]?.total || 0);
+
       const remainingStock = firstStock + stockIn - soldStock;
 
       allRecords.push({
@@ -394,7 +413,8 @@ export default class OutletRepository
     }
 
     // Apply pagination
-    const total = allRecords.length;
+    const total = allRecords.length;
+
     if (!limit) {
       return {
         stocks: allRecords,
@@ -420,10 +440,12 @@ export default class OutletRepository
     limit?: number,
     startDate?: Date,
     endDate?: Date
-  ): Promise<{ stocks: TMaterialStockItem[]; total: number }> {
+  ): Promise<{ stocks: TMaterialStockItem[]; total: number }> {
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+
     const materialsWithActivity = await this.prisma.$queryRaw<Array<{ material_id: number; material_name: string }>>`
       SELECT DISTINCT m.id as material_id, m.name as material_name
       FROM materials m
@@ -448,16 +470,20 @@ export default class OutletRepository
           )
         )
       ORDER BY m.id ASC
-    `;
+    `;
+
     if (materialsWithActivity.length === 0) {
       return { stocks: [], total: 0 };
-    }
-    const allRecords: TMaterialStockItem[] = [];
+    }
+
+    const allRecords: TMaterialStockItem[] = [];
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    for (const material of materialsWithActivity) {
+    for (const material of materialsWithActivity) {
+
       const yesterdayStockIn = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
         FROM "outlet_material_requests"
@@ -480,7 +506,8 @@ export default class OutletRepository
       const yesterdayOut = Number(yesterdayUsed[0]?.total || 0);
 
       // First stock is yesterday's stock_in minus yesterday's used
-      const firstStock = yesterdayIn - yesterdayOut;
+      const firstStock = yesterdayIn - yesterdayOut;
+
       const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
         FROM "outlet_material_requests"
@@ -490,7 +517,8 @@ export default class OutletRepository
           AND "is_active" = true
           AND DATE("updatedAt") = ${todayStr}::date
       `;
-      const stockIn = Number(stockInResult[0]?.total || 0);
+      const stockIn = Number(stockInResult[0]?.total || 0);
+
       const usedStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(omu."quantity"), 0)::bigint as total
         FROM "order_material_usages" omu
@@ -499,7 +527,8 @@ export default class OutletRepository
           AND o."outlet_id" = ${outletId}
           AND DATE(omu."used_at") = ${todayStr}::date
       `;
-      const usedStock = Number(usedStockResult[0]?.total || 0);
+      const usedStock = Number(usedStockResult[0]?.total || 0);
+
       const remainingStock = firstStock + stockIn - usedStock;
 
       allRecords.push({
@@ -514,7 +543,8 @@ export default class OutletRepository
     }
 
     // Apply pagination
-    const total = allRecords.length;
+    const total = allRecords.length;
+
     if (!limit) {
       return {
         stocks: allRecords,
@@ -808,7 +838,8 @@ export default class OutletRepository
     total_expenses: number;
     total_profit: number;
     total_sold_quantity: number;
-  }> {
+  }> {
+
     const outlet = await this.prisma.outlet.findUnique({
       where: { id: outletId },
       select: { name: true, code: true }
@@ -816,7 +847,8 @@ export default class OutletRepository
 
     if (!outlet) {
       throw new Error(`Outlet with ID ${outletId} not found`);
-    }
+    }
+
     const whereOrder: Record<string, unknown> = {
       outlet_id: outletId,
     };
@@ -835,7 +867,8 @@ export default class OutletRepository
 
     if (status) {
       whereOrder.status = status;
-    }
+    }
+
     const orderItems = await this.prisma.orderItem.findMany({
       where: {
         order: whereOrder,
@@ -844,7 +877,8 @@ export default class OutletRepository
         product: true,
         order: true,
       },
-    });
+    });
+
     let totalIncome = 0;
     let totalProfit = 0;
     let totalSoldQuantity = 0;
