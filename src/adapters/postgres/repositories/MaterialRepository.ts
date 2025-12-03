@@ -316,7 +316,7 @@ export default class MaterialRepository
 	// Get material out by ID
 	async getMaterialOutById(id: number): Promise<MaterialStockOutEntity | null> {
 		const dbRecord = await this.prisma.materialOut.findUnique({
-			where: { id },
+			where: { id,description:{not:null} },
 		});
 
 		if (!dbRecord) return null;

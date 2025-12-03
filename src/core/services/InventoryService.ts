@@ -13,35 +13,19 @@ import SupplierRepository from "../../adapters/postgres/repositories/SupplierRep
 import { Service } from "./Service";
 import { TMaterial, TMaterialWithID } from "../entities/material/material";
 import { TSupplierWithID } from "../entities/suplier/suplier";
+import { normalizeUnit, isUnitSupported } from "../utils/unitNormalizer";
 
 /**
- * Allowed units for material stock in validation
+ * Validate and normalize unit_quantity format
  */
-const ALLOWED_UNITS = [
-	// Volume
-	'ml', 'mL', 'ML', 'liter', 'L', 'l', 'gallon',
-	// Weight
-	'g', 'gram', 'kg', 'kilogram', 'ton',
-	// Count
-	'pcs', 'unit', 'buah', 'biji', 'butir',
-	// Other
-	'pack', 'box', 'karton'
-];
-
-/**
- * Validate unit_quantity format
- */
-function validateUnit(unit: string): void {
-	const normalizedUnit = unit.trim().toLowerCase();
-	const isValid = ALLOWED_UNITS.some(allowed => 
-		allowed.toLowerCase() === normalizedUnit
-	);
-	
-	if (!isValid) {
-		throw new Error(
-			`Satuan "${unit}" tidak valid. Satuan yang diizinkan: ${ALLOWED_UNITS.join(', ')}. Pastikan menggunakan satuan yang sudah terdaftar di sistem`
-		);
+function validateAndNormalizeUnit(unit: string): string {
+	if (!isUnitSupported(unit)) {
+		// This will throw an error with proper message
+		normalizeUnit(unit);
 	}
+	
+	// Return the normalized unit for storage
+	return normalizeUnit(unit);
 }
 
 /**
@@ -151,8 +135,8 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		data: TInventoryStockInItem,
 		supplier: { id: number; name: string }
 	): Promise<TInventoryStockInEntity> {
-		// Validate unit format
-		validateUnit(data.unit_quantity);
+		// Validate and normalize unit format
+		const normalizedUnit = validateAndNormalizeUnit(data.unit_quantity);
 		
 		let materialId: number;
 
@@ -167,7 +151,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			materialId = data.material_id;
 			
 			// Check unit consistency with product_inventory
-			await checkUnitConsistency(this.materialRepository, materialId, data.unit_quantity);
+			await checkUnitConsistency(this.materialRepository, materialId, normalizedUnit);
 		} else {
 			throw new Error("Material harus disediakan. Silakan sediakan material_id untuk material yang sudah ada atau data material untuk membuat material baru");
 		}
@@ -178,7 +162,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			suplierId: data.supplier_id,
 			quantity: data.quantity,
 			price: data.price,
-			quantityUnit: data.unit_quantity,
+			quantityUnit: normalizedUnit,
 		});
 
 		// Get material with stocks to calculate current stock
@@ -198,7 +182,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			itemType: ItemType.MATERIAL,
 			itemName: material.name,
 			quantity: data.quantity,
-			unitQuantity: data.unit_quantity,
+			unitQuantity: normalizedUnit,
 			price: data.price, // Total price (not per unit)
 			supplier: {
 				id: supplier.id,
@@ -246,8 +230,8 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		id: number,
 		data: TInventoryStockInUpdateRequest
 	): Promise<TInventoryStockInEntity> {
-		// Validate unit format
-		validateUnit(data.unit_quantity);
+		// Validate and normalize unit format
+		const normalizedUnit = validateAndNormalizeUnit(data.unit_quantity);
 		
 		let materialId: number;
 
@@ -262,7 +246,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			materialId = data.material_id;
 			
 			// Check unit consistency
-			await checkUnitConsistency(this.materialRepository, materialId, data.unit_quantity);
+			await checkUnitConsistency(this.materialRepository, materialId, normalizedUnit);
 		} else {
 			throw new Error("Material harus disediakan untuk update. Silakan sediakan material_id untuk material yang sudah ada atau data material untuk membuat material baru");
 		}
@@ -273,7 +257,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			suplierId: data.supplier_id,
 			quantity: data.quantity,
 			price: data.price,
-			quantityUnit: data.unit_quantity,
+			quantityUnit: normalizedUnit,
 		});
 
 		// Get supplier info
@@ -310,7 +294,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			itemType: ItemType.MATERIAL,
 			itemName: material.name,
 			quantity: data.quantity,
-			unitQuantity: data.unit_quantity,
+			unitQuantity: normalizedUnit,
 			price: data.price,
 			supplier: {
 				id: supplier.id,
