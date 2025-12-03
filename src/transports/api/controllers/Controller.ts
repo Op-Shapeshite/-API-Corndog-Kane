@@ -64,9 +64,7 @@ export default class Controller<T, M> {
 		emptyData: T | T[],
 		emptyMetadata: M
 	) {
-		console.error(`${message}:`, error);
-		
-		// Check if it's a Prisma error and handle it specifically
+		console.error(`${message}:`, error);
 		const prismaError = PrismaErrorHandler.handlePrismaError(error);
 		if (prismaError) {
 			return this.getFailureResponse(
@@ -76,12 +74,8 @@ export default class Controller<T, M> {
 				message,
 				prismaError.statusCode
 			);
-		}
-		
-		// Extract error message from Error object or use default
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		
-		// Default error handling for non-Prisma errors
+		}
+		const errorMessage = error instanceof Error ? error.message : String(error);
 		return this.getFailureResponse(
 			res,
 			{ data: emptyData, metadata: emptyMetadata },
@@ -106,14 +100,10 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
-				
-				// Use validated defaults from pagination schema (page=1, limit=10)
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
 				const pageNum = page ? parseInt(page as string, 10) : 1;
 				const limitNum = limit ? parseInt(limit as string, 10) : 10;
-				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
-
-				// Validate search parameters
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
 				const validation = SearchHelper.validateSearchParams(
 					entityName, 
 					search_key as string, 
@@ -135,9 +125,7 @@ export default class Controller<T, M> {
 							searchable_fields: validation.searchable_fields
 						} as M
 					);
-				}
-
-				// Build search configuration with proper field mapping
+				}
 				const search = SearchHelper.buildSearchConfig(
 					entityName,
 					search_key as string,
@@ -206,13 +194,10 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
-				// Use validated defaults from pagination schema (page=1, limit=10)
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
 				const pageNum = page ? parseInt(page as string, 10) : 1;
 				const limitNum = limit ? parseInt(limit as string, 10) : 10;
-				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
-				
-				// Build search config, filtering out undefined/invalid values
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
 				const search =
 					search_key && 
 					search_value && 

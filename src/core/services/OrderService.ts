@@ -42,14 +42,11 @@ export default class OrderService extends Service<TOrder> {
 		const orderItems: TOrderItemCreate[] = [];
 		let totalAmount = 0;
 
-		for (const item of items) {
-			// Check product exists and get price
+		for (const item of items) {
 			const price = await this.repository.getProductPrice(item.productId);
 			if (price === null) {
 				throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan. Pastikan produk sudah terdaftar di sistem dan memiliki harga yang valid`);
-			}
-
-			// Check available stock for this outlet
+			}
 			// const availableStock = await this.repository.getAvailableStockForOutlet(
 			// 	item.productId,
 			// 	outletId
@@ -59,9 +56,7 @@ export default class OrderService extends Service<TOrder> {
 			// 	throw new Error(
 			// 		`Insufficient stock for product ${item.productId}. Available: ${availableStock}, Requested: ${item.qty}`
 			// 	);
-			// }
-
-			// Calculate item price (qty × unit_price)
+			// }
 			const itemPrice = item.qty * price;
 
 			// Process sub items (nested items) if exists
@@ -69,39 +64,28 @@ export default class OrderService extends Service<TOrder> {
 			let subTotalPrice = 0;
 
 			if (item.productItemsIds && item.productItemsIds.length > 0) {
-				for (const subItem of item.productItemsIds) {
-					// Get sub item price
+				for (const subItem of item.productItemsIds) {
 					const subItemUnitPrice = await this.repository.getProductPrice(subItem.productId);
 					if (subItemUnitPrice === null) {
 						throw new Error(`Sub produk dengan ID ${subItem.productId} tidak ditemukan. Pastikan semua produk dan sub produk sudah terdaftar di sistem`);
-					}
-
-					// Calculate child quantity: parent_qty × child_qty
-					const childQuantity = item.qty * subItem.qty;
-
-					// Calculate child price: childQuantity × unit_price
+					}
+					const childQuantity = item.qty * subItem.qty;
 					const childPrice = childQuantity * subItemUnitPrice;
 
 					subItems.push({
 						productId: subItem.productId,
 						quantity: childQuantity,
 						price: childPrice,
-					});
-
-					// Add to sub_total_price
+					});
 					subTotalPrice += childPrice;
 				}
-			}
-
-			// Add parent item to order items
+			}
 			orderItems.push({
 				productId: item.productId,
 				quantity: item.qty,
 				price: itemPrice,
 				subItems: subItems.length > 0 ? subItems : undefined,
-			});
-
-			// Calculate total: itemPrice + subTotalPrice
+			});
 			totalAmount += itemPrice + subTotalPrice;
 		}
 

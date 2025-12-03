@@ -48,16 +48,12 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     // STEP 1: VALIDATION - Do all validation BEFORE any database writes
     // VALIDATION: Check material stock availability before creating inventory
     for (const material of materialsWithNormalizedUnits) {
-      const requiredQuantity = material.quantity * data.quantity;
-
-      // Get material with stocks
+      const requiredQuantity = material.quantity * data.quantity;
       const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
 
       if (!materialWithStocks) {
         throw new Error(`Material dengan ID ${material.material_id} tidak ditemukan di database. Pastikan material sudah terdaftar sebelum digunakan dalam produk master`);
-      }
-
-      // Calculate available stock with conversion
+      }
       let totalStockIn = 0;
       for (const item of materialWithStocks.materialIn) {
         totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
@@ -68,9 +64,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
         totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
       }
 
-      const availableStock = totalStockIn - totalStockOut;
-
-      // Check if sufficient stock
+      const availableStock = totalStockIn - totalStockOut;
       if (availableStock < requiredQuantity) {
         throw new Error(
           `Stok material "${materialWithStocks.name}" tidak mencukupi. ` +
@@ -92,8 +86,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       };
     }
 
-    try {
-      // Use transaction to create everything atomically
+    try {
       const result = await this.repository.createProductInventoryWithTransaction({
         masterProduct,
         productId: data.product_id,
@@ -136,9 +129,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     const masterProduct = await this.repository.getById(masterProductId);
     if (!masterProduct) {
       throw new Error(`Produk master dengan ID ${masterProductId} tidak ditemukan. Pastikan ID produk master yang digunakan sudah benar`);
-    }
-
-    // Get existing product inventory to get current unit and materials if not provided
+    }
     const existingInventory = await this.repository.getProductInventory(masterProductId);
     if (existingInventory.length === 0) {
       throw new Error(`Inventori produk untuk produk master dengan ID ${masterProductId} tidak ditemukan`);
@@ -152,9 +143,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
 
     let materialsUpdated: any[] = existingInventory.map(item =>
       ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
-    );
-
-    // Use provided materials or keep existing materials, normalize units if provided
+    );
     const materials: any[] = data.materials 
       ? data.materials.map(material => ({
           ...material,
@@ -165,16 +154,12 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     // VALIDATION: Check material stock availability before updating inventory
     if (materials && materials.length > 0) {
       for (const material of materials) {
-        const requiredQuantity = material.quantity * data.quantity;
-
-        // Get material with stocks
+        const requiredQuantity = material.quantity * data.quantity;
         const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
 
         if (!materialWithStocks) {
           throw new Error(`Material dengan ID ${material.material_id} tidak ditemukan di database. Pastikan material sudah terdaftar sebelum digunakan`);
-        }
-
-        // Calculate available stock with conversion
+        }
         let totalStockIn = 0;
         for (const item of materialWithStocks.materialIn) {
           totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
@@ -185,9 +170,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
           totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
         }
 
-        const availableStock = totalStockIn - totalStockOut;
-
-        // Check if sufficient stock
+        const availableStock = totalStockIn - totalStockOut;
         if (availableStock < requiredQuantity) {
           throw new Error(
             `Stok material "${materialWithStocks.name}" tidak mencukupi untuk update produk inventori. ` +
@@ -199,11 +182,8 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     }
 
     // Only proceed with stock operations if all validations pass
-    try {
-      // Create stock in production with the determined unit (existing or provided)
-      await this.productRepository.createStockInProduction(masterProductId, data.quantity, productUnit);
-
-      // Update product inventory materials if provided
+    try {
+      await this.productRepository.createStockInProduction(masterProductId, data.quantity, productUnit);
       if (materials && materials.length > 0) {
         materialsUpdated = materials.map(async (material: any) => new Promise((resolve) => {
           const inventoryData: any = {
@@ -212,9 +192,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
             unit_quantity: material.unit,
           };
           resolve(this.repository.updateProductInventory(masterProductId, material.material_id, inventoryData));
-        }));
-
-        // Create material stock out entries using the original materials data
+        }));
         await Promise.all(
           materials.map(async (material) => {
             return this.materialRepository.createStockOut({
@@ -227,8 +205,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       }
       
       return await Promise.all([...materialsUpdated]);
-    } catch (error) {
-      // If there's an error during stock operations, throw it without creating material_out
+    } catch (error) {
       throw error;
     }
 

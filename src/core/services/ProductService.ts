@@ -28,13 +28,9 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     orderBy?: Record<string, 'asc' | 'desc'>,
     outletId?: number
   ): Promise<PaginationResult<TProduct | TProductWithID>> {
-    const result = await super.findAll(page, limit, search, filters, orderBy);
-
-    // If outletId is provided, add stock field
+    const result = await super.findAll(page, limit, search, filters, orderBy);
     if (outletId) {
-      const today = new Date();
-
-      // Add stock to each product
+      const today = new Date();
       const dataWithStock = await Promise.all(
         result.data.map(async (product) => {
           const productWithId = product as TProductWithID;
@@ -64,50 +60,36 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
    * Add product stock with PRODUCTION source
    * @returns TProductStockIn entity
    */
-  async addStockIn(data: TProductStockInRequest): Promise<TProductStockIn> {
-    // Validate product exists
+  async addStockIn(data: TProductStockInRequest): Promise<TProductStockIn> {
     const product = await this.repository.getById(data.product_id.toString());
     if (!product) {
       throw new Error(`Product with ID ${data.product_id} not found`);
-    }
-
-    // Get the master product to access product_inventories (materials required)
+    }
     const detailedProduct = await this.repository.getDetailedProduct(data.product_id);
     if (!detailedProduct) {
       throw new Error(`Detailed product with ID ${data.product_id} not found`);
     }
 
     // Deduct materials based on product inventories for the quantity
-    for (const material of detailedProduct.materials) {
-      // Calculate the amount of material needed: requested quantity * material quantity per product
-      const materialQuantity = data.quantity * material.quantity;
-
-      // Create material out record
+    for (const material of detailedProduct.materials) {
+      const materialQuantity = data.quantity * material.quantity;
       await this.materialService.stockOut({
         material_id: material.id,
         quantity: materialQuantity,
         unit_quantity: "pcs",
       });
-    }
-
-    // Create stock in record with PRODUCTION source
+    }
     const stockInRecord = await this.repository.createStockInProduction(
       data.product_id,
       data.quantity,
       data.unit_quantity
-    );
-
-    // Get product with stocks to calculate current stock
+    );
     const productWithStocks = await this.repository.getProductWithStocks(data.product_id);
     if (!productWithStocks) {
       throw new Error("Product not found after stock in");
-    }
-
-    // Calculate current stock (all sources)
+    }
     const currentStock = productWithStocks.stocks
-      .reduce((sum, stock) => sum + stock.quantity, 0);
-
-    // Return entity (camelCase)
+      .reduce((sum, stock) => sum + stock.quantity, 0);
     return {
       id: stockInRecord.id,
       productId: data.product_id,
@@ -127,19 +109,14 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     page: number = 1, 
     limit: number = 10, 
     search?: SearchConfig[]
-  ): Promise<{ data: TProductStockInventory[], total: number }> {
-    // Format time as HH:MM:SS
+  ): Promise<{ data: TProductStockInventory[], total: number }> {
     const formatTime = (date: Date | null): string => {
       if (!date) return "00:00:00";
       return new Date(date).toTimeString().split(' ')[0];
-    };
-
-    // Format date as YYYY-MM-DD
+    };
     const formatDate = (date: Date): string => {
       return new Date(date).toISOString().split('T')[0];
-    };
-
-    // Get product stock records with search support
+    };
     const productStocks = search && search.length > 0 
       ? await this.repository.getProductStockRecordsWithSearch(search)
       : await this.repository.getAllProductStockRecords();
@@ -180,8 +157,7 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
 
       const dailyStock = dailyStocksMap.get(key)!;
 
-      // Determine if it's stock in or out based on source
-      // For now, we'll treat all as stock in since products don't have explicit stock out
+      // Determine if it's stock in or out based on source
       // In future, you can add logic to differentiate
       dailyStock.stockIn += record.quantity;
       dailyStock.latestInTime = record.date;
@@ -194,9 +170,7 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
         return a.productId - b.productId;
       }
       return a.date.localeCompare(b.date);
-    });
-
-    // Calculate running stock for each product
+    });
     const productStocksMap = new Map<number, number>(); // productId -> running stock
     const data: TProductStockInventory[] = [];
 
@@ -217,9 +191,7 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
         updatedAt: daily.updatedAt,
         inTimes: formatTime(daily.latestInTime),
         outTimes: formatTime(daily.latestOutTime),
-      });
-
-      // Update running stock for this product
+      });
       productStocksMap.set(daily.productId, currentStock);
     });
 

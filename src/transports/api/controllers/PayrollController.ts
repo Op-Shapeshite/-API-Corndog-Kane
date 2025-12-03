@@ -14,13 +14,7 @@ type TPayrollResponseTypes = TPayrollListResponse[] | TPayrollDetailResponse | T
 export class PayrollController extends Controller<TPayrollResponseTypes, TMetadataResponse> {
   constructor() {
     super();
-  }
-
-  /**
-   * GET /finance/payroll
-   * Get all employee payroll summary
-   */
-  getAllPayrolls = async (req: Request, res: Response, payrollService: PayrollService) => {
+  }  getAllPayrolls = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
       const { start_date, end_date, type } = req.query;
 
@@ -29,12 +23,8 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         end_date as string | undefined
       );
 
-      const mappedData = PayrollListResponseMapper.map(result);
-
-      // If Excel export requested, generate multi-sheet Excel file
-      if (type === 'xlsx') {
-        // For Excel, we need detailed data with bonuses and deductions
-        // Get all employee IDs from the result
+      const mappedData = PayrollListResponseMapper.map(result);
+      if (type === 'xlsx') {
         const employeeIds = result.map((r: any) => r.employee_id);
 
         // Fetch detailed payroll data for each employee (bonuses & deductions)
@@ -46,8 +36,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
                 start_date as string | undefined,
                 end_date as string | undefined
               );
-            } catch (error) {
-              // If employee has no payroll detail, return null
+            } catch (error) {
               return null;
             }
           })
@@ -75,13 +64,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         { page: 1, limit: 0, total_records: 0, total_pages: 0 }
       );
     }
-  };
-
-  /**
-   * GET /finance/payroll/:employee_id
-   * Get payroll detail for employee (for editing)
-   */
-  getPayrollDetail = async (req: Request, res: Response, payrollService: PayrollService) => {
+  };  getPayrollDetail = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
       const employeeId = parseInt(req.params.employee_id);
       const { start_date, end_date } = req.query;
@@ -106,13 +89,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
-  };
-
-  /**
-   * PUT /finance/payroll/:employee_id
-   * Update payroll with manual bonus/deduction
-   */
-  updatePayroll = async (req: Request, res: Response, payrollService: PayrollService) => {
+  };  updatePayroll = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
       const employeeId = parseInt(req.params.employee_id);
       const { start_period, end_period, manual_bonus, manual_deductions } = req.body;
@@ -146,13 +123,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
-  };
-
-  /**
-   * POST /finance/payroll/:employee_id
-   * Create payment for employee
-   */
-  createPayment = async (req: Request, res: Response, payrollService: PayrollService) => {
+  };  createPayment = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
       const employeeId = parseInt(req.params.employee_id);
 
@@ -166,18 +137,14 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         const { PrismaClient } = await import('@prisma/client');
 
         const transactionRepo = new TransactionRepository();
-        const prisma = new PrismaClient();
-
-        // Get employee name
+        const prisma = new PrismaClient();
         const employee = await prisma.employee.findUnique({
           where: { id: employeeId },
           select: { name: true }
         });
 
         const employeeName = employee?.name || 'Unknown Employee';
-        const paymentDate = new Date();
-
-        // Get final_amount from result (it's the final salary after deductions)
+        const paymentDate = new Date();
         const finalAmount = (result as any).final_amount || 0;
 
         if (finalAmount > 0) {
@@ -211,13 +178,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
-  };
-
-  /**
-   * GET /finance/payroll/pay/:employee_id
-   * Get payment slip
-   */
-  getPaymentSlip = async (req: Request, res: Response, payrollService: PayrollService) => {
+  };  getPaymentSlip = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
       const employeeId = parseInt(req.params.employee_id);
       const { start_date, end_date } = req.query;
@@ -242,13 +203,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
-  };
-
-  /**
-   * POST /finance/payroll
-   * Create internal employee payroll template
-   */
-  createInternalPayrollTemplate = async (req: Request, res: Response, payrollService: PayrollService) => {
+  };  createInternalPayrollTemplate = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
       const { employee_id, salary } = req.body;
 
@@ -293,9 +248,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
       const workbook = new ExcelJS.Workbook();
 
       // ===== SHEET 1: Payroll Summary =====
-      const summarySheet = workbook.addWorksheet('Payroll Summary');
-
-      // Add headers
+      const summarySheet = workbook.addWorksheet('Payroll Summary');
       const summaryHeaderRow = summarySheet.addRow([
         'Employee ID',
         'Employee Name',
@@ -306,9 +259,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         'Final Amount',
         'Status'
       ]);
-      styleHeaderRow(summaryHeaderRow);
-
-      // Add data rows
+      styleHeaderRow(summaryHeaderRow);
       payrolls.forEach(payroll => {
         summarySheet.addRow([
           payroll.employee_id || '-',
@@ -336,9 +287,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         'Amount',
         'Description'
       ]);
-      styleHeaderRow(bonusHeaderRow);
-
-      // Add bonus data from detailed payrolls
+      styleHeaderRow(bonusHeaderRow);
       detailedPayrolls.forEach((detail: any) => {
         if (detail && detail.bonuses && detail.bonuses.length > 0) {
           detail.bonuses.forEach((bonus: any) => {
@@ -352,9 +301,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
             ]);
           });
         }
-      });
-
-      // If no bonuses, add a note
+      });
       if (bonusSheet.rowCount === 1) {
         bonusSheet.addRow(['No bonuses recorded for this period', '', '', '', '', '']);
       }
@@ -372,9 +319,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         'Amount',
         'Description'
       ]);
-      styleHeaderRow(deductionHeaderRow);
-
-      // Add deduction data from detailed payrolls
+      styleHeaderRow(deductionHeaderRow);
       detailedPayrolls.forEach((detail: any) => {
         if (detail && detail.deductions && detail.deductions.length > 0) {
           detail.deductions.forEach((deduction: any) => {
@@ -388,16 +333,12 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
             ]);
           });
         }
-      });
-
-      // If no deductions, add a note
+      });
       if (deductionSheet.rowCount === 1) {
         deductionSheet.addRow(['No deductions recorded for this period', '', '', '', '', '']);
       }
 
-      autoSizeColumns(deductionSheet);
-
-      // Set response headers and send file
+      autoSizeColumns(deductionSheet);
       const filename = `payroll-${new Date().toISOString().split('T')[0]}.xlsx`;
       setExcelHeaders(res, filename);
 

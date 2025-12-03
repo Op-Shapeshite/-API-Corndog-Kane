@@ -106,8 +106,7 @@ export class MasterProductRepository
 		};
 	}
 
-	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
-		// Find the existing product inventory record by product_id and material_id
+	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
 		const existing = await this.prisma.productInventory.findFirst({
 			where: {
 				product_id: masterProductId,
@@ -245,9 +244,7 @@ export class MasterProductRepository
 		inventoryItems: any[];
 	}> {
 		return await this.prisma.$transaction(async (prisma) => {
-			let productId = data.productId;
-
-			// Create master product if needed
+			let productId = data.productId;
 			if (data.masterProduct && !data.productId) {
 				const createdProduct = await prisma.productMaster.create({
 					data: {
@@ -261,9 +258,7 @@ export class MasterProductRepository
 
 			if (!productId) {
 				throw new Error('Product ID is required for inventory creation');
-			}
-
-			// Create product inventory items
+			}
 			const inventoryItems = await Promise.all(
 				data.inventoryItems.map(item =>
 					prisma.productInventory.create({
@@ -278,9 +273,7 @@ export class MasterProductRepository
 						},
 					})
 				)
-			);
-
-			// Create production stock in
+			);
 			await prisma.productStock.create({
 				data: {
 					product_id: productId!,
@@ -289,9 +282,7 @@ export class MasterProductRepository
 					date: new Date(),
 					source_from: 'PRODUCTION',
 				},
-			});
-
-			// Create material stock outs
+			});
 			await Promise.all(
 				data.materialStockOuts.map(stockOut =>
 					prisma.materialOut.create({

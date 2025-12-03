@@ -51,9 +51,7 @@ export class OutletController extends Controller<
 		try {
 			const { page, limit, search_key, search_value } = req.query;
 			const pageNum = page ? parseInt(page as string, 10) : 1;
-			const limitNum = limit ? parseInt(limit as string, 10) : 10;
-			
-			// Validate search parameters using enhanced search helper
+			const limitNum = limit ? parseInt(limit as string, 10) : 10;
 			const { SearchHelper } = await import('../../../utils/search/searchHelper');
 			const validation = SearchHelper.validateSearchParams(
 				'outlet', 
@@ -76,9 +74,7 @@ export class OutletController extends Controller<
 						searchable_fields: validation.searchable_fields
 					} as TMetadataResponse
 				);
-			}
-
-			// Build search configuration with proper field mapping
+			}
 			const search = SearchHelper.buildSearchConfig(
 				'outlet',
 				search_key as string,
@@ -294,9 +290,7 @@ export class OutletController extends Controller<
 				is_for_one_month,
 				previous_status,
 				notes,
-			} = req.body;
-
-			// Validate outlet exists
+			} = req.body;
 			const outlet = await this.outletService.findById(
 				outletId.toString()
 			);
@@ -317,9 +311,7 @@ export class OutletController extends Controller<
 					"Outlet not found",
 					404
 				);
-			}
-
-			// Validate employee exists
+			}
 			const employee = await this.employeeService.findById(
 				employeeId.toString()
 			);
@@ -379,8 +371,7 @@ export class OutletController extends Controller<
 				},
 				message
 			);
-		} catch (error) {
-			// Check if error is about duplicate assignment
+		} catch (error) {
 			if (
 				error instanceof Error &&
 				error.message.includes("already assigned to outlet")
@@ -401,9 +392,7 @@ export class OutletController extends Controller<
 					error.message,
 					400
 				);
-			}
-
-			// Check if error is about PRESENT attendance
+			}
 			if (
 				error instanceof Error &&
 				error.message.includes("Cannot reassign")
@@ -597,9 +586,7 @@ export class OutletController extends Controller<
 	): Promise<Response> => {
 		try {
 			const outletId = parseInt(req.params.outlet_id);
-			const date = new Date(req.params.date);
-
-			// Validate outlet exists
+			const date = new Date(req.params.date);
 			const outlet = await this.outletService.findById(
 				outletId.toString()
 			);

@@ -46,8 +46,7 @@ export default class UserRepository
 	/**
 	 * Override update method to hash password if provided
 	 */
-	async update(id: string, item: Partial<TUser>): Promise<TUser> {
-		// If password is being updated, hash it first
+	async update(id: string, item: Partial<TUser>): Promise<TUser> {
 		if (item.password) {
 			const hashedPassword = await bcrypt.hash(item.password, 10);
 			item = { ...item, password: hashedPassword };

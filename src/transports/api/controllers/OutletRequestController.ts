@@ -45,9 +45,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
   createBatchRequest = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Request body is already validated by middleware
-      const { products, materials } = req.body as TCreateOutletRequestBody;
-
-      // Get outlet_id from authenticated user
+      const { products, materials } = req.body as TCreateOutletRequestBody;
       const outletId = req.user?.outlet_id;
       if (!outletId) {
         this.getFailureResponse(
@@ -57,9 +55,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           'Outlet ID not found in user session'
         );
         return;
-      }
-
-      // Create batch request
+      }
       const result = await this.outletRequestService.createBatchRequest({
         outletId,
         products: products?.map(p => ({
@@ -70,9 +66,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           materialId: m.id,
           quantity: m.quantity,
         })) || [],
-      });
-
-      // Map responses
+      });
       const response = {
         success: true,
         message: 'Batch request created successfully',
@@ -92,12 +86,9 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
    * Get all requests with pagination
    */
   getAllRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      // Parse pagination from query string with defaults
+    try {
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
-
-      // Get aggregated requests grouped by outlet
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const result = await this.outletRequestService.getAggregatedRequests(page, limit);
 
       const metadata: TMetadataResponse = {
@@ -124,8 +115,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
    * Get requests for the authenticated user's outlet
    */
   getMyRequests = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      // Get outlet_id from authenticated user
+    try {
       const outletId = req.user?.outlet_id;
       if (!outletId) {
         this.getFailureResponse(
@@ -135,12 +125,8 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           'Outlet ID not found in user session'
         );
         return;
-      }
-
-      // Get requests for this outlet
-      const result = await this.outletRequestService.getRequestsByOutletId(outletId);
-
-      // Map responses
+      }
+      const result = await this.outletRequestService.getRequestsByOutletId(outletId);
       const responseData = {
         product_requests: OutletProductRequestBatchResponseMapper(result.products),
         material_requests: OutletMaterialRequestBatchResponseMapper(result.materials),
@@ -168,15 +154,11 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
       const { id } = req.params;
       
       // Request body is already validated by middleware
-      const { product_id, quantity } = req.body as TUpdateProductRequestBody;
-
-      // Update the request
+      const { product_id, quantity } = req.body as TUpdateProductRequestBody;
       const updatedRequest = await this.outletRequestService.updateProductRequest(id, {
         productId: product_id,
         quantity: quantity,
-      });
-
-      // Map response
+      });
       const responseData = OutletProductRequestResponseMapper(updatedRequest);
 
       this.getSuccessResponse(
@@ -201,15 +183,11 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
       const { id } = req.params;
       
       // Request body is already validated by middleware
-      const { material_id, quantity } = req.body as TUpdateMaterialRequestBody;
-
-      // Update the request
+      const { material_id, quantity } = req.body as TUpdateMaterialRequestBody;
       const updatedRequest = await this.outletRequestService.updateMaterialRequest(id, {
         materialId: material_id,
         quantity: quantity,
-      });
-
-      // Map response
+      });
       const responseData = OutletMaterialRequestResponseMapper(updatedRequest);
 
       this.getSuccessResponse(
@@ -322,9 +300,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
 
       // Step 3: Combine results
       const allProductRequests = [...approvedProductRequests, ...newProductRequests];
-      const allMaterialRequests = [...approvedMaterialRequests, ...newMaterialRequests];
-
-      // Map responses
+      const allMaterialRequests = [...approvedMaterialRequests, ...newMaterialRequests];
       const responseData = {
         approved_product_requests: OutletProductRequestBatchResponseMapper(approvedProductRequests),
         approved_material_requests: OutletMaterialRequestBatchResponseMapper(approvedMaterialRequests),
@@ -354,9 +330,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
     try {
       const { id } = req.params;
 
-      const rejectedRequest = await this.outletRequestService.rejectProductRequest(id);
-
-      // Map response
+      const rejectedRequest = await this.outletRequestService.rejectProductRequest(id);
       const responseData = OutletProductRequestResponseMapper(rejectedRequest);
 
       this.getSuccessResponse(
@@ -379,9 +353,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
     try {
       const { id } = req.params;
 
-      const rejectedRequest = await this.outletRequestService.rejectMaterialRequest(id);
-
-      // Map response
+      const rejectedRequest = await this.outletRequestService.rejectMaterialRequest(id);
       const responseData = OutletMaterialRequestResponseMapper(rejectedRequest);
 
       this.getSuccessResponse(
@@ -413,9 +385,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           'Invalid outlet_id parameter'
         );
         return;
-      }
-
-      // Validate date format (YYYY-MM-DD)
+      }
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(date)) {
         this.getFailureResponse(
@@ -427,8 +397,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
         return;
       }
 
-      const result = await this.outletRequestService.getDetailedByDateAndOutlet(date, outletId);
-      // Map responses
+      const result = await this.outletRequestService.getDetailedByDateAndOutlet(date, outletId);
       const responseData = {
         outlet_id: result.outlet_id,
         outlet_name: result.outlet_name,
@@ -457,9 +426,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
    */
   deleteByDate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { date } = req.params;
-      
-      // Get outlet_id from authenticated user
+      const { date } = req.params;
       const outletId = req.user?.outlet_id;
       
       if (!outletId) {
@@ -471,9 +438,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           403
         );
         return;
-      }
-
-      // Validate date format (YYYY-MM-DD)
+      }
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(date)) {
         this.getFailureResponse(

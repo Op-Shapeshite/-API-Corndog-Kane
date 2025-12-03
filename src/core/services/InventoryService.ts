@@ -22,9 +22,7 @@ function validateAndNormalizeUnit(unit: string): string {
 	if (!isUnitSupported(unit)) {
 		// This will throw an error with proper message
 		normalizeUnit(unit);
-	}
-	
-	// Return the normalized unit for storage
+	}
 	return normalizeUnit(unit);
 }
 
@@ -35,8 +33,7 @@ async function checkUnitConsistency(
 	materialRepository: MaterialRepository,
 	materialId: number,
 	newUnit: string
-): Promise<void> {
-	// Get product inventories that use this material
+): Promise<void> {
 	const productInventories = await materialRepository.getProductInventoriesByMaterial(materialId);
 	
 	if (productInventories.length > 0) {
@@ -95,9 +92,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 					error: error instanceof Error ? error.message : "Unknown error",
 				});
 			}
-		}
-
-		// Return batch entity (camelCase)
+		}
 		return {
 			successCount: results.length,
 			failedCount: errors.length,
@@ -111,20 +106,15 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	 * Process single stock in item (Material only)
 	 * @returns TInventoryStockInEntity
 	 */
-	private async processStockInItem(data: TInventoryStockInItem): Promise<TInventoryStockInEntity> {
-		// Validate supplier exists
+	private async processStockInItem(data: TInventoryStockInItem): Promise<TInventoryStockInEntity> {
 		const supplierRecord = await this.supplierRepository.getById(data.supplier_id.toString());
 		if (!supplierRecord) {
 			throw new Error(`Supplier dengan ID ${data.supplier_id} tidak ditemukan. Pastikan supplier sudah terdaftar di sistem sebelum melakukan stock-in`);
-		}
-		
-		// Extract supplier info (handle both TSupplier and TSupplierWithID)
+		}
 		const supplier = {
 			id: (supplierRecord as TSupplierWithID).id || data.supplier_id,
 			name: supplierRecord.name
-		};
-
-		// Handle material stock in
+		};
 		return await this.handleMaterialStockIn(data, supplier);
 	}
 
@@ -134,13 +124,10 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	private async handleMaterialStockIn(
 		data: TInventoryStockInItem,
 		supplier: { id: number; name: string }
-	): Promise<TInventoryStockInEntity> {
-		// Validate and normalize unit format
+	): Promise<TInventoryStockInEntity> {
 		const normalizedUnit = validateAndNormalizeUnit(data.unit_quantity);
 		
-		let materialId: number;
-
-		// Create new material if needed
+		let materialId: number;
 		if (data.material && !data.material_id) {
 			const newMaterial = await this.materialRepository.createMaterial({
 				name: data.material.name,
@@ -148,35 +135,25 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			});
 			materialId = newMaterial.id;
 		} else if (data.material_id) {
-			materialId = data.material_id;
-			
-			// Check unit consistency with product_inventory
+			materialId = data.material_id;
 			await checkUnitConsistency(this.materialRepository, materialId, normalizedUnit);
 		} else {
 			throw new Error("Material harus disediakan. Silakan sediakan material_id untuk material yang sudah ada atau data material untuk membuat material baru");
-		}
-
-		// Create stock in record
+		}
 		const stockInRecord = await this.materialRepository.createStockIn({
 			materialId,
 			suplierId: data.supplier_id,
 			quantity: data.quantity,
 			price: data.price,
 			quantityUnit: normalizedUnit,
-		});
-
-		// Get material with stocks to calculate current stock
+		});
 		const material = await this.materialRepository.getMaterialWithStocks(materialId);
 		if (!material) {
 			throw new Error("Material tidak ditemukan setelah pembuatan stock-in. Terjadi kesalahan sistem dalam menyimpan data");
-		}
-
-		// Calculate current stock
+		}
 		const totalStockIn = material.materialIn.reduce((sum, item) => sum + item.quantity, 0);
 		const totalStockOut = material.materialOut.reduce((sum, item) => sum + item.quantity, 0);
-		const currentStock = totalStockIn - totalStockOut;
-
-		// Return entity with camelCase
+		const currentStock = totalStockIn - totalStockOut;
 		return {
 			id: stockInRecord.id,
 			itemType: ItemType.MATERIAL,
@@ -199,9 +176,7 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	 */
 	async getBuyList(page = 1, limit = 10, searchConfig?: SearchConfig[]): Promise<{ data: TInventoryBuyListItemEntity[], total: number }> {
 		// Fetch material purchases with pagination and search
-		const materialData = await this.materialRepository.getMaterialInList((page - 1) * limit, limit, searchConfig);
-
-		// Map to unified entity format (camelCase)
+		const materialData = await this.materialRepository.getMaterialInList((page - 1) * limit, limit, searchConfig);
 		const items: TInventoryBuyListItemEntity[] = materialData.data.map(materialIn => ({
 			id: materialIn.id,
 			itemType: ItemType.MATERIAL,
@@ -229,13 +204,10 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	async updateStockIn(
 		id: number,
 		data: TInventoryStockInUpdateRequest
-	): Promise<TInventoryStockInEntity> {
-		// Validate and normalize unit format
+	): Promise<TInventoryStockInEntity> {
 		const normalizedUnit = validateAndNormalizeUnit(data.unit_quantity);
 		
-		let materialId: number;
-
-		// Handle material creation if needed
+		let materialId: number;
 		if (data.material && !data.material_id) {
 			const newMaterial = await this.materialRepository.createMaterial({
 				name: data.material.name,
@@ -243,24 +215,18 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 			});
 			materialId = newMaterial.id;
 		} else if (data.material_id) {
-			materialId = data.material_id;
-			
-			// Check unit consistency
+			materialId = data.material_id;
 			await checkUnitConsistency(this.materialRepository, materialId, normalizedUnit);
 		} else {
 			throw new Error("Material harus disediakan untuk update. Silakan sediakan material_id untuk material yang sudah ada atau data material untuk membuat material baru");
-		}
-
-		// Update stock in record
+		}
 		await this.materialRepository.updateStockIn(id, {
 			materialId,
 			suplierId: data.supplier_id,
 			quantity: data.quantity,
 			price: data.price,
 			quantityUnit: normalizedUnit,
-		});
-
-		// Get supplier info
+		});
 		const supplierRecord = await this.supplierRepository.getById(data.supplier_id.toString());
 		if (!supplierRecord) {
 			throw new Error(`Supplier dengan ID ${data.supplier_id} tidak ditemukan. Pastikan supplier sudah terdaftar di sistem`);
@@ -269,26 +235,18 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 		const supplier = {
 			id: (supplierRecord as { id: number }).id || data.supplier_id,
 			name: supplierRecord.name
-		};
-
-		// Get material with stocks to calculate current stock
+		};
 		const material = await this.materialRepository.getMaterialWithStocks(materialId);
 		if (!material) {
 			throw new Error("Material tidak ditemukan setelah update stock-in. Terjadi kesalahan sistem dalam memperbarui data");
-		}
-
-		// Get the updated record
+		}
 		const updatedRecord = material.materialIn.find(item => item.id === id);
 		if (!updatedRecord) {
 			throw new Error("Data stock-in yang telah diperbarui tidak ditemukan. Terjadi kesalahan dalam proses update");
-		}
-
-		// Calculate current stock
+		}
 		const totalStockIn = material.materialIn.reduce((sum, item) => sum + item.quantity, 0);
 		const totalStockOut = material.materialOut.reduce((sum, item) => sum + item.quantity, 0);
-		const currentStock = totalStockIn - totalStockOut;
-
-		// Return entity (camelCase)
+		const currentStock = totalStockIn - totalStockOut;
 		return {
 			id: id,
 			itemType: ItemType.MATERIAL,

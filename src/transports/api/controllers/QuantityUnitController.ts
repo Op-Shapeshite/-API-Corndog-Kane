@@ -13,21 +13,9 @@ export class QuantityUnitController extends Controller<TQuantityUnitGetResponse,
     constructor() {
         super();
         this.quantityUnitService = new QuantityUnitService(new QuantityUnitRepository());
-    }
-
-    /**
-     * GET /quantity-units
-     * Enhanced with search support using the new search utilities
-     */
-    getAll = () => {
+    }    getAll = () => {
         return this.findAllWithSearch(this.quantityUnitService, QuantityUnitResponseMapper, 'quantity_unit');
-    }
-
-    /**
-     * GET /quantity-units/:idOrCode
-     * Get quantity unit by ID or code
-     */
-    getByIdOrCode = () => {
+    }    getByIdOrCode = () => {
         return async (req: Request, res: Response) => {
             try {
                 const param = req.params.idOrCode;
@@ -37,9 +25,7 @@ export class QuantityUnitController extends Controller<TQuantityUnitGetResponse,
                 // Try as ID first (if numeric)
                 if (/^\d+$/.test(param)) {
                     unit = await this.quantityUnitService.getById(parseInt(param, 10));
-                }
-
-                // If not found or not numeric, try as code
+                }
                 if (!unit) {
                     unit = await this.quantityUnitService.getByCode(param);
                 }
@@ -53,9 +39,7 @@ export class QuantityUnitController extends Controller<TQuantityUnitGetResponse,
                         {} as any,
                         {} as TMetadataResponse
                     );
-                }
-
-                // Use response mapper
+                }
                 const responseData = QuantityUnitResponseMapper.toResponse(unit);
 
                 return this.getSuccessResponse(

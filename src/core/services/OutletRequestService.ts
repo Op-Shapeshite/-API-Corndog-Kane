@@ -33,11 +33,8 @@ export class OutletRequestService {
     }
 
     let productRequests: TOutletProductRequest[] = [];
-    let materialRequests: TOutletMaterialRequest[] = [];
-
-    // Create product requests if provided
-    if (data.products && data.products.length > 0) {
-      // Validate all product IDs exist in product_menus
+    let materialRequests: TOutletMaterialRequest[] = [];
+    if (data.products && data.products.length > 0) {
       const productIds = data.products.map(p => p.productId);
       await this.productRequestRepo.validateProductIds(productIds);
 
@@ -48,9 +45,7 @@ export class OutletRequestService {
           quantity: p.quantity,
         }))
       );
-    }
-
-    // Create material requests if provided
+    }
     if (data.materials && data.materials.length > 0) {
       materialRequests = await this.materialRequestRepo.batchCreate(
         data.materials.map((m) => ({
@@ -128,17 +123,12 @@ export class OutletRequestService {
       totalPages: number;
     };
   }> {
-    const skip = (page - 1) * limit;
-
-    // Get product aggregated data (this includes pagination)
-    const productData = await this.productRequestRepo.getAggregatedByOutlet(skip, limit);
-
-    // Get material aggregated data (all outlets and dates)
+    const skip = (page - 1) * limit;
+    const productData = await this.productRequestRepo.getAggregatedByOutlet(skip, limit);
     const materialData = await this.materialRequestRepo.getAggregatedByOutlet();
 
     // Combine the data
-    const combinedData = productData.data.map((productItem) => {
-      // Find matching material data for this outlet AND date
+    const combinedData = productData.data.map((productItem) => {
       const materialItem = materialData.find(
         (m) => m.outlet_id === productItem.outlet_id && m.request_date === productItem.request_date
       );
@@ -375,9 +365,7 @@ export class OutletRequestService {
     // So we need to get the raw data. For now, let's just return empty strings if no data
     let outletName = "Unknown Outlet";
     let outletLocation = "";
-    let employee_name = "";
-
-    // If we have requests, we can fetch outlet separately
+    let employee_name = "";
     if (productRequests.length > 0 || materialRequests.length > 0) {
       // Fetch outlet info from database directly
       const { default: PostgresAdapter } = await import("../../adapters/postgres/instance");

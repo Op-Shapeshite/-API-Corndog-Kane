@@ -62,8 +62,7 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
         fromCode: string,
         toCode: string,
         quantity: number
-    ): Promise<number> {
-        // Get both units
+    ): Promise<number> {
         
 		const fromUnit = await this.repository.getByCode(fromCode);
 		const toUnit = await this.repository.getByCode(toCode);
@@ -77,8 +76,7 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
 			throw new Error(
 				`Satuan tidak ditemukan: ${!fromUnit ? fromCode : toCode}. Pastikan kode satuan yang digunakan terdaftar di sistem`
 			);
-		}
-		// If same unit, return as is (this should be checked first!)
+		}
 		if (fromCode === toCode) {
             console.log('  ✅ Same unit, returning:', quantity);
 			return quantity;

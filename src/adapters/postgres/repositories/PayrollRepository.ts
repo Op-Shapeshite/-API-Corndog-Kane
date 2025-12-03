@@ -289,9 +289,7 @@ export default class PayrollRepository
     source: string;
   }[]> {
     console.log('=== Payroll Debug ===');
-    console.log('Date range:', startDate, 'to', endDate);
-
-    // Get latest payment batch, unpaid payrolls, and internal payrolls for each employee
+    console.log('Date range:', startDate, 'to', endDate);
     const result = await this.prisma.$queryRaw<any[]>`
       WITH LatestBatch AS (
         SELECT DISTINCT ON (employee_id)
@@ -636,11 +634,8 @@ export default class PayrollRepository
     total_deduction: number;
     final_amount: number;
     status: string;
-  }[]> {
-    // Get outlet employee summaries
-    const outletSummaries = await this.getAllEmployeePayrollSummary(startDate, endDate);
-
-    // Get internal employee summaries
+  }[]> {
+    const outletSummaries = await this.getAllEmployeePayrollSummary(startDate, endDate);
     const internalResult = await this.prisma.$queryRaw<any[]>`
       WITH LatestBatchInternal AS (
         SELECT DISTINCT ON (employee_id)
@@ -728,28 +723,20 @@ export default class PayrollRepository
       orderBy: {
         period_end: 'desc',
       },
-    });
-
-    // If we have outlet payroll, find the week it belongs to
+    });
     if (latestOutletPayroll) {
-      const workDate = latestOutletPayroll.work_date;
-      
-      // Calculate the Monday of that week
+      const workDate = latestOutletPayroll.work_date;
       const dayOfWeek = workDate.getDay();
       const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, Monday = 1
       const monday = new Date(workDate);
       monday.setDate(workDate.getDate() + diff);
-      monday.setHours(0, 0, 0, 0);
-      
-      // Calculate the Sunday of that week
+      monday.setHours(0, 0, 0, 0);
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
       sunday.setHours(23, 59, 59, 999);
       
       return { start: monday, end: sunday };
-    }
-
-    // If we have internal payroll, use its period
+    }
     if (latestInternalPayroll) {
       return {
         start: latestInternalPayroll.period_start,

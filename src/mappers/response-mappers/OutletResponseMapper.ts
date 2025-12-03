@@ -39,8 +39,7 @@ export class OutletResponseMapper {
    * Map User entity to detailed response format
    * Used in findById endpoints
    */
-  static toDetailResponse(outlet: TOutletWithSettings, picName: string | null = null): TOutletGetResponseWithSettings {
-    // Find the setting with the latest checkin_time
+  static toDetailResponse(outlet: TOutletWithSettings, picName: string | null = null): TOutletGetResponseWithSettings {
     let latestSetting = outlet.settings && outlet.settings.length > 0 ? outlet.settings[0] : null;
     if (latestSetting) {
       for (const setting of outlet.settings) {

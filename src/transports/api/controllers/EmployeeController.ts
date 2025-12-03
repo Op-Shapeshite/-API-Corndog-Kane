@@ -162,9 +162,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
     const employeeId = req.params.id;
 
     try {
-      const imagePath = req.file?.filename;
-
-      // Remove old image if new image is uploaded
+      const imagePath = req.file?.filename;
       if (imagePath) {
         const existingEmployee = await employeeService.findById(employeeId);
         if (existingEmployee && existingEmployee.imagePath) {
@@ -221,9 +219,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       const searchKey = req.query.search_key as string | undefined;
       const searchValue = req.query.search_value as string | undefined;
       const page = req.query.page ? parseInt(req.query.page as string) : undefined;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-
-      // If Excel export requested, fetch both schedule assignments and attendance data
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       if (type === 'xlsx') {
         // Fetch timeline view (schedule assignments)
         const schedulesResult = await employeeService.getSchedules(undefined, startDate, endDate, status, searchKey, searchValue, page, limit);
@@ -247,12 +243,8 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         const attendance = AttendanceTableResponseMapper.toListResponse(attendanceResult.data);
 
         return this.generateScheduleExcel(res, schedules, attendance);
-      }
-
-      // Get data based on view parameter and date filters
-      const result = await employeeService.getSchedules(view, startDate, endDate, status, searchKey, searchValue, page, limit);
-
-      // For table view, return attendance data with pagination
+      }
+      const result = await employeeService.getSchedules(view, startDate, endDate, status, searchKey, searchValue, page, limit);
       if (view === 'table') {
         const resultWithPagination = result as {
           data: Array<{
@@ -294,9 +286,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           },
           'Employee attendance table retrieved successfully'
         );
-      }
-
-      // For timeline view (default), return outlet assignments
+      }
       const schedulesResponse: TOutletAssignmentGetResponse[] = (result as Array<{
         id: number;
         outlet_id: number;
@@ -337,8 +327,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
    * Validation is handled by Zod schema
    */
   checkin = async (req: AuthRequest, res: Response, employeeService: EmployeeService) => {
-    try {
-      // Get user info from JWT token (validated by authMiddleware)
+    try {
       const userId = req.user?.id;
       const outletId = req.user?.outlet_id;
 
@@ -350,14 +339,10 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           'Authentication error',
           401
         );
-      }
-
-      // Extract uploaded files
+      }
       const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
       const imagePath = files?.image_proof?.[0]?.filename;
-      const latePresentProof = files?.late_present_proof?.[0]?.filename;
-
-      // Extract late_notes from body
+      const latePresentProof = files?.late_present_proof?.[0]?.filename;
       const lateNotes = req.body.late_notes;
 
       if (!imagePath) {
@@ -367,9 +352,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           'Bukti foto check-in diperlukan',
           400
         )
-      }
-
-      // Get the scheduled employee for this outlet
+      }
       const employeeId = await employeeService.findScheduledEmployeeByUserId(parseInt(userId));
 
       if (!employeeId) {
@@ -418,8 +401,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
    * POST /employee/checkout
    */
   checkout = async (req: AuthRequest, res: Response, employeeService: EmployeeService) => {
-    try {
-      // Get user info from JWT token
+    try {
       const userId = req.user?.id;
       const outletId = req.user?.outlet_id;
 
@@ -434,9 +416,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       }
 
       // Image path from uploaded file (validated by Zod schema)
-      const imagePath = req.file?.filename ?? '';
-
-      // Get the scheduled employee for this outlet
+      const imagePath = req.file?.filename ?? '';
       const employeeId = await employeeService.findScheduledEmployeeByUserId(parseInt(userId));
 
       if (!employeeId) {
@@ -447,9 +427,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           'No employee scheduled for this outlet',
           404
         );
-      }
-
-      // Get outlet to validate checkout time
+      }
       const outletRepository = new OutletRepository();
       const outlet = await outletRepository.findById(outletId);
 
@@ -461,9 +439,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           'Outlet not found',
           404
         );
-      }
-
-      // Get today's attendance to find checkin_time
+      }
       const employeeRepository = new EmployeeRepository();
       const todayAttendance = await employeeRepository.findTodayAttendance(employeeId);
 
@@ -475,15 +451,11 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           'No check-in record found for today',
           404
         );
-      }
-
-      // Get the current day (not from checkin time, but from current time)
+      }
       const now = new Date();
       const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
       const day = days[now.getDay()];
-      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-      // Find the matching setting for today
+      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
       const setting = await outletRepository.getSettingForCheckin(outletId, day, currentTimeStr);
 
       if (!setting) {
@@ -597,9 +569,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           'Invalid attendance ID',
           400
         );
-      }
-
-      // Update the late approval status
+      }
       const updatedAttendance = await employeeService.updateLateApprovalStatus(
         attendanceId,
         status as 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -643,9 +613,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       const workbook = new ExcelJS.Workbook();
 
       // ===== SHEET 1: Schedule (Weekly Pivot Tables) =====
-      const scheduleSheet = workbook.addWorksheet('Schedule');
-
-      // Extract unique outlets and dates from schedules
+      const scheduleSheet = workbook.addWorksheet('Schedule');
       const outletMap = new Map<number, { name: string; location: string }>();
       const dateSet = new Set<string>();
 
@@ -687,20 +655,13 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
       });
 
       // Sort weeks
-      const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-
-      // Get outlets sorted
-      const outlets = Array.from(outletMap.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
-
-      // Create a table for each week
-      sortedWeeks.forEach(([weekKey, weekDates], weekIndex) => {
-        // Add spacing between weeks (except first week)
+      const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      const outlets = Array.from(outletMap.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
+      sortedWeeks.forEach(([weekKey, weekDates], weekIndex) => {
         if (weekIndex > 0) {
           scheduleSheet.addRow([]); // Empty row
           scheduleSheet.addRow([]); // Empty row
-        }
-
-        // Create header row for this week
+        }
         const headerRow: any[] = ['Outlet/Date'];
         weekDates.forEach(dateStr => {
           const date = new Date(dateStr);
@@ -712,13 +673,9 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         });
 
         const header = scheduleSheet.addRow(headerRow);
-        styleHeaderRow(header);
-
-        // Add outlet rows for this week
+        styleHeaderRow(header);
         outlets.forEach(([outletId, outletInfo]) => {
-          const row: any[] = [outletInfo.name];
-
-          // For each date in this week, find employees assigned to this outlet
+          const row: any[] = [outletInfo.name];
           weekDates.forEach(dateStr => {
             const employeesOnDate = schedules
               .filter((s: any) => {
@@ -739,9 +696,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
 
           scheduleSheet.addRow(row);
         });
-      });
-
-      // If no data at all, add a note
+      });
       if (scheduleSheet.rowCount === 0) {
         scheduleSheet.addRow(['No schedules recorded for this period']);
       }
@@ -762,9 +717,7 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
         'Late Approval Status',
         'Late Notes'
       ]);
-      styleHeaderRow(attendanceHeaderRow);
-
-      // Add attendance data
+      styleHeaderRow(attendanceHeaderRow);
       attendance.forEach((att: any) => {
         const checkinTime = att.checkin_time ? new Date(att.checkin_time).toLocaleString('id-ID') : '-';
         const checkoutTime = att.checkout_time ? new Date(att.checkout_time).toLocaleString('id-ID') : '-';
@@ -780,16 +733,12 @@ export class EmployeeController extends Controller<TEmployeeResponseTypes, TMeta
           att.late_approval_status || '-',
           att.late_notes || '-'
         ]);
-      });
-
-      // If no attendance, add a note
+      });
       if (attendanceSheet.rowCount === 1) {
         attendanceSheet.addRow(['No attendance records for this period', '', '', '', '', '', '', '', '']);
       }
 
-      autoSizeColumns(attendanceSheet);
-
-      // Set response headers and send file
+      autoSizeColumns(attendanceSheet);
       const filename = `schedule-attendance-${new Date().toISOString().split('T')[0]}.xlsx`;
       setExcelHeaders(res, filename);
 

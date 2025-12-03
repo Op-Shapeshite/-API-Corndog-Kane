@@ -113,9 +113,7 @@ export class FinancialStatementService {
     // First, generate Laba Rugi WITHOUT cleanup to get NetProfitLoss value with section field intact
     const labaRugiMapping = (financeMapping as any).gross_to_net as MappingType[];
     const labaRugiRaw = await this.processMapping(labaRugiMapping, startDate, endDate, months);
-    const netProfitLossSection = labaRugiRaw.find(section => section.section === 'net_profit_loss');
-    
-    // Build initial context with NetProfitLoss from Laba Rugi
+    const netProfitLossSection = labaRugiRaw.find(section => section.section === 'net_profit_loss');
     const initialContext: Record<string, number[]> = {};
     if (netProfitLossSection) {
       initialContext['net_profit_loss'] = netProfitLossSection.amount;
@@ -127,8 +125,7 @@ export class FinancialStatementService {
 
     for (const section of mapping) {
       const result = await this.processSection(section, startDate, endDate, months, dataContext);
-      results.push(result);
-      // Add this section's data to context for next sections
+      results.push(result);
       if (result.section) {
         dataContext[result.section] = result.amount;
       }
@@ -152,8 +149,7 @@ export class FinancialStatementService {
 
     for (const section of mapping) {
       const result = await this.processSection(section, startDate, endDate, months, dataContext);
-      results.push(result);
-      // Add this section's data to context for next sections
+      results.push(result);
       if (result.section) {
         dataContext[result.section] = result.amount;
       }
@@ -178,22 +174,18 @@ export class FinancialStatementService {
       amount: [],
       calculation: section.calculation,
       subsections: []
-    };
-
-    // Build local context for subsections
+    };
     const localContext: Record<string, number[]> = { ...parentContext };
 
     // Process subsections first (if any)
     if (section.subsections && section.subsections.length > 0) {
       for (const subsection of section.subsections) {
         const subsectionResult = await this.processSection(subsection, startDate, endDate, months, localContext);
-        result.subsections!.push(subsectionResult);
-        // Add subsection data to local context
+        result.subsections!.push(subsectionResult);
         if (subsectionResult.section) {
           localContext[subsectionResult.section] = subsectionResult.amount;
           
-          // Special handling for OtherIncomeExpenses subsections
-          // Map by label to create other_income and other_expenses variables
+          // Special handling for OtherIncomeExpenses subsections
           if (subsectionResult.section === 'other_income_expenses') {
             if (subsectionResult.label === 'Pendapatan Lainnya') {
               localContext['other_income'] = subsectionResult.amount;
@@ -203,11 +195,8 @@ export class FinancialStatementService {
           }
         }
       }
-    }
-
-    // Calculate or fetch values
-    if (section.calculation) {
-      // Check if this calculation is a simple variable reference that exists in parent context
+    }
+    if (section.calculation) {
       // This handles cross-report references (e.g., NetProfitLoss from Laba Rugi to Cashflow)
       const trimmedCalc = section.calculation.trim();
       
@@ -287,12 +276,9 @@ export class FinancialStatementService {
     startDate: Date,
     endDate: Date,
     months: string[]
-  ): Promise<number[]> {
-    // Filter out empty strings from account_types
+  ): Promise<number[]> {
     const accountTypeCodes = (section.account_types || []).filter(type => type !== "");
-    const accountNumbers = section.account_numbers || [];
-
-    // If no filters specified, return zeros for each month
+    const accountNumbers = section.account_numbers || [];
     if (accountTypeCodes.length === 0 && accountNumbers.length === 0) {
       return months.map(() => 0);
     }
@@ -303,9 +289,7 @@ export class FinancialStatementService {
       endDate,
       accountTypeCodes,
       accountNumbers
-    );
-
-    // Calculate totals for each month in the range (1 or 2 months)
+    );
     const monthTotals = months.map(() => 0);
 
     balances.forEach((accountBalance: AccountTypeBalance) => {
@@ -361,8 +345,7 @@ export class FinancialStatementService {
       const value = data[variable][monthIndex] || 0;
       // Wrap negative numbers in parentheses to avoid syntax errors like "5 - -3" becoming "5--3"
       const valueStr = value < 0 ? `(${value})` : String(value);
-      // Replace all occurrences of the variable name
-      // Use global replace with exact match
+      // Replace all occurrences of the variable name
       const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
       expression = expression.replace(regex, valueStr);
     });
@@ -375,21 +358,17 @@ export class FinancialStatementService {
    * Safely evaluate a mathematical expression
    * Only allows basic math operators: + - * / ( )
    */
-  private safeEval(expression: string): number {
-    // Remove whitespace
+  private safeEval(expression: string): number {
     const trimmed = expression.replace(/\s/g, '');
     
     // Sanitize: Only allow numbers, operators, parentheses, and decimal points
-    const sanitized = trimmed.replace(/[^0-9+\-*/(). ]/g, '');
-
-    // Check if sanitization removed anything (security check)
+    const sanitized = trimmed.replace(/[^0-9+\-*/(). ]/g, '');
     if (sanitized !== trimmed) {
       console.warn(`Invalid characters in expression: ${expression}`);
       return 0;
     }
 
-    try {
-      // Use Function constructor to evaluate (safer than eval)
+    try {
       // eslint-disable-next-line no-new-func
       const result = new Function(`return ${sanitized}`)();
       return typeof result === 'number' && !isNaN(result) ? result : 0;
@@ -406,14 +385,10 @@ export class FinancialStatementService {
    */
   private generateMonthRange(startDate: Date, endDate: Date): string[] {
     const firstMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
-    const lastMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    // If same month, return single element
+    const lastMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
     if (firstMonth === lastMonth) {
       return [firstMonth];
-    }
-    
-    // Return first and last month
+    }
     return [firstMonth, lastMonth];
   }
 }

@@ -13,14 +13,10 @@ export const errorHandler = (
   next: NextFunction
 ): void => {
   // Log the error for debugging
-  console.error('[Error Handler]:', error);
-
-  // Check if response has already been sent
+  console.error('[Error Handler]:', error);
   if (res.headersSent) {
     return next(error);
-  }
-
-  // Handle Prisma errors
+  }
   const prismaError = PrismaErrorHandler.handlePrismaError(error);
   if (prismaError) {
     res.status(prismaError.statusCode).json({
@@ -31,11 +27,8 @@ export const errorHandler = (
       metadata: {},
     });
     return;
-  }
-
-  // Handle standard Error objects
-  if (error instanceof Error) {
-    // Check for validation errors (from our service layer)
+  }
+  if (error instanceof Error) {
     const statusCode = error.message.includes('not found') ? 404 : 400;
     
     const errors: TErrorResponse[] = [{
@@ -52,9 +45,7 @@ export const errorHandler = (
       metadata: {},
     });
     return;
-  }
-
-  // Handle unknown errors
+  }
   res.status(500).json({
     status: 'failed',
     message: 'Terjadi kesalahan server internal',

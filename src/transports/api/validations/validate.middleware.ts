@@ -8,8 +8,7 @@ import { TErrorResponse } from '../../../core/entities/base/response';
  */
 export const validate = (schema: ZodObject<ZodRawShape>) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      // Validate and transform request data (body, params, query)
+    try {
       const validated = await schema.parseAsync({
         body: req.body,
         params: req.params,
@@ -42,9 +41,7 @@ export const validate = (schema: ZodObject<ZodRawShape>) => {
           data: null,
           metadata: {}
         });
-      }
-
-      // Handle unexpected errors
+      }
       return res.status(500).json({
         status: 'failed',
         message: 'Terjadi kesalahan server saat validasi data',

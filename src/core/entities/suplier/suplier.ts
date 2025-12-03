@@ -2,7 +2,6 @@
 
 import { TMaterialWithID } from "./material";
 
-  
 export type TSupplier= {
   name: string;
   phone: string;
@@ -18,7 +17,6 @@ export type TSupplierUpdate = Partial<TSupplierCreate>;
 export type TSupplierWithMaterials = TSupplierWithID & {
   materials: TMaterialWithID[]; // Replace 'any' with the actual material type when available
 };
-
 
 export type TSupplierGetResponse = Omit<TSupplierWithID, 'isActive' | 'createdAt' | 'updatedAt'> & {
   is_active: boolean;

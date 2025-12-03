@@ -6,9 +6,7 @@ import { Request, Response, NextFunction } from "express";
 import sharp from "sharp";
 
 export const storage = (folderName: string) => {
-	const uploadPath = path.join(__dirname, "../../public/", folderName);
-
-	// Ensure folder exists
+	const uploadPath = path.join(__dirname, "../../public/", folderName);
 	if (!fs.existsSync(uploadPath)) {
 		fs.mkdirSync(uploadPath, { recursive: true });
 	}
@@ -58,8 +56,7 @@ export const storage = (folderName: string) => {
 					mimetype,
 				} = req.file;
 
-				try {
-					// Build compressed file path
+				try {
 					const compressedPath = path.join(
 						destination,
 						`compressed-${filename}.webp`
@@ -115,9 +112,7 @@ export const storage = (folderName: string) => {
  * @returns Multer middleware for multiple file fields
  */
 export const storageMultiple = (folderName: string) => {
-	const uploadPath = path.join(__dirname, "../../public/", folderName);
-
-	// Ensure folder exists
+	const uploadPath = path.join(__dirname, "../../public/", folderName);
 	if (!fs.existsSync(uploadPath)) {
 		fs.mkdirSync(uploadPath, { recursive: true });
 	}
@@ -173,9 +168,7 @@ export const storageMultiple = (folderName: string) => {
 								destination,
 								filename,
 								mimetype,
-							} = file;
-
-							// Build compressed file path
+							} = file;
 							const compressedPath = path.join(
 								destination,
 								`compressed-${filename}.webp`

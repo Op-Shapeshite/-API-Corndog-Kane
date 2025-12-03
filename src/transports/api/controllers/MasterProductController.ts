@@ -19,8 +19,7 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
   }
 
   getAllMasterProducts = async (req: Request, res: Response) => {
-    try {
-      // Use validated pagination params from middleware with defaults
+    try {
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const categoryId = req.query.category_id ? parseInt(req.query.category_id as string, 10) : undefined;
@@ -41,15 +40,11 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
           [] as TMasterProductGetResponse[],
           {} as TMetadataResponse
         );
-      }
-
-      // Build search config if search parameters are provided
+      }
       let searchConfig: SearchConfig[] | undefined;
       if (validation.valid && req.query.search_key && req.query.search_value) {
         searchConfig = SearchHelper.buildSearchConfig('master_product', req.query.search_key as string, req.query.search_value as string);
-      }
-      
-      // Get paginated results with category filter and search
+      }
       const result = await this.masterProductService.findAll(
         page,
         limit,

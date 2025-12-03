@@ -27,8 +27,7 @@ export const createUserSchema = z.object({
     })
     .min(4, { message: 'Password must be at least 4 characters' })
     .max(16, { message: 'Password must not exceed 16 characters' }),
-    
-    
+
     role_id: z.number({
       message: 'Role ID is required'
     })
@@ -100,7 +99,6 @@ export const deleteUserSchema = z.object({
     })
   })
 });
-
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

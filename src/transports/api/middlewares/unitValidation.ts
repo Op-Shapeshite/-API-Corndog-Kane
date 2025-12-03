@@ -12,9 +12,7 @@ const quantityUnitService = new QuantityUnitService(new QuantityUnitRepository()
  */
 export const validateUnit = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const unitFields = ['unit_quantity', 'unit', 'quantity_unit'];
-
-        // Check and normalize top-level fields
+        const unitFields = ['unit_quantity', 'unit', 'quantity_unit'];
         for (const field of unitFields) {
             if (req.body[field]) {
                 try {
@@ -34,9 +32,7 @@ export const validateUnit = async (req: Request, res: Response, next: NextFuncti
                     });
                 }
             }
-        }
-
-        // Check and normalize nested materials array (common in master-products)
+        }
         if (req.body.materials && Array.isArray(req.body.materials)) {
             for (let i = 0; i < req.body.materials.length; i++) {
                 const item = req.body.materials[i];
@@ -75,9 +71,7 @@ export const validateUnit = async (req: Request, res: Response, next: NextFuncti
                     }
                 }
             }
-        }
-
-        // Check and normalize items array (common in inventory/stock-in)
+        }
         if (req.body.items && Array.isArray(req.body.items)) {
             for (let i = 0; i < req.body.items.length; i++) {
                 const item = req.body.items[i];

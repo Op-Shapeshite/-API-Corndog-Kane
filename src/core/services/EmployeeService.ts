@@ -53,13 +53,10 @@ export default class EmployeeService extends Service<TEmployee> {
    * Employee checkout
    * Validates checkout time must be >= outlet check_out_time
    */
-  async checkout(employeeId: number, outletId: number, imagePath: string, checkoutTime: string): Promise<TAttendanceWithID> {
-    // Parse checkout time from outlet settings (format: "HH:MM:SS" or "HH:MM")
+  async checkout(employeeId: number, outletId: number, imagePath: string, checkoutTime: string): Promise<TAttendanceWithID> {
     const timeParts = checkoutTime.split(':').map(Number);
     const outletHour = timeParts[0];
-    const outletMinute = timeParts[1];
-    
-    // Get current time in 24-hour format
+    const outletMinute = timeParts[1];
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
@@ -74,9 +71,7 @@ export default class EmployeeService extends Service<TEmployee> {
       throw new Error(`Cannot checkout before ${formattedOutletTime}. Current time is ${formattedCurrentTime}.`);
     }
 
-    const attendance = await this.repository.checkout(employeeId, imagePath);
-
-    // Create payroll after successful checkout
+    const attendance = await this.repository.checkout(employeeId, imagePath);
     try {
       await this.payrollService.createPayrollOnCheckout(attendance.id);
       console.log(`Payroll created for attendance ${attendance.id}`);

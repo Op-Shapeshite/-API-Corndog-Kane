@@ -25,16 +25,12 @@ export default class TransactionService {
     return this.repository.getById(id);
   }
 
-  async createTransaction(data: TTransactionCreate): Promise<TTransactionWithID> {
-    // Validate account exists
+  async createTransaction(data: TTransactionCreate): Promise<TTransactionWithID> {
     const account = await this.accountRepository.getById(data.accountId.toString());
     if (!account) {
       throw new Error(`Account with ID ${data.accountId} not found`);
-    }
-
-    // Use Prisma transaction to ensure atomicity
-    return await this.prisma.$transaction(async (tx) => {
-      // Create transaction
+    }
+    return await this.prisma.$transaction(async (tx) => {
       const newTransaction = await tx.transaction.create({
         data: {
           account_id: data.accountId,
@@ -53,9 +49,7 @@ export default class TransactionService {
             }
           }
         }
-      });
-
-      // Update account balance
+      });
       const isIncome = data.transactionType === TransactionType.INCOME;
       await tx.account.update({
         where: { id: data.accountId },
@@ -64,29 +58,22 @@ export default class TransactionService {
             increment: isIncome ? data.amount : -data.amount
           }
         }
-      });
-
-      // Map to entity
+      });
       return this.repository.mapper.mapToEntity(newTransaction) as TTransactionWithID;
     });
   }
 
-  async updateTransaction(id: string, data: Partial<TTransactionCreate>): Promise<TTransactionWithID> {
-    // Get existing transaction
+  async updateTransaction(id: string, data: Partial<TTransactionCreate>): Promise<TTransactionWithID> {
     const existing = await this.repository.getById(id);
     if (!existing) {
       throw new Error(`Transaction with ID ${id} not found`);
-    }
-
-    // If account changed, validate new account
+    }
     if (data.accountId && data.accountId !== existing.accountId) {
       const account = await this.accountRepository.getById(data.accountId.toString());
       if (!account) {
         throw new Error(`Account with ID ${data.accountId} not found`);
       }
-    }
-
-    // Use Prisma transaction to ensure atomicity
+    }
     return await this.prisma.$transaction(async (tx) => {
       // Reverse old transaction effect on balance
       const oldIsIncome = existing.transactionType === TransactionType.INCOME;
@@ -97,9 +84,7 @@ export default class TransactionService {
             increment: oldIsIncome ? -existing.amount : existing.amount
           }
         }
-      });
-
-      // Update transaction
+      });
       const newAccountId = data.accountId || existing.accountId;
       const newAmount = data.amount ?? existing.amount;
       const newType = data.transactionType || existing.transactionType;
@@ -141,14 +126,11 @@ export default class TransactionService {
     });
   }
 
-  async deleteTransaction(id: string): Promise<void> {
-    // Get existing transaction
+  async deleteTransaction(id: string): Promise<void> {
     const existing = await this.repository.getById(id);
     if (!existing) {
       throw new Error(`Transaction with ID ${id} not found`);
-    }
-
-    // Use Prisma transaction to ensure atomicity
+    }
     await this.prisma.$transaction(async (tx) => {
       // Delete transaction
       await tx.transaction.delete({
@@ -216,9 +198,7 @@ export default class TransactionService {
 
       grouped[dateKey].total_income += isIncome ? t.amount : 0;
       grouped[dateKey].total_expense += isIncome ? 0 : t.amount;
-    });
-
-    // Calculate summary
+    });
     const data = Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
     const summary = data.reduce(
       (acc, day) => ({

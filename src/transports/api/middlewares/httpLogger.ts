@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../../../utils/logger';
 
-
 /**
  * HTTP request/response logging middleware using Winston
  * Replaces Morgan with structured logging

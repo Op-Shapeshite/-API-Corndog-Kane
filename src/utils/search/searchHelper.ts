@@ -17,18 +17,13 @@ export class SearchHelper {
     entityName: EntityName,
     searchKey?: string | undefined,
     searchValue?: string | undefined
-  ): SearchConfig[] | undefined {
-    // Return undefined if either key or value is missing/invalid
+  ): SearchConfig[] | undefined {
     if (!searchKey || !searchValue || searchKey === 'undefined' || searchValue === 'undefined') {
       return undefined;
-    }
-
-    // Check if the field is searchable for this entity
+    }
     if (!isSearchableField(entityName, searchKey)) {
       throw new Error(`Field '${searchKey}' is not searchable for entity '${entityName}'`);
-    }
-
-    // Map response field to database field
+    }
     const dbField = mapResponseFieldToDbField(entityName, searchKey);
     if (!dbField) {
       return undefined;
@@ -51,29 +46,22 @@ export class SearchHelper {
     entityName: EntityName,
     searchKey?: string | undefined,
     searchValue?: string | undefined
-  ): { valid: boolean; error?: string; searchable_fields?: string[] } {
-    // If no search params provided, that's valid (no search)
+  ): { valid: boolean; error?: string; searchable_fields?: string[] } {
     if (!searchKey && !searchValue) {
       return { valid: true };
-    }
-
-    // If only one param provided, that's invalid
+    }
     if (!searchKey || !searchValue) {
       return { 
         valid: false, 
         error: 'Both search_key and search_value must be provided for search functionality'
       };
-    }
-
-    // If params are 'undefined' strings, that's invalid
+    }
     if (searchKey === 'undefined' || searchValue === 'undefined') {
       return { 
         valid: false, 
         error: 'Invalid search parameters'
       };
-    }
-
-    // Check if field is searchable
+    }
     if (!isSearchableField(entityName, searchKey)) {
       return { 
         valid: false, 
