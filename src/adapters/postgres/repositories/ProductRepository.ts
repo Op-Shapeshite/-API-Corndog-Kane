@@ -18,12 +18,15 @@ export class ProductRepository
 	 */
 	async create(
 		item: TProduct | TProductWithID
-	): Promise<TProduct | TProductWithID> {
+	): Promise<TProduct | TProductWithID> {
+
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productCreate = item as any; // Type assertion for legacy interface compatibility
 
-		let masterProduct;
-		if (productCreate.master_product_id) {
+		let masterProduct;
+
+		if (productCreate.master_product_id) {
+
 			masterProduct = await this.prisma.productMaster.findUnique({
 				where: { id: +productCreate.master_product_id },
 			});
@@ -33,7 +36,8 @@ export class ProductRepository
 					`Master product with ID ${productCreate.master_product_id} not found`
 				);
 			}
-		} else {
+		} else {
+
 			masterProduct = await this.prisma.productMaster.create({
 				data: {
 					name: productCreate.name,
@@ -75,7 +79,8 @@ export class ProductRepository
 	): Promise<TProduct | TProductWithID> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productUpdate = item as any; // Type assertion for legacy interface compatibility
-		const numericId = parseInt(id, 10);
+		const numericId = parseInt(id, 10);
+
 		const existing = await this.prisma.product.findUnique({
 			where: { id: numericId },
 			select: { product_master_id: true },
@@ -83,7 +88,8 @@ export class ProductRepository
 
 		if (!existing) {
 			throw new Error(`Product with ID ${id} not found`);
-		}
+		}
+
 		if (
 			productUpdate.name !== undefined ||
 			productUpdate.categoryId !== undefined
@@ -99,7 +105,8 @@ export class ProductRepository
 					}),
 				},
 			});
-		}
+		}
+
 		const updated = await this.prisma.product.update({
 			where: { id: numericId },
 			data: {
@@ -137,7 +144,8 @@ export class ProductRepository
 	async createStockIn(
 		data: ProductStockInEntity
 	): Promise<{ id: number; date: Date }> {
-		const now = new Date();
+		const now = new Date();
+
 		const stock = await this.prisma.productStock.create({
 			data: {
 				product_id: data.productId,
@@ -167,7 +175,8 @@ export class ProductRepository
 		quantity: number,
 		unit: string
 	): Promise<{ id: number; date: Date }> {
-		const now = new Date();
+		const now = new Date();
+
 		const stock = await this.prisma.productStock.create({
 			data: {
 				product_id: productId,
@@ -258,7 +267,8 @@ export class ProductRepository
 			},
 		});
 
-		if (!product) return null;
+		if (!product) return null;
+
 		const mappedProduct = this.mapper.mapToEntity(product);
 
 		return {
@@ -334,7 +344,8 @@ export class ProductRepository
 			orderBy: {
 				date: "asc",
 			},
-		});
+		});
+
 		return dbRecords.map((record) => ({
 			...record,
 			products: {
@@ -350,7 +361,8 @@ export class ProductRepository
 	 * Get product stock records with search support (for inventory calculation)
 	 */
 	async getProductStockRecordsWithSearch(search?: SearchConfig[]) {
-		let whereClause: any = {};
+		let whereClause: any = {};
+
 		if (search && search.length > 0) {
 			const searchConditions = search.map(config => {
 				const { field, value } = config;
@@ -364,7 +376,8 @@ export class ProductRepository
 							}
 						}
 					};
-				}
+				}
+
 				if (field === 'date') {
 					return { date: { contains: value } };
 				}
@@ -395,7 +408,8 @@ export class ProductRepository
 			orderBy: {
 				date: "asc",
 			},
-		});
+		});
+
 		return dbRecords.map((record) => ({
 			...record,
 			products: {
@@ -451,7 +465,8 @@ export class ProductRepository
 				quantity: true,
 			},
 		});
-		const totalSold = totalSoldData._sum?.quantity || 0;
+		const totalSold = totalSoldData._sum?.quantity || 0;
+
 		const remainingStock = totalStockIn - totalSold;
 
 		return remainingStock;
@@ -477,7 +492,8 @@ export class ProductRepository
 			},
 		});
 
-		if (!product) return null;
+		if (!product) return null;
+
 		return {
 			id: product.id,
 			name: product.product_master.name,
@@ -512,5 +528,39 @@ export class ProductRepository
 				})
 			),
 		};
+	}
+
+	/**
+	 * Get all order items for stock calculation
+	 */
+	async getAllOrderItems() {
+		const dbRecords = await this.prisma.orderItem.findMany({
+			where: {
+				is_active: true,
+				order: {
+					status: {
+						not: 'CANCELLED',
+					},
+				},
+			},
+			include: {
+				product: {
+					include: {
+						product_master: true,
+					},
+				},
+				order: {
+					select: {
+						createdAt: true,
+						status: true,
+					},
+				},
+			},
+			orderBy: {
+				createdAt: 'asc',
+			},
+		});
+
+		return dbRecords;
 	}
 }
