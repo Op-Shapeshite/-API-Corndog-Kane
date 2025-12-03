@@ -169,6 +169,7 @@ model ProductInventory {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  @@unique([product_id, material_id], name: "product_material_unique")
   @@map("product_inventories")
 }
 

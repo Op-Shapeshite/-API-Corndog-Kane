@@ -106,7 +106,8 @@ export class MasterProductRepository
 		};
 	}
 
-	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
+	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
+
 		const existing = await this.prisma.productInventory.findFirst({
 			where: {
 				product_id: masterProductId,
@@ -244,7 +245,8 @@ export class MasterProductRepository
 		inventoryItems: any[];
 	}> {
 		return await this.prisma.$transaction(async (prisma) => {
-			let productId = data.productId;
+			let productId = data.productId;
+
 			if (data.masterProduct && !data.productId) {
 				const createdProduct = await prisma.productMaster.create({
 					data: {
@@ -258,11 +260,24 @@ export class MasterProductRepository
 
 			if (!productId) {
 				throw new Error('Product ID is required for inventory creation');
-			}
+			}
+
+			// Use Prisma upsert to avoid duplicating materials for the same product
 			const inventoryItems = await Promise.all(
-				data.inventoryItems.map(item =>
-					prisma.productInventory.create({
-						data: {
+				data.inventoryItems.map(async (item) => {
+					return await prisma.productInventory.upsert({
+						where: {
+							product_material_unique: {
+								product_id: productId!,
+								material_id: item.material_id,
+							},
+						},
+						update: {
+							quantity: item.quantity, // Update existing record
+							unit_quantity: item.unit_quantity,
+							updatedAt: new Date(),
+						},
+						create: {
 							product_id: productId!,
 							material_id: item.material_id,
 							quantity: item.quantity,
@@ -271,9 +286,10 @@ export class MasterProductRepository
 						include: {
 							material: true,
 						},
-					})
-				)
-			);
+					});
+				})
+			);
+
 			await prisma.productStock.create({
 				data: {
 					product_id: productId!,
@@ -282,7 +298,8 @@ export class MasterProductRepository
 					date: new Date(),
 					source_from: 'PRODUCTION',
 				},
-			});
+			});
+
 			await Promise.all(
 				data.materialStockOuts.map(stockOut =>
 					prisma.materialOut.create({
@@ -299,7 +316,10 @@ export class MasterProductRepository
 				productId: productId!,
 				inventoryItems: inventoryItems.map(item => ({
 					id: item.id,
-					materials: item.material,
+					material_id: item.material_id,
+					quantity: item.quantity,
+					unit_quantity: item.unit_quantity,
+					material: item.material, // This should work now because we included it in the query
 					createdAt: item.createdAt,
 					updatedAt: item.updatedAt,
 				})),
