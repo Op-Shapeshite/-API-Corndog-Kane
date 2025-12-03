@@ -120,7 +120,6 @@ export default class PayrollService extends Service<TPayroll> {
    * GET /finance/payroll/:employee_id - Get payroll detail for editing
    */
   async getEmployeePayrollDetail(employeeId: number, startDate?: string, endDate?: string) {
-    let { start, end } = this.getDateRange(startDate, endDate);
     const wasDateProvided = !!(startDate && endDate);
 
     // Get employee info first to determine type
@@ -131,6 +130,13 @@ export default class PayrollService extends Service<TPayroll> {
 
     // Check employee type to determine which payroll system to use
     const employeeType = await this.repository.getEmployeeType(employeeId);
+    
+    // Use appropriate date range method based on employee type
+    let { start, end } = wasDateProvided 
+      ? this.getDateRange(startDate, endDate)
+      : employeeType === 'internal' 
+        ? this.getCurrentMonthRange()
+        : this.getDateRange(startDate, endDate);
     
     if (employeeType === 'outlet' ) {
       // Handle outlet employee (daily payrolls)
@@ -281,11 +287,47 @@ export default class PayrollService extends Service<TPayroll> {
     const end = new Date(endPeriod);
     end.setHours(23, 59, 59, 999);
 
-    // Get payrolls in the new period
-    const payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
+    // Get employee info first to determine type
+    const employee = await this.repository.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new Error('Employee not found');
+    }
 
+    // Check employee type to determine which payroll system to use
+    const employeeType = await this.repository.getEmployeeType(employeeId);
+    
+    if (employeeType === 'outlet') {
+      return await this.updateOutletPayrollPeriod(employeeId, start, end, startPeriod, endPeriod, manualBonus, manualDeductions);
+    } else {
+      return await this.updateInternalPayrollPeriod(employeeId, start, end, startPeriod, endPeriod, manualBonus, manualDeductions);
+    }
+  }
+
+  private async updateOutletPayrollPeriod(
+    employeeId: number,
+    start: Date,
+    end: Date,
+    startPeriod: string,
+    endPeriod: string,
+    manualBonus?: number,
+    manualDeductions?: { date: string; amount: number; description: string }[]
+  ) {
+    // Get payrolls in the new period
+    let payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
+
+    // If no payrolls found, try to find the latest period
     if (payrolls.length === 0) {
-      throw new Error('No payrolls found for this period');
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        // Use the latest available period
+        payrolls = await this.repository.getUnpaidPayrolls(employeeId, latestPeriod.start, latestPeriod.end);
+      }
+      
+      // If still no payrolls, this means there are no unpaid payrolls for this employee
+      if (payrolls.length === 0) {
+        throw new Error('No unpaid payrolls found for this employee. Please ensure the employee has worked during the specified period.');
+      }
     }
 
     // Add manual bonus if provided
@@ -342,7 +384,102 @@ export default class PayrollService extends Service<TPayroll> {
       }
     }
 
-    // Return updated detail
+    // Return updated detail using the original requested period dates
+    return this.getEmployeePayrollDetail(employeeId, startPeriod, endPeriod);
+  }
+
+  private async updateInternalPayrollPeriod(
+    employeeId: number,
+    start: Date,
+    end: Date,
+    startPeriod: string,
+    endPeriod: string,
+    manualBonus?: number,
+    manualDeductions?: { date: string; amount: number; description: string }[]
+  ) {
+    // Get internal payrolls in the new period
+    let internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
+
+    // If no payrolls found, try to find the latest period
+    if (internalPayrolls.length === 0) {
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        // Use the latest available period
+        internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, latestPeriod.start, latestPeriod.end);
+      }
+      
+      // If still no payrolls, create a new internal payroll for this period
+      if (internalPayrolls.length === 0) {
+        // Get base payroll info
+        const basePayroll = await this.repository.getBasePayrollByEmployeeId(employeeId);
+        
+        if (!basePayroll) {
+          throw new Error('No base payroll found for this internal employee. Please set up base payroll first.');
+        }
+
+        // Create new internal payroll for the specified period
+        const newInternalPayroll = await this.repository.createInternalPayroll({
+          employeeId,
+          basePayrollId: basePayroll.id,
+          baseSalary: basePayroll.base_salary,
+          totalBonus: 0,
+          totalDeduction: 0,
+          finalSalary: basePayroll.base_salary,
+          periodStart: start,
+          periodEnd: end,
+        });
+
+        internalPayrolls = [newInternalPayroll];
+      }
+    }
+
+    const internalPayroll = internalPayrolls[0];
+
+    // Add manual bonus if provided
+    if (manualBonus && manualBonus > 0) {
+      await this.repository.createInternalBonus({
+        payrollId: internalPayroll.id,
+        type: BonusType.MANUAL,
+        amount: manualBonus,
+        description: 'Manual bonus',
+        reference: null,
+      });
+
+      // Update internal payroll totals
+      await this.repository.updateInternalPayrollTotals(
+        internalPayroll.id,
+        internalPayroll.total_bonus + manualBonus,
+        internalPayroll.total_deduction,
+        internalPayroll.final_salary + manualBonus
+      );
+    }
+
+    // Add manual deductions if provided
+    if (manualDeductions && manualDeductions.length > 0) {
+      for (const deduction of manualDeductions) {
+        await this.repository.createInternalDeduction({
+          payrollId: internalPayroll.id,
+          type: DeductionType.LOAN,
+          amount: deduction.amount,
+          description: deduction.description,
+          reference: null,
+        });
+      }
+
+      // Calculate total deductions
+      const totalNewDeductions = manualDeductions.reduce((sum, d) => sum + d.amount, 0);
+      
+      // Update internal payroll totals
+      await this.repository.updateInternalPayrollTotals(
+        internalPayroll.id,
+        internalPayroll.total_bonus,
+        internalPayroll.total_deduction + totalNewDeductions,
+        internalPayroll.final_salary - totalNewDeductions
+      );
+    }
+
+    // Return updated detail using the original requested period dates
     return this.getEmployeePayrollDetail(employeeId, startPeriod, endPeriod);
   }
 
@@ -392,17 +529,53 @@ export default class PayrollService extends Service<TPayroll> {
    * GET /finance/payroll/pay/:employee_id - Get payment slip
    */
   async getPaymentSlip(employeeId: number, startDate?: string, endDate?: string) {
+    const wasDateProvided = !!(startDate && endDate);
+
+    // Get employee info first to determine type
+    const employee = await this.repository.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new Error('Employee not found');
+    }
+
+    // Check employee type to determine which payroll system to use
+    const employeeType = await this.repository.getEmployeeType(employeeId);
+    
+    // Use appropriate date range method based on employee type
+    let { start, end } = wasDateProvided 
+      ? this.getDateRange(startDate, endDate)
+      : employeeType === 'internal' 
+        ? this.getCurrentMonthRange()
+        : this.getDateRange(startDate, endDate);
+    
+    if (employeeType === 'outlet') {
+      return await this.getOutletPaymentSlip(employeeId, employee, start, end, wasDateProvided);
+    } else {
+      return await this.getInternalPaymentSlip(employeeId, employee, start, end, wasDateProvided);
+    }
+  }
+
+  private async getOutletPaymentSlip(employeeId: number, employee: any, start: Date, end: Date, wasDateProvided: boolean) {
     let payrolls: TPayroll[];
     let status = 'PREVIEW';
     let paymentBatchId: number | null = null;
     let paidAt: Date | null = null;
 
-    const { start, end } = this.getDateRange(startDate, endDate);
-
     // Try to get unpaid payrolls first
     payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
 
-    // If no unpaid, get latest payment batch
+    // If no unpaid payrolls found and no specific dates were provided, try to find the latest period
+    if (payrolls.length === 0 && !wasDateProvided) {
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        // Use the latest available period
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+        payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
+      }
+    }
+
+    // If still no unpaid payrolls, get latest payment batch
     if (payrolls.length === 0) {
       const latestBatch = await this.repository.getLatestPaymentBatch(employeeId);
       if (!latestBatch) {
@@ -413,12 +586,6 @@ export default class PayrollService extends Service<TPayroll> {
       status = latestBatch.status;
       paymentBatchId = latestBatch.id;
       paidAt = latestBatch.paidAt || null;
-    }
-
-    // Get employee info
-    const employee = await this.repository.getEmployeeById(employeeId);
-    if (!employee) {
-      throw new Error('Employee not found');
     }
 
     // Get bonuses and deductions
@@ -453,6 +620,7 @@ export default class PayrollService extends Service<TPayroll> {
         nik: employee.nik,
         position: employee.position,
       },
+      employee_type: 'outlet',
       period: this.formatPeriod(payrolls[0].workDate, payrolls[payrolls.length - 1].workDate),
       payment_batch_id: paymentBatchId,
       status: status,
@@ -472,6 +640,103 @@ export default class PayrollService extends Service<TPayroll> {
         bonus: p.totalBonus,
         deduction: p.totalDeduction,
       })),
+    };
+  }
+
+  private async getInternalPaymentSlip(employeeId: number, employee: any, start: Date, end: Date, wasDateProvided: boolean) {
+    let internalPayrolls: any[];
+    let status = 'PREVIEW';
+    let paymentBatchId: number | null = null;
+    let paidAt: Date | null = null;
+
+    // Try to get unpaid internal payrolls first
+    internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
+
+    // If no unpaid internal payrolls found and no specific dates were provided, try to find the latest period
+    if (internalPayrolls.length === 0 && !wasDateProvided) {
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        // Use the latest available period
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+        internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
+      }
+    }
+
+    // If still no unpaid payrolls, get latest payment batch for internal
+    if (internalPayrolls.length === 0) {
+      const latestBatch = await this.repository.getLatestPaymentBatch(employeeId);
+      if (!latestBatch) {
+        throw new Error('No payroll data found');
+      }
+
+      internalPayrolls = await this.repository.getInternalPayrollsByBatchId(latestBatch.id);
+      status = latestBatch.status;
+      paymentBatchId = latestBatch.id;
+      paidAt = latestBatch.paidAt || null;
+    }
+
+    if (internalPayrolls.length === 0) {
+      throw new Error('No payroll data found');
+    }
+
+    const internalPayroll = internalPayrolls[0];
+
+    // Get bonuses and deductions for internal payroll
+    const bonuses = await this.repository.getBonusesByInternalPayrollIds([internalPayroll.id]);
+    const deductions = await this.repository.getDeductionsByInternalPayrollIds([internalPayroll.id]);
+
+    // Calculate totals
+    const totalBaseSalary = internalPayroll.base_salary;
+    const totalBonus = internalPayroll.total_bonus;
+    const totalDeductionLoan = deductions
+      .filter((d) => d.type === DeductionType.LOAN)
+      .reduce((sum, d) => sum + d.amount, 0);
+    const totalAbsentDeduction = deductions
+      .filter((d) => d.type === DeductionType.ABSENT)
+      .reduce((sum, d) => sum + d.amount, 0);
+    const totalLateDeduction = deductions
+      .filter((d) => d.type === DeductionType.LATE)
+      .reduce((sum, d) => sum + d.amount, 0);
+    const totalDeduction = internalPayroll.total_deduction;
+
+    // For internal employees, attendance is typically not tracked the same way
+    const attendanceSummary = {
+      count_present: 0,
+      count_not_present: 0,
+      count_leave: 0,
+      count_excused: 0,
+      count_sick: 0,
+      count_late: 0
+    };
+
+    return {
+      employee: {
+        name: employee.name,
+        nik: employee.nik,
+        position: employee.position,
+      },
+      employee_type: 'internal',
+      period: this.formatPeriod(internalPayroll.period_start, internalPayroll.period_end),
+      payment_batch_id: paymentBatchId,
+      status: status,
+      paid_at: paidAt,
+      total_base_salary: totalBaseSalary,
+      total_bonus: totalBonus,
+      total_salary_and_bonus: totalBaseSalary + totalBonus,
+      total_deduction_loan: totalDeductionLoan,
+      total_absent_deduction: totalAbsentDeduction,
+      total_late_deduction: totalLateDeduction,
+      total_deduction: totalDeduction,
+      total_amount: totalBaseSalary + totalBonus - totalDeduction,
+      attendance_summary: attendanceSummary,
+      payroll_details: [{
+        date: internalPayroll.period_start,
+        base_salary: totalBaseSalary,
+        bonus: totalBonus,
+        deduction: totalDeduction,
+      }],
     };
   }
 
