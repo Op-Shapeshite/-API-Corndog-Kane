@@ -49,19 +49,43 @@ export class OutletController extends Controller<
 	 */
 	getAllOutlets = async (req: Request, res: Response): Promise<Response> => {
 		try {
-			const page = req.query.page
-				? parseInt(req.query.page as string, 10)
-				: 1;
-			const limit = req.query.limit
-				? parseInt(req.query.limit as string, 10)
-				: undefined;
-			const { search_key, search_value } = req.query;
-			const result = await this.outletService.findAll(page, limit, [
-				{
-					field: search_key as string,
-					value: search_value as string,
-				},
-			]);
+			const { page, limit, search_key, search_value } = req.query;
+			const pageNum = page ? parseInt(page as string, 10) : 1;
+			const limitNum = limit ? parseInt(limit as string, 10) : 10;
+			
+			// Validate search parameters using enhanced search helper
+			const { SearchHelper } = await import('../../../utils/search/searchHelper');
+			const validation = SearchHelper.validateSearchParams(
+				'outlet', 
+				search_key as string, 
+				search_value as string
+			);
+
+			if (!validation.valid) {
+				return this.handleError(
+					res,
+					new Error(validation.error),
+					validation.error || "Invalid search parameters",
+					400,
+					[] as any,
+					{
+						page: pageNum,
+						limit: limitNum,
+						total_records: 0,
+						total_pages: 0,
+						searchable_fields: validation.searchable_fields
+					} as TMetadataResponse
+				);
+			}
+
+			// Build search configuration with proper field mapping
+			const search = SearchHelper.buildSearchConfig(
+				'outlet',
+				search_key as string,
+				search_value as string
+			);
+			
+			const result = await this.outletService.findAll(pageNum, limitNum, search);
 
 			// Fetch pic_name for each outlet
 			const dataWithPicName = await Promise.all(

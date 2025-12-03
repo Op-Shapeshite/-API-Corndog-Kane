@@ -14,7 +14,7 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
     this.accountService = new AccountService(new AccountRepository());
   }
 
-  // Custom getAll to handle AccountResponseMapper's array-based toListResponse
+  // Enhanced getAll with proper search field mapping
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
@@ -24,14 +24,37 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
         const categoryId = category_id ? parseInt(category_id as string, 10) : undefined;
         
-        // Build search config
-        const search =
-          search_key && 
-          search_value && 
-          search_key !== 'undefined' && 
-          search_value !== 'undefined'
-            ? [{ field: search_key as string, value: search_value as string }]
-            : undefined;
+        // Validate search parameters using enhanced search helper
+        const { SearchHelper } = await import('../../../utils/search/searchHelper');
+        const validation = SearchHelper.validateSearchParams(
+          'account', 
+          search_key as string, 
+          search_value as string
+        );
+
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            [] as any,
+            {
+              page: pageNum,
+              limit: limitNum,
+              total_records: 0,
+              total_pages: 0,
+              searchable_fields: validation.searchable_fields
+            } as any
+          );
+        }
+
+        // Build search configuration with proper field mapping
+        const search = SearchHelper.buildSearchConfig(
+          'account',
+          search_key as string,
+          search_value as string
+        );
         
         // Add category filter if provided
         const combinedFilters = categoryId 
