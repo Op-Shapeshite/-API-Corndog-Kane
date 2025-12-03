@@ -237,15 +237,11 @@ export default class PayrollService extends Service<TPayroll> {
 
   async updatePayrollPeriod(
     employeeId: number,
-    startPeriod: string,
-    endPeriod: string,
+    startPeriod?: string,
+    endPeriod?: string,
     manualBonus?: number,
     manualDeductions?: { date: string; amount: number; description: string }[]
   ) {
-    const start = new Date(startPeriod);
-    const end = new Date(endPeriod);
-    end.setHours(23, 59, 59, 999);
-
     const employee = await this.repository.getEmployeeById(employeeId);
     if (!employee) {
       throw new Error('Employee not found');
@@ -253,10 +249,34 @@ export default class PayrollService extends Service<TPayroll> {
 
     const employeeType = await this.repository.getEmployeeType(employeeId);
     
-    if (employeeType === 'outlet') {
-      return await this.updateOutletPayrollPeriod(employeeId, start, end, startPeriod, endPeriod, manualBonus, manualDeductions);
+    let start: Date;
+    let end: Date;
+    
+    // If periods are not provided, use latest period or current period
+    if (!startPeriod || !endPeriod) {
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+      } else {
+        // Fallback to default period based on employee type
+        const defaultPeriod = employeeType === 'internal' 
+          ? this.getCurrentMonthRange()
+          : this.getDateRange();
+        start = defaultPeriod.start;
+        end = defaultPeriod.end;
+      }
     } else {
-      return await this.updateInternalPayrollPeriod(employeeId, start, end, startPeriod, endPeriod, manualBonus, manualDeductions);
+      start = new Date(startPeriod);
+      end = new Date(endPeriod);
+      end.setHours(23, 59, 59, 999);
+    }
+    
+    if (employeeType === 'outlet') {
+      return await this.updateOutletPayrollPeriod(employeeId, start, end, this.formatDate(start), this.formatDate(end), manualBonus, manualDeductions);
+    } else {
+      return await this.updateInternalPayrollPeriod(employeeId, start, end, this.formatDate(start), this.formatDate(end), manualBonus, manualDeductions);
     }
   }
 
@@ -272,16 +292,19 @@ export default class PayrollService extends Service<TPayroll> {
 
     let payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
 
+    // If no payrolls found for the specified period, try to get the latest period
     if (payrolls.length === 0) {
       const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
       
       if (latestPeriod) {
-
-        payrolls = await this.repository.getUnpaidPayrolls(employeeId, latestPeriod.start, latestPeriod.end);
+        // Update the period to latest period and try again
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+        payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
       }
 
       if (payrolls.length === 0) {
-        throw new Error('No unpaid payrolls found for this employee. Please ensure the employee has worked during the specified period.');
+        throw new Error(`No unpaid payrolls found for employee. Latest available period: ${latestPeriod ? this.formatPeriod(latestPeriod.start, latestPeriod.end) : 'None'}. Please ensure the employee has worked during the available periods.`);
       }
     }
 
@@ -350,20 +373,23 @@ export default class PayrollService extends Service<TPayroll> {
 
     let internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
 
+    // If no payrolls found for the specified period, try to get the latest period
     if (internalPayrolls.length === 0) {
       const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
       
       if (latestPeriod) {
-
-        internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, latestPeriod.start, latestPeriod.end);
+        // Update the period to latest period and try again
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+        internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
       }
 
+      // If still no payrolls found, create one for internal employees
       if (internalPayrolls.length === 0) {
-
         const basePayroll = await this.repository.getBasePayrollByEmployeeId(employeeId);
         
         if (!basePayroll) {
-          throw new Error('No base payroll found for this internal employee. Please set up base payroll first.');
+          throw new Error(`No base payroll found for this internal employee. Latest available period: ${latestPeriod ? this.formatPeriod(latestPeriod.start, latestPeriod.end) : 'None'}. Please set up base payroll first.`);
         }
 
         const newInternalPayroll = await this.repository.createInternalPayroll({
@@ -819,5 +845,18 @@ export default class PayrollService extends Service<TPayroll> {
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     end.setHours(23, 59, 59, 999);
     return { start, end };
+  }
+
+  /**
+   * Get latest payroll period for an employee
+   * Used for defaulting to latest period when period not specified in update
+   */
+  async getLatestPayrollPeriodForEmployee(employeeId: number): Promise<{ start: Date; end: Date } | null> {
+    try {
+      return await this.repository.getLatestPayrollPeriod(employeeId);
+    } catch (error) {
+      console.error('Error getting latest payroll period:', error);
+      return null;
+    }
   }
 }
