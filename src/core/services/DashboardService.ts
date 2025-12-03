@@ -174,25 +174,17 @@ export class DashboardService {
     ): Promise<TProductStatistic[]> {
         const start = new Date(startDate);
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-
-        // Calculate previous period
+        end.setHours(23, 59, 59, 999);
         const diff = end.getTime() - start.getTime();
         const prevEnd = new Date(start.getTime() - 1);
-        const prevStart = new Date(prevEnd.getTime() - diff);
-
-        // Get current and previous period stats
+        const prevStart = new Date(prevEnd.getTime() - diff);
         const [currentStats, previousStats] = await Promise.all([
             this.repository.getProductStatistics(outletId, start, end),
             this.repository.getProductStatistics(outletId, prevStart, prevEnd)
-        ]);
-
-        // Create a map for previous stats
+        ]);
         const prevStatsMap = new Map<number, number>(
             previousStats.map((stat: any) => [stat.product_id, stat._sum.quantity || 0])
-        );
-
-        // Get product details
+        );
         const productIds = currentStats.map((stat: any) => stat.product_id);
         const products = await this.repository.getProductDetails(productIds);
 

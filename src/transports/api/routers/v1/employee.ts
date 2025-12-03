@@ -40,9 +40,7 @@ const uploadEmployeeImage = storage('employee');
 
 router.get('/', validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
 // IMPORTANT: /schedule must come BEFORE /:id to avoid route conflicts
-router.get('/schedule', validate(getSchedulesSchema), (req, res) => employeeController.getSchedules(req, res, employeeService));
-
-// Get attendances by outlet (must be before /:id route)
+router.get('/schedule', validate(getSchedulesSchema), (req, res) => employeeController.getSchedules(req, res, employeeService));
 router.get('/schedule/:outletId',
   authMiddleware,
   validate(getAttendancesByOutletSchema),
@@ -62,9 +60,7 @@ router.post('/checkout',
   authMiddleware,
   uploadAttendanceImage('image_proof'),
   (req, res) => employeeController.checkout(req, res, employeeService)
-);
-
-// Update late approval status - must be before /:id route
+);
 router.patch('/:id/:status',
   authMiddleware,
   validate(updateLateApprovalStatusSchema),

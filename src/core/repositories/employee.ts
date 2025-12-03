@@ -34,21 +34,15 @@ export type EmployeeRepository = Repository<TEmployee> & {
   // Attendance methods
   checkin(employeeId: number, outletId: number, imagePath: string): Promise<TAttendanceWithID>;
   checkout(employeeId: number, imagePath: string): Promise<TAttendanceWithID>;
-  findTodayAttendance(employeeId: number): Promise<TAttendanceWithID | null>;
-  
-  // Find employee scheduled for outlet today
-  findScheduledEmployeeByUserId(userId: number): Promise<number | null>;
-  
-  // Get attendances by outlet with optional date filter
+  findTodayAttendance(employeeId: number): Promise<TAttendanceWithID | null>;
+  findScheduledEmployeeByUserId(userId: number): Promise<number | null>;
   // Returns raw data - ResponseMapper should be applied in Controller layer
   getAttendancesByOutlet(
     outletId: number, 
     date?: string, 
     page?: number, 
     limit?: number
-  ): Promise<{ data: TAttendanceWithRelations[]; total: number }>;
-
-  // Update late approval status
+  ): Promise<{ data: TAttendanceWithRelations[]; total: number }>;
   updateLateApprovalStatus(
     attendanceId: number,
     status: 'PENDING' | 'APPROVED' | 'REJECTED'

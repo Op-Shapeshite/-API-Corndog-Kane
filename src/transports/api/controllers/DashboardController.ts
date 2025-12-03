@@ -12,16 +12,9 @@ export class DashboardController extends Controller<TDashboardResponse, TMetadat
         super();
         const dashboardRepository = new DashboardRepository();
         this.dashboardService = new DashboardService(dashboardRepository);
-    }
-
-    /**
-     * GET /dashboard
-     * Get all dashboard metrics with filters
-     */
-    getDashboard = () => {
+    }    getDashboard = () => {
         return async (req: Request, res: Response) => {
-            try {
-                // Extract validated query params (already validated and transformed by middleware)
+            try {
                 const {
                     income_type,
                     sold_product_type,
@@ -33,9 +26,7 @@ export class DashboardController extends Controller<TDashboardResponse, TMetadat
                     accounts_ids,
                     cashflow_type,
                     customer_growth_type
-                } = req.query;
-
-                // Get dashboard data
+                } = req.query;
                 const dashboardData = await this.dashboardService.getDashboardData({
                     income_type: income_type as 'today' | 'weekly' | 'monthly',
                     sold_product_type: sold_product_type as 'today' | 'weekly' | 'monthly',

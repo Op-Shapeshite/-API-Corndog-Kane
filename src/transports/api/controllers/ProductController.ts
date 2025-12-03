@@ -24,8 +24,7 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.Console(),
-    // Add file or other transports as needed
+    new winston.transports.Console(),
   ],
 });
 
@@ -174,13 +173,9 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
   getStocksList = () => {
     return async (req: Request, res: Response) => {
       try {
-        const { page, limit, search_key, search_value } = req.query;
-        
-        // Use validated defaults from pagination schema (page=1, limit=10)
+        const { page, limit, search_key, search_value } = req.query;
         const pageNum = page ? parseInt(page as string, 10) : 1;
-        const limitNum = limit ? parseInt(limit as string, 10) : 10;
-
-        // Validate search parameters using our SearchHelper
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
         const validation = SearchHelper.validateSearchParams(
           'product_inventory', 
           search_key as string, 
@@ -196,9 +191,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
             {} as TProductInventoryGetResponse,
             {} as TMetadataResponse
           );
-        }
-
-        // Build search config if search parameters are provided
+        }
         let searchConfig: SearchConfig[] | undefined;
         if (validation.valid && search_key && search_value) {
           searchConfig = SearchHelper.buildSearchConfig('product_inventory', search_key as string, search_value as string);
@@ -242,19 +235,14 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
   addStockIn = async (req: Request, res: Response) => {
     try {
-      const { product_id, master_product_id, quantity, unit_quantity, product } = req.body;
-
-      // If master_product_id is provided but product_id doesn't exist, we may need to create or find a product
+      const { product_id, master_product_id, quantity, unit_quantity, product } = req.body;
       let finalProductId = product_id;
 
-      if (!finalProductId && master_product_id) {
-        // Find if a product exists with the given master_product_id
+      if (!finalProductId && master_product_id) {
         const existingProducts = await this.productService.findAll(1, 1, [], { product_master_id: master_product_id });
-        if (existingProducts.data.length > 0) {
-          // Use the first product found with this master_product_id
+        if (existingProducts.data.length > 0) {
           finalProductId = (existingProducts.data[0] as any).id;
-        } else if (product) {
-          // If no product exists but we have product data, create a new product with the master_product_id
+        } else if (product) {
           const newProductData: any = {
             name: product.name,
             categoryId: product.category_id,
@@ -272,8 +260,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
           finalProductId = (createdProduct as any).id;
         }
-      } else if (!finalProductId && product) {
-        // If no product_id or master_product_id exists but we have product data, create new master and product
+      } else if (!finalProductId && product) {
         const masterProductService = new MasterProductService(new MasterProductRepository());
         const masterProduct = await masterProductService.create({
           name: product.name,
@@ -310,9 +297,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         product_id: finalProductId,
         quantity,
         unit_quantity,
-      });
-
-      // Map entity to response using mapper
+      });
       const responseData = ProductStockInResponseMapper.toResponse(entity);
 
       return this.getSuccessResponse(

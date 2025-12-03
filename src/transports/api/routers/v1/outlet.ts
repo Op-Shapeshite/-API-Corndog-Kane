@@ -45,15 +45,11 @@ router.post(
 	"/:id/employee/:employeeid",
 	validate(assignEmployeeToOutletSchema),
 	outletController.assignEmployeeToOutlet
-);
-
-// Get outlet product stock movements
+);
 router.get(
 	"/:id/stocks/products",
 	outletController.getOutletProductStocks
-);
-
-// Get outlet material stock movements
+);
 router.get(
 	"/:id/stocks/materials",
 	outletController.getOutletMaterialStocks
@@ -81,9 +77,7 @@ router.get(
 			});
 		}
 	}
-);
-
-// Get outlet financial summary
+);
 router.get(
 	"/:id/stocks/summarize",
 	validate(outletSummarizeSchema),

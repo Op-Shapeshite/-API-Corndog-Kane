@@ -24,9 +24,7 @@ const consoleFormat = winston.format.combine(
         }
         return msg;
     })
-);
-
-// Create transports array
+);
 const transports: winston.transport[] = [
     // Console transport
     new winston.transports.Console({
@@ -53,12 +51,8 @@ const combinedFileTransport = new DailyRotateFile({
     maxSize: env.logging.rotation.maxSize,
     maxFiles: env.logging.rotation.maxFiles,
     zippedArchive: true,
-});
-
-// Add file transports
-transports.push(errorFileTransport, combinedFileTransport);
-
-// Add Logstash transport if enabled
+});
+transports.push(errorFileTransport, combinedFileTransport);
 if (env.logging.logstash.enabled) {
     try {
         const logstashTransport = new LogstashTransport({
@@ -72,9 +66,7 @@ if (env.logging.logstash.enabled) {
     } catch (error) {
         console.error('Failed to initialize Logstash transport:', error);
     }
-}
-
-// Create the logger
+}
 const logger = winston.createLogger({
     level: env.logging.level,
     format: logFormat,
@@ -101,9 +93,7 @@ const logger = winston.createLogger({
             format: logFormat,
         }),
     ],
-});
-
-// Create logs directory if it doesn't exist
+});
 import fs from 'fs';
 if (!fs.existsSync(env.logging.dir)) {
     fs.mkdirSync(env.logging.dir, { recursive: true });

@@ -1,6 +1,5 @@
 import 'dotenv/config'
 
-
 export default {
 	app: {
 		name: process.env.APP_NAME || "Hexagonal_Architecture",

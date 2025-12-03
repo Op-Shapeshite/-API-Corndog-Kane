@@ -11,20 +11,13 @@ import { SearchConfig } from "../../../core/repositories/Repository";
  * InventoryController
  * Handles HTTP requests for unified inventory management (Material & Product)
  */
-export class InventoryController extends Controller<TInventoryStockInResponse | TInventoryBuyListResponse | TInventoryStockInItemResponse, TMetadataResponse> {
-	/**
-	 * POST /inventory/in
-	 * Handle stock in for both Material and Product
-	 */
-	stockIn(inventoryService: InventoryService) {
+export class InventoryController extends Controller<TInventoryStockInResponse | TInventoryBuyListResponse | TInventoryStockInItemResponse, TMetadataResponse> {	stockIn(inventoryService: InventoryService) {
 		return async (req: Request, res: Response) => {
 			try {
 				const requestData: TInventoryStockInRequest = req.body;
 
 				// Call service - returns entity
-				const result = await inventoryService.stockIn(requestData);
-
-				// Map entity to response
+				const result = await inventoryService.stockIn(requestData);
 				const responseData = InventoryStockInBatchResponseMapper.toResponse(result);
 
 				// Determine status code and message based on results
@@ -51,16 +44,9 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 				);
 			}
 		};
-	}
-
-	/**
-	 * GET /inventory/buy
-	 * Get unified buy list (Material purchases + Product PURCHASE)
-	 */
-	getBuyList(inventoryService: InventoryService) {
+	}	getBuyList(inventoryService: InventoryService) {
 		return async (req: Request, res: Response) => {
-			try {
-				// Use validated pagination params from middleware with defaults
+			try {
 				const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
 				const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
 
@@ -80,24 +66,18 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 						{ data: [], total: 0 } as TInventoryBuyListResponse,
 						{} as TMetadataResponse
 					);
-				}
-
-				// Build search config if search parameters are provided  
+				}
 				let searchConfig: SearchConfig[] | undefined;
 				if (validation.valid && req.query.search_key && req.query.search_value) {
 					searchConfig = SearchHelper.buildSearchConfig('inventory', req.query.search_key as string, req.query.search_value as string);
 				}
 
 				// Call service with search - returns entity
-				const { data, total } = await inventoryService.getBuyList(page, limit, searchConfig);
-
-				// Map entities to response
+				const { data, total } = await inventoryService.getBuyList(page, limit, searchConfig);
 				const responseData: TInventoryBuyListResponse = {
 					data: InventoryBuyListResponseMapper.toResponseArray(data),
 					total
-				};
-
-				// Build metadata for pagination
+				};
 				const metadata: TMetadataResponse = {
 					page,
 					limit,
@@ -122,19 +102,11 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 				);
 			}
 		};
-	}
-
-	/**
-	 * PUT /inventory/in/:id
-	 * Update material stock in record
-	 */
-	updateStockIn(inventoryService: InventoryService) {
+	}	updateStockIn(inventoryService: InventoryService) {
 		return async (req: Request, res: Response) => {
 			try {
 				const { id } = req.params;
-				const requestData: TInventoryStockInUpdateRequest = req.body;
-
-				// Validate id
+				const requestData: TInventoryStockInUpdateRequest = req.body;
 				const recordId = parseInt(id);
 				if (isNaN(recordId)) {
 					return this.getFailureResponse(
@@ -150,9 +122,7 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 				const result = await inventoryService.updateStockIn(
 					recordId,
 					requestData
-				);
-
-				// Map entity to response
+				);
 				const responseData = InventoryStockInResponseMapper.toResponse(result);
 
 				// Send success response

@@ -39,9 +39,7 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
         };
       } else {
         entity.category = null;
-      }
-
-      // Extract materials from productInventoryTransactions
+      }
       if (productMaster.productInventoryTransactions && Array.isArray(productMaster.productInventoryTransactions)) {
         entity.materials = productMaster.productInventoryTransactions.map((transaction: any) => ({
           materialId: transaction.material_id,
@@ -51,9 +49,7 @@ export class ProductMapper extends EntityMapper<TProduct | TProductWithID> {
         }));
       } else {
         entity.materials = [];
-      }
-
-      // Remove the internal field
+      }
       delete entity.__product_master__;
     }
 

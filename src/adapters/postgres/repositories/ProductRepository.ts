@@ -18,16 +18,12 @@ export class ProductRepository
 	 */
 	async create(
 		item: TProduct | TProductWithID
-	): Promise<TProduct | TProductWithID> {
-		// Extract the fields that should be in ProductMaster
+	): Promise<TProduct | TProductWithID> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productCreate = item as any; // Type assertion for legacy interface compatibility
 
-		let masterProduct;
-
-		// Check if product_master_id is provided to link to existing master product
-		if (productCreate.master_product_id) {
-			// Use existing master product
+		let masterProduct;
+		if (productCreate.master_product_id) {
 			masterProduct = await this.prisma.productMaster.findUnique({
 				where: { id: +productCreate.master_product_id },
 			});
@@ -37,8 +33,7 @@ export class ProductRepository
 					`Master product with ID ${productCreate.master_product_id} not found`
 				);
 			}
-		} else {
-			// Create new ProductMaster
+		} else {
 			masterProduct = await this.prisma.productMaster.create({
 				data: {
 					name: productCreate.name,
@@ -80,9 +75,7 @@ export class ProductRepository
 	): Promise<TProduct | TProductWithID> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productUpdate = item as any; // Type assertion for legacy interface compatibility
-		const numericId = parseInt(id, 10);
-
-		// Get existing product to find product_master_id
+		const numericId = parseInt(id, 10);
 		const existing = await this.prisma.product.findUnique({
 			where: { id: numericId },
 			select: { product_master_id: true },
@@ -90,9 +83,7 @@ export class ProductRepository
 
 		if (!existing) {
 			throw new Error(`Product with ID ${id} not found`);
-		}
-
-		// Update ProductMaster if name or categoryId is provided
+		}
 		if (
 			productUpdate.name !== undefined ||
 			productUpdate.categoryId !== undefined
@@ -108,9 +99,7 @@ export class ProductRepository
 					}),
 				},
 			});
-		}
-
-		// Update Product
+		}
 		const updated = await this.prisma.product.update({
 			where: { id: numericId },
 			data: {
@@ -148,9 +137,7 @@ export class ProductRepository
 	async createStockIn(
 		data: ProductStockInEntity
 	): Promise<{ id: number; date: Date }> {
-		const now = new Date();
-
-		// Create stock record
+		const now = new Date();
 		const stock = await this.prisma.productStock.create({
 			data: {
 				product_id: data.productId,
@@ -180,9 +167,7 @@ export class ProductRepository
 		quantity: number,
 		unit: string
 	): Promise<{ id: number; date: Date }> {
-		const now = new Date();
-
-		// Create stock record without detail (PRODUCTION source)
+		const now = new Date();
 		const stock = await this.prisma.productStock.create({
 			data: {
 				product_id: productId,
@@ -273,9 +258,7 @@ export class ProductRepository
 			},
 		});
 
-		if (!product) return null;
-
-		// Map to entity - use mapper to get name and categoryId from product_master
+		if (!product) return null;
 		const mappedProduct = this.mapper.mapToEntity(product);
 
 		return {
@@ -351,9 +334,7 @@ export class ProductRepository
 			orderBy: {
 				date: "asc",
 			},
-		});
-
-		// Map products to have name field from product_master
+		});
 		return dbRecords.map((record) => ({
 			...record,
 			products: {
@@ -369,9 +350,7 @@ export class ProductRepository
 	 * Get product stock records with search support (for inventory calculation)
 	 */
 	async getProductStockRecordsWithSearch(search?: SearchConfig[]) {
-		let whereClause: any = {};
-
-		// Build search conditions
+		let whereClause: any = {};
 		if (search && search.length > 0) {
 			const searchConditions = search.map(config => {
 				const { field, value } = config;
@@ -385,9 +364,7 @@ export class ProductRepository
 							}
 						}
 					};
-				}
-				
-				// Handle other searchable fields
+				}
 				if (field === 'date') {
 					return { date: { contains: value } };
 				}
@@ -418,9 +395,7 @@ export class ProductRepository
 			orderBy: {
 				date: "asc",
 			},
-		});
-
-		// Map products to have name field from product_master
+		});
 		return dbRecords.map((record) => ({
 			...record,
 			products: {
@@ -476,9 +451,7 @@ export class ProductRepository
 				quantity: true,
 			},
 		});
-		const totalSold = totalSoldData._sum?.quantity || 0;
-
-		// Calculate remaining_stock: total received - total sold
+		const totalSold = totalSoldData._sum?.quantity || 0;
 		const remainingStock = totalStockIn - totalSold;
 
 		return remainingStock;
@@ -504,9 +477,7 @@ export class ProductRepository
 			},
 		});
 
-		if (!product) return null;
-
-		// Map to entity format
+		if (!product) return null;
 		return {
 			id: product.id,
 			name: product.product_master.name,

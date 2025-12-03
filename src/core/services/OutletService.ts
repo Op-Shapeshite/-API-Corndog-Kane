@@ -23,12 +23,8 @@ export default class OutletService extends Service<TOutlet> {
     for (let i = 0; i < settings.length; i++) {
       for (let j = i + 1; j < settings.length; j++) {
         const setting1 = settings[i];
-        const setting2 = settings[j];
-
-        // Check if there are common days
-        const hasCommonDay = setting1.days.some(day => setting2.days.includes(day));
-
-        // Check if times are the same
+        const setting2 = settings[j];
+        const hasCommonDay = setting1.days.some(day => setting2.days.includes(day));
         const sameCheckin = setting1.checkin_time === setting2.checkin_time;
         const sameCheckout = setting1.checkout_time === setting2.checkout_time;
 
@@ -41,8 +37,7 @@ export default class OutletService extends Service<TOutlet> {
     }
   }
 
-  async createOutlet(item: TOutletCreate): Promise<TOutlet | TOutletWithSettings> {
-    // Validate settings overlap
+  async createOutlet(item: TOutletCreate): Promise<TOutlet | TOutletWithSettings> {
     this.validateSettingsOverlap(item.settings);
 
     let userIdToUse: number = item.userId ? item.userId : 0;
@@ -66,8 +61,7 @@ export default class OutletService extends Service<TOutlet> {
     return newOutlet;
   }
 
-  async updateOutlet(id: number, item: Partial<TOutletUpdate>): Promise<TOutlet | TOutletWithSettings | null> {
-    // Validate settings overlap if settings are provided
+  async updateOutlet(id: number, item: Partial<TOutletUpdate>): Promise<TOutlet | TOutletWithSettings | null> {
     if (item.settings) {
       this.validateSettingsOverlap(item.settings);
     }
@@ -158,9 +152,7 @@ export default class OutletService extends Service<TOutlet> {
       // Apply scenario logic based on previous_status
       if (previousStatus === 'PRESENT') {
         // Scenario 2: SWAP employees - DO NOT create attendance
-        actionType = 'swap';
-
-        // Find new employee's current assignment for this date
+        actionType = 'swap';
         const newEmployeeAssignment = await this.repository.findEmployeeAssignmentByDate(employeeId, date);
 
         if (newEmployeeAssignment) {

@@ -2,9 +2,7 @@
 export interface SearchConfig {
   field: string;
   value: string;
-}
-
-// Filter value types for repository queries
+}
 export type FilterValue = string | number | boolean | Date | null;
 export type FilterObject = Record<string, FilterValue | FilterValue[]>;
 

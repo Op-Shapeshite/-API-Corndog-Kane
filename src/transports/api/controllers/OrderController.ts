@@ -41,11 +41,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
    * Get all orders with pagination
    */
   async getAllOrders(req: Request, res: Response) {
-    try {
-      // Check if Excel export is requested
-      const type = req.query.type as string;
-
-      // Use validated pagination params from middleware with defaults
+    try {
+      const type = req.query.type as string;
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
 
@@ -65,22 +62,16 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           [] as TOrderListResponse[],
           {} as TMetadataResponse
         );
-      }
-
-      // Build search config if search parameters are provided
+      }
       let searchConfig: SearchConfig[] | undefined;
       if (validation.valid && req.query.search_key && req.query.search_value) {
         searchConfig = SearchHelper.buildSearchConfig('order', req.query.search_key as string, req.query.search_value as string);
       }
 
-      const result = await this.orderService.getAllOrders(page, limit, searchConfig);
-
-      // Map each order to list response format
+      const result = await this.orderService.getAllOrders(page, limit, searchConfig);
       const data: TOrderListResponse[] = result.orders.map(order =>
         OrderResponseMapper.toOrderListResponse(order)
-      );
-
-      // If Excel export requested, generate and return Excel file
+      );
       if (type === 'xlsx') {
         return this.generateOrdersExcel(res, data);
       }
@@ -121,8 +112,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
    * Get my orders (filtered by outlet_id from token)
    */
   async getMyOrders(req: AuthRequest, res: Response) {
-    try {
-      // Use validated pagination params from middleware with defaults
+    try {
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const outletId = req.user?.outlet_id;
@@ -136,9 +126,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         );
       }
 
-      const result = await this.orderService.getOrdersByOutlet(outletId, page, limit);
-
-      // Map each order to my order response format (with nested items)
+      const result = await this.orderService.getOrdersByOutlet(outletId, page, limit);
       const data: TMyOrderResponse[] = result.orders.map((order: any) =>
         OrderResponseMapper.toMyOrderResponse(order)
       );
@@ -191,9 +179,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         );
       }
 
-      const order = await this.orderService.getOrderById(orderId);
-
-      // Use the same format as /order/my endpoint
+      const order = await this.orderService.getOrderById(orderId);
       const data: TMyOrderResponse = OrderResponseMapper.toMyOrderResponse(order);
 
       return this.getSuccessResponse(
@@ -233,9 +219,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in authentication token' }],
           'Outlet ID not found in authentication token'
         );
-      }
-
-      // Validate required fields
+      }
       if (!payment_method) {
         return this.getFailureResponse(
           res,
@@ -252,9 +236,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           [{ type: 'required', field: 'items', message: 'items array is required and must not be empty' }],
           'items array is required and must not be empty'
         );
-      }
-
-      // Validate each item has required fields
+      }
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (!item.product_id || typeof item.product_id !== 'number') {
@@ -272,9 +254,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
             [{ type: 'required', field: `items[${i}].qty`, message: 'qty is required and must be a positive number' }],
             `Item at index ${i} is missing valid qty`
           );
-        }
-
-        // Validate nested items if exists
+        }
         if (item.product_items_ids) {
           if (!Array.isArray(item.product_items_ids)) {
             return this.getFailureResponse(
@@ -305,13 +285,10 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
             }
           }
         }
-      }
-
-      // Validate max nesting depth (max 2 levels)
+      }
       for (const item of items) {
         if (item.product_items_ids) {
-          for (const subItem of item.product_items_ids) {
-            // Check if subItem has nested items (level 3+)
+          for (const subItem of item.product_items_ids) {
             if ('product_items_ids' in subItem) {
               return this.getFailureResponse(
                 res,
@@ -332,18 +309,14 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           productId: subItem.product_id,
           qty: subItem.qty,
         })),
-      }));
-
-      // Create order
+      }));
       const order = await this.orderService.createOrder(
         outletId,
         payment_method,
         orderItems,
         is_using_bag,
         packaging_type
-      );
-
-      // Map response
+      );
       console.log(order)
       const response: TOrderGetResponse = OrderResponseMapper.toCreateResponse(order);
       // Fetch full order detail for WebSocket broadcast
@@ -354,9 +327,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       try {
         const io = getWebSocketInstance();
         io.emit('new-order', orderDetailForBroadcast);
-        console.log(`📡 WebSocket: Broadcasted new order ${fullOrder.invoice_number}`);
-
-        // Extract unique product IDs from order items (from raw Prisma result)
+        console.log(`📡 WebSocket: Broadcasted new order ${fullOrder.invoice_number}`);
         const orderedProductIds = new Set<number>();
         if (fullOrder && fullOrder.items) {
           for (const item of fullOrder.items) {
@@ -375,9 +346,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
             undefined, // no limit
             today, // start date - today
             today // end date - today
-          );
-
-          // Filter to only include products that were ordered
+          );
           const filteredProductStocks = productStockResult.data.filter((item: TOutletStockItem) =>
             orderedProductIds.has(item.product_id)
           );
@@ -391,12 +360,9 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           }
         } catch (stockError) {
           console.error('⚠️  WebSocket product stock emit failed:', stockError);
-        }
-
-        // For materials, we need to check which materials are used in the ordered products
+        }
         try {
-          if (orderedProductIds.size > 0) {
-            // Get material dependencies for ordered products
+          if (orderedProductIds.size > 0) {
             const productInventories = await this.prisma.productInventory.findMany({
               where: {
                 product_id: {
@@ -422,9 +388,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
                 undefined, // no limit
                 today, // start date - today
                 today // end date - today
-              );
-
-              // Filter to only include materials used in ordered products
+              );
               const filteredMaterialStocks = materialStockResult.data.filter((item: TMaterialStockItem) =>
                 orderedMaterialIds.has(item.material_id)
               );
@@ -449,13 +413,10 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       // 🔥 AUTO-POST FINANCE TRANSACTION TO ACCOUNT 4101 (Pendapatan Penjualan)
       try {
         const TransactionRepository = (await import('../../../adapters/postgres/repositories/TransactionRepository')).TransactionRepository;
-        const transactionRepo = new TransactionRepository();
-
-        // Calculate total HPP from all order items
+        const transactionRepo = new TransactionRepository();
         let totalHPP = 0;
         if (fullOrder && fullOrder.items) {
-          for (const item of fullOrder.items) {
-            // Get product HPP from database
+          for (const item of fullOrder.items) {
             const product = await this.prisma.product.findUnique({
               where: { id: item.product_id },
               select: { hpp: true }
@@ -465,9 +426,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
               totalHPP += Number(product.hpp) * item.quantity;
             }
           }
-        }
-
-        // Calculate profit: total_amount - total_hpp
+        }
         const totalAmount = Number(fullOrder.total_amount) || 0;
         const profit = totalAmount - totalHPP;
 
@@ -521,9 +480,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
   private async generateOrdersExcel(res: Response, orders: TOrderListResponse[]) {
     try {
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Orders');
-
-      // Add headers
+      const worksheet = workbook.addWorksheet('Orders');
       const headerRow = worksheet.addRow([
         'Invoice Number',
         'Outlet',
@@ -532,9 +489,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         'Order Status',
         'Created At'
       ]);
-      styleHeaderRow(headerRow);
-
-      // Add data rows
+      styleHeaderRow(headerRow);
       orders.forEach(order => {
         worksheet.addRow([
           order.invoice_number || '-',
@@ -549,9 +504,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       });
 
       // Auto-size columns
-      autoSizeColumns(worksheet);
-
-      // Set response headers and send file
+      autoSizeColumns(worksheet);
       const filename = `orders-${new Date().toISOString().split('T')[0]}.xlsx`;
       setExcelHeaders(res, filename);
 

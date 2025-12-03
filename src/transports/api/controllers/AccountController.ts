@@ -18,13 +18,10 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
-        const { page, limit, search_key, search_value, category_id, ...filters } = req.query;
-        // Use validated defaults from pagination schema (page=1, limit=10)
+        const { page, limit, search_key, search_value, category_id, ...filters } = req.query;
         const pageNum = page ? parseInt(page as string, 10) : 1;
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
-        const categoryId = category_id ? parseInt(category_id as string, 10) : undefined;
-        
-        // Validate search parameters using enhanced search helper
+        const categoryId = category_id ? parseInt(category_id as string, 10) : undefined;
         const { SearchHelper } = await import('../../../utils/search/searchHelper');
         const validation = SearchHelper.validateSearchParams(
           'account', 
@@ -47,16 +44,12 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
               searchable_fields: validation.searchable_fields
             } as any
           );
-        }
-
-        // Build search configuration with proper field mapping
+        }
         const search = SearchHelper.buildSearchConfig(
           'account',
           search_key as string,
           search_value as string
-        );
-        
-        // Add category filter if provided
+        );
         const combinedFilters = categoryId 
           ? { ...filters, account_category_id: categoryId }
           : Object.keys(filters).length > 0 ? filters : undefined;

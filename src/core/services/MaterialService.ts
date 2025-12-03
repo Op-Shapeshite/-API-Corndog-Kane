@@ -28,13 +28,9 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		orderBy?: Record<string, 'asc' | 'desc'>,
 		outletId?: number
 	): Promise<PaginationResult<TMaterial | TMaterialWithID>> {
-		const result = await super.findAll(page, limit, search, filters, orderBy);
-
-		// If outletId is provided, add stock field
+		const result = await super.findAll(page, limit, search, filters, orderBy);
 		if (outletId) {
-			const today = new Date();
-
-			// Add stock to each material
+			const today = new Date();
 			const dataWithStock = await Promise.all(
 				result.data.map(async (material) => {
 					const materialWithId = material as TMaterialWithID;
@@ -75,22 +71,17 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 	 * Stock in material
 	 * @returns TMaterialStockInventory entity
 	 */
-	async stockIn(data: TMaterialStockInCreateRequest): Promise<TMaterialStockInventory> {
-		// Ensure material_id is provided
+	async stockIn(data: TMaterialStockInCreateRequest): Promise<TMaterialStockInventory> {
 		if (!data.material_id) {
 			throw new Error("Material ID is required");
-		}
-
-		// Create stock in record through repository
+		}
 		const stockInRecord = await this.repository.createStockIn({
 			materialId: data.material_id,
 			suplierId: data.suplier_id,
 			quantity: data.quantity,
 			price: data.price || 0,
 			quantityUnit: data.unit_quantity,
-		});
-
-		// Get material with stocks through repository (already mapped by EntityMapper)
+		});
 		const material = await this.repository.getMaterialWithStocks(data.material_id);
 
 		if (!material) {
@@ -100,23 +91,17 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		// Data dari repository sudah dalam format camelCase (mapped by EntityMapper)
 		const totalStockIn = material.materialIn.reduce((sum: number, item) => sum + item.quantity, 0);
 		const totalStockOut = material.materialOut.reduce((sum: number, item) => sum + item.quantity, 0);
-		const currentStock = totalStockIn - totalStockOut;
-
-		// Get latest stock in and out times
+		const currentStock = totalStockIn - totalStockOut;
 		const latestStockIn = material.materialIn.length > 0
 			? material.materialIn[material.materialIn.length - 1].createdAt
 			: null;
 		const latestStockOut = material.materialOut.length > 0
 			? material.materialOut[material.materialOut.length - 1].createdAt
-			: null;
-
-		// Format time as HH:MM:SS
+			: null;
 		const formatTime = (date: Date | null): string => {
 			if (!date) return "00:00:00";
 			return new Date(date).toTimeString().split(' ')[0];
-		};
-
-		// Format date as YYYY-MM-DD
+		};
 		const formatDate = (date: Date): string => {
 			return new Date(date).toISOString().split('T')[0];
 		};
@@ -141,16 +126,13 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 	 * Stock out material
 	 * @returns TMaterialStockInventory entity
 	 */
-	async stockOut(data: TMaterialStockOutCreateRequest): Promise<TMaterialStockInventory> {
-		// Create stock out record through repository
+	async stockOut(data: TMaterialStockOutCreateRequest): Promise<TMaterialStockInventory> {
 		await this.repository.createStockOut({
 			materialId: data.material_id,
 			quantity: data.quantity,
 			quantityUnit: data.unit_quantity,
 			description: data.description,
-		});
-
-		// Get material with stocks through repository (already mapped by EntityMapper)
+		});
 		const material = await this.repository.getMaterialWithStocks(data.material_id);
 
 		if (!material) {
@@ -160,23 +142,17 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		// Data dari repository sudah dalam format camelCase (mapped by EntityMapper)
 		const totalStockIn = material.materialIn.reduce((sum: number, item) => sum + item.quantity, 0);
 		const totalStockOut = material.materialOut.reduce((sum: number, item) => sum + item.quantity, 0);
-		const currentStock = totalStockIn - totalStockOut;
-
-		// Get latest stock in and out times
+		const currentStock = totalStockIn - totalStockOut;
 		const latestStockIn = material.materialIn.length > 0
 			? material.materialIn[material.materialIn.length - 1].createdAt
 			: null;
 		const latestStockOut = material.materialOut.length > 0
 			? material.materialOut[material.materialOut.length - 1].createdAt
-			: null;
-
-		// Format time as HH:MM:SS
+			: null;
 		const formatTime = (date: Date | null): string => {
 			if (!date) return "00:00:00";
 			return new Date(date).toTimeString().split(' ')[0];
-		};
-
-		// Format date as YYYY-MM-DD
+		};
 		const formatDate = (date: Date): string => {
 			return new Date(date).toISOString().split('T')[0];
 		};
@@ -210,19 +186,14 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		page: number = 1, 
 		limit: number = 10, 
 		search?: SearchConfig[]
-	): Promise<{ data: TMaterialStockInventory[], total: number }> {
-		// Format time as HH:MM:SS
+	): Promise<{ data: TMaterialStockInventory[], total: number }> {
 		const formatTime = (date: Date | null): string => {
 			if (!date) return "00:00:00";
 			return new Date(date).toTimeString().split(' ')[0];
-		};
-
-		// Format date as YYYY-MM-DD
+		};
 		const formatDate = (date: Date): string => {
 			return new Date(date).toISOString().split('T')[0];
-		};
-
-		// Get material in and out records with search support
+		};
 		const [materialIns, materialOuts] = await Promise.all([
 			search && search.length > 0 
 				? this.repository.getAllMaterialInRecordsWithSearch(search)
@@ -277,8 +248,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 			const date = formatDate(record.createdAt);
 			const key = `${record.materialId}_${date}`;
 
-			if (!dailyStocksMap.has(key)) {
-				// If no stock in on this date, we still need to create entry
+			if (!dailyStocksMap.has(key)) {
 				dailyStocksMap.set(key, {
 					materialId: record.materialId,
 					materialName: '', // Will be filled later
@@ -306,9 +276,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 				return a.materialId - b.materialId;
 			}
 			return a.date.localeCompare(b.date);
-		});
-
-		// Calculate running stock for each material
+		});
 		const materialStocksMap = new Map<number, number>(); // materialId -> running stock
 		const data: TMaterialStockInventory[] = [];
 
@@ -329,9 +297,7 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 				updatedAt: daily.updatedAt,
 				inTimes: formatTime(daily.latestInTime),
 				outTimes: formatTime(daily.latestOutTime),
-			});
-
-			// Update running stock for this material
+			});
 			materialStocksMap.set(daily.materialId, currentStock);
 		});
 

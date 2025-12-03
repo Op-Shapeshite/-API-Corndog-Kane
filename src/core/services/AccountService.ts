@@ -23,8 +23,7 @@ export default class AccountService extends Service<TAccount | TAccountWithID> {
     return this.repository.getAllByCategory(categoryId);
   }
 
-  async createAccount(data: TAccountCreate): Promise<TAccountWithID> {
-    // Check if account number already exists
+  async createAccount(data: TAccountCreate): Promise<TAccountWithID> {
     const existing = await this.repository.getAll(1, 1, undefined, { number: data.number });
     if (existing.data.length > 0) {
       throw new Error(`Account with number ${data.number} already exists`);
@@ -41,9 +40,7 @@ export default class AccountService extends Service<TAccount | TAccountWithID> {
     const existing = await this.repository.getById(id);
     if (!existing) {
       throw new Error(`Account with ID ${id} not found`);
-    }
-
-    // If updating number, check for duplicates
+    }
     if (data.number && data.number !== existing.number) {
       const duplicate = await this.repository.getAll(1, 1, undefined, { number: data.number });
       if (duplicate.data.length > 0) {
@@ -58,9 +55,7 @@ export default class AccountService extends Service<TAccount | TAccountWithID> {
     const existing = await this.repository.getById(id);
     if (!existing) {
       throw new Error(`Account with ID ${id} not found`);
-    }
-
-    // Check if account has transactions
+    }
     if (existing._count && existing._count.transactions > 0) {
       throw new Error(`Cannot delete account with existing transactions. Please deactivate instead.`);
     }

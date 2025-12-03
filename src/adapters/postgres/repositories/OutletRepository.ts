@@ -33,9 +33,7 @@ export default class OutletRepository
     })
     if (!outlet) return null;
     
-    const mapped = this.mapper.mapToEntity(outlet) as TOutlet;
-    
-    // Map settings
+    const mapped = this.mapper.mapToEntity(outlet) as TOutlet;
     type OutletWithSettings = typeof outlet & { 
       settings?: Array<{
         id: number;
@@ -91,12 +89,9 @@ export default class OutletRepository
       name: itemData.name,
       settings: itemData.settings,
       userId: itemData.userId
-    }, null, 2));
-    
-    // Use transaction to ensure rollback if settings creation fails
+    }, null, 2));
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
-        // Create outlet
+      const result = await this.prisma.$transaction(async (tx) => {
         const outlet = await tx.outlet.create({
           data: {
             name: itemData.name as string,
@@ -109,9 +104,7 @@ export default class OutletRepository
           },
         });
         
-        console.log('Outlet created with ID:', outlet.id);
-        
-        // Create settings
+        console.log('Outlet created with ID:', outlet.id);
         const outletId = typeof outlet.id === 'string' ? parseInt(outlet.id) : outlet.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const settingsData = itemData.settings.map((s: any) => ({
@@ -146,9 +139,7 @@ export default class OutletRepository
    * Update outlet and its settings
    */
   override async update(id: string, item: Partial<TOutletWithSettings & { userId?: number }>): Promise<TOutlet> {
-    const outletId = parseInt(id);
-    
-    // Update outlet basic fields
+    const outletId = parseInt(id);
     const updateData: Record<string, unknown> = {};
     if (item.name !== undefined) updateData.name = item.name;
     if (item.location !== undefined) updateData.location = item.location;
@@ -163,9 +154,7 @@ export default class OutletRepository
         where: { id: outletId },
         data: updateData,
       });
-    }
-    
-    // Update settings if provided
+    }
     if (item.settings) {
       const providedIds = item.settings.filter(s => s.id).map(s => s.id as number);
       
@@ -175,15 +164,12 @@ export default class OutletRepository
           outlet_id: outletId,
           id: { notIn: providedIds },
         },
-      });
-      
-      // Update or create settings
+      });
       console.log('Updating/Creating settings for outlet ID:', outletId);
 
       for (const setting of item.settings as any) {
         console.log('Processing setting:', setting);
-        if (setting.id) {
-          // Update existing
+        if (setting.id) {
           await this.prisma.outletSetting.update({
             where: { id: setting.id },
             data: {
@@ -193,8 +179,7 @@ export default class OutletRepository
               day: { set: setting.days as DAY[] },
             },
           });
-        } else {
-          // Create new
+        } else {
           await this.prisma.outletSetting.create({
 			data: {
 				outlet_id: outletId,
@@ -227,9 +212,7 @@ export default class OutletRepository
       },
     });
     
-    if (settings.length === 0) return null;
-    
-    // Return the first available setting (allows checkin at any time for the day)
+    if (settings.length === 0) return null;
     const setting = settings[0];
     return {
       id: setting.id,
@@ -311,13 +294,10 @@ export default class OutletRepository
     limit?: number,
     startDate?: Date,
     endDate?: Date
-  ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
-    // Get today's date for filtering - only show today's data
+  ): Promise<{ stocks: TOutletStockItem[]; total: number }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-    
-    // Get products that have activity today (approved requests or orders)
+    const todayStr = today.toISOString().split('T')[0];
     const productsWithActivity = await this.prisma.$queryRaw<Array<{ product_id: number; product_name: string }>>`
       SELECT DISTINCT p.id as product_id, pm.name as product_name
       FROM product_menus p
@@ -344,23 +324,16 @@ export default class OutletRepository
           )
         )
       ORDER BY p.id ASC
-    `;
-    
-    // If no products with activity, return empty
+    `;
     if (productsWithActivity.length === 0) {
       return { stocks: [], total: 0 };
-    }
-
-    // Build array of today's data only
-    const allRecords: TOutletStockItem[] = [];
-
-    // Get yesterday's date for calculating first_stock
+    }
+    const allRecords: TOutletStockItem[] = [];
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    for (const product of productsWithActivity) {
-      // Calculate first_stock from yesterday's remaining stock
+    for (const product of productsWithActivity) {
       const yesterdayStockIn = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(opr."approval_quantity"), 0)::bigint as total
         FROM "outlet_requests" opr
@@ -385,9 +358,7 @@ export default class OutletRepository
       const yesterdayOut = Number(yesterdaySold[0]?.total || 0);
 
       // First stock is yesterday's stock_in minus yesterday's sold
-      const firstStock = yesterdayIn - yesterdayOut;
-
-      // Calculate stock_in (approved outlet requests for today)
+      const firstStock = yesterdayIn - yesterdayOut;
       const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(opr."approval_quantity"), 0)::bigint as total
         FROM "outlet_requests" opr
@@ -397,9 +368,7 @@ export default class OutletRepository
           AND opr."is_active" = true
           AND DATE(opr."updatedAt") = ${todayStr}::date
       `;
-      const stockIn = Number(stockInResult[0]?.total || 0);
-
-      // Calculate sold_stock (order items for today)
+      const stockIn = Number(stockInResult[0]?.total || 0);
       const soldStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(oi."quantity"), 0)::bigint as total
         FROM "order_items" oi
@@ -410,9 +379,7 @@ export default class OutletRepository
           AND oi."is_active" = true
           AND DATE(o."createdAt") = ${todayStr}::date
       `;
-      const soldStock = Number(soldStockResult[0]?.total || 0);
-
-      // Calculate remaining_stock
+      const soldStock = Number(soldStockResult[0]?.total || 0);
       const remainingStock = firstStock + stockIn - soldStock;
 
       allRecords.push({
@@ -427,9 +394,7 @@ export default class OutletRepository
     }
 
     // Apply pagination
-    const total = allRecords.length;
-    
-    // If no limit provided, return all records
+    const total = allRecords.length;
     if (!limit) {
       return {
         stocks: allRecords,
@@ -455,13 +420,10 @@ export default class OutletRepository
     limit?: number,
     startDate?: Date,
     endDate?: Date
-  ): Promise<{ stocks: TMaterialStockItem[]; total: number }> {
-    // Get today's date for filtering - only show today's data
+  ): Promise<{ stocks: TMaterialStockItem[]; total: number }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-    
-    // Get materials that have activity today (approved requests or orders)
+    const todayStr = today.toISOString().split('T')[0];
     const materialsWithActivity = await this.prisma.$queryRaw<Array<{ material_id: number; material_name: string }>>`
       SELECT DISTINCT m.id as material_id, m.name as material_name
       FROM materials m
@@ -486,23 +448,16 @@ export default class OutletRepository
           )
         )
       ORDER BY m.id ASC
-    `;
-    
-    // If no materials with activity, return empty
+    `;
     if (materialsWithActivity.length === 0) {
       return { stocks: [], total: 0 };
-    }
-
-    // Build array of today's data only
-    const allRecords: TMaterialStockItem[] = [];
-
-    // Get yesterday's date for calculating first_stock
+    }
+    const allRecords: TMaterialStockItem[] = [];
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    for (const material of materialsWithActivity) {
-      // Calculate first_stock from yesterday's remaining stock
+    for (const material of materialsWithActivity) {
       const yesterdayStockIn = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
         FROM "outlet_material_requests"
@@ -525,9 +480,7 @@ export default class OutletRepository
       const yesterdayOut = Number(yesterdayUsed[0]?.total || 0);
 
       // First stock is yesterday's stock_in minus yesterday's used
-      const firstStock = yesterdayIn - yesterdayOut;
-
-      // Calculate stock_in (approved outlet material requests for today)
+      const firstStock = yesterdayIn - yesterdayOut;
       const stockInResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM("approval_quantity"), 0)::bigint as total
         FROM "outlet_material_requests"
@@ -537,9 +490,7 @@ export default class OutletRepository
           AND "is_active" = true
           AND DATE("updatedAt") = ${todayStr}::date
       `;
-      const stockIn = Number(stockInResult[0]?.total || 0);
-
-      // Calculate used_stock from order_material_usages (outlet-specific)
+      const stockIn = Number(stockInResult[0]?.total || 0);
       const usedStockResult = await this.prisma.$queryRaw<Array<{ total: bigint | null }>>`
         SELECT COALESCE(SUM(omu."quantity"), 0)::bigint as total
         FROM "order_material_usages" omu
@@ -548,9 +499,7 @@ export default class OutletRepository
           AND o."outlet_id" = ${outletId}
           AND DATE(omu."used_at") = ${todayStr}::date
       `;
-      const usedStock = Number(usedStockResult[0]?.total || 0);
-
-      // Calculate remaining_stock
+      const usedStock = Number(usedStockResult[0]?.total || 0);
       const remainingStock = firstStock + stockIn - usedStock;
 
       allRecords.push({
@@ -565,9 +514,7 @@ export default class OutletRepository
     }
 
     // Apply pagination
-    const total = allRecords.length;
-    
-    // If no limit provided, return all records
+    const total = allRecords.length;
     if (!limit) {
       return {
         stocks: allRecords,
@@ -861,8 +808,7 @@ export default class OutletRepository
     total_expenses: number;
     total_profit: number;
     total_sold_quantity: number;
-  }> {
-    // Get outlet details
+  }> {
     const outlet = await this.prisma.outlet.findUnique({
       where: { id: outletId },
       select: { name: true, code: true }
@@ -870,9 +816,7 @@ export default class OutletRepository
 
     if (!outlet) {
       throw new Error(`Outlet with ID ${outletId} not found`);
-    }
-
-    // Build where clause for orders
+    }
     const whereOrder: Record<string, unknown> = {
       outlet_id: outletId,
     };
@@ -891,9 +835,7 @@ export default class OutletRepository
 
     if (status) {
       whereOrder.status = status;
-    }
-
-    // Get all order items for this outlet with product details
+    }
     const orderItems = await this.prisma.orderItem.findMany({
       where: {
         order: whereOrder,
@@ -902,9 +844,7 @@ export default class OutletRepository
         product: true,
         order: true,
       },
-    });
-
-    // Calculate totals
+    });
     let totalIncome = 0;
     let totalProfit = 0;
     let totalSoldQuantity = 0;

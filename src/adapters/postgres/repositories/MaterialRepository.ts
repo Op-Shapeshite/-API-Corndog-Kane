@@ -59,9 +59,7 @@ export default class MaterialRepository
 				material: true,
 				suplier: true,
 			},
-		});
-
-		// Map DB record to entity using EntityMapper
+		});
 		return this.stockInMapper.mapToEntity(dbRecord);
 	}
 
@@ -115,17 +113,13 @@ export default class MaterialRepository
 			},
 		});
 
-		if (!dbRecord) return null;
-
-		// Map DB record to entity using EntityMapper
+		if (!dbRecord) return null;
 		return this.materialWithStocksMapper.mapToEntity(dbRecord);
 	}
 
 	// Buy List Operations
 	async getMaterialInList(skip: number, take: number, search?: SearchConfig[]): Promise<PaginatedMaterialStockIn> {
-		let whereClause: any = {};
-
-		// Build search conditions
+		let whereClause: any = {};
 		if (search && search.length > 0) {
 			const searchConditions = search.map(config => {
 				const { field, value } = config;
@@ -150,9 +144,7 @@ export default class MaterialRepository
 							}
 						}
 					};
-				}
-				
-				// Handle other searchable fields
+				}
 				if (field === 'receivedAt') {
 					return { receivedAt: { contains: value } };
 				}
@@ -197,9 +189,7 @@ export default class MaterialRepository
 				},
 			}),
 			this.prisma.materialIn.count({ where: whereClause }),
-		]);
-
-		// Map DB records to entities using EntityMapper
+		]);
 		const data = this.stockInMapper.mapToEntities(dbRecords);
 
 		return { data, total };
@@ -214,16 +204,12 @@ export default class MaterialRepository
 			orderBy: {
 				createdAt: 'asc',
 			},
-		});
-
-		// Map DB records to entities using EntityMapper
+		});
 		return this.stockInMapper.mapToEntities(dbRecords);
 	}
 
 	async getAllMaterialInRecordsWithSearch(search?: SearchConfig[]): Promise<MaterialStockInEntity[]> {
-		let whereClause: any = {};
-
-		// Build search conditions
+		let whereClause: any = {};
 		if (search && search.length > 0) {
 			const searchConditions = search.map(config => {
 				const { field, value } = config;
@@ -237,9 +223,7 @@ export default class MaterialRepository
 							}
 						}
 					};
-				}
-				
-				// Handle other searchable fields for material inventory  
+				}
 				if (field === 'materialId') {
 					return { materialId: parseInt(value) || 0 };
 				}
@@ -262,9 +246,7 @@ export default class MaterialRepository
 			orderBy: {
 				createdAt: 'asc',
 			},
-		});
-
-		// Map DB records to entities using EntityMapper
+		});
 		return this.stockInMapper.mapToEntities(dbRecords);
 	}
 
@@ -273,21 +255,15 @@ export default class MaterialRepository
 			orderBy: {
 				createdAt: 'asc',
 			},
-		});
-
-		// Map DB records to entities using EntityMapper
+		});
 		return this.stockOutMapper.mapToEntities(dbRecords);
 	}
 
 	async getAllMaterialOutRecordsWithSearch(search?: SearchConfig[]): Promise<MaterialStockOutEntity[]> {
-		let whereClause: any = {};
-
-		// Build search conditions for material out
+		let whereClause: any = {};
 		if (search && search.length > 0) {
 			const searchConditions = search.map(config => {
-				const { field, value } = config;
-				
-				// Handle searchable fields for material out
+				const { field, value } = config;
 				if (field === 'material_id') {
 					return { material_id: parseInt(value) || 0 };
 				}
@@ -307,32 +283,22 @@ export default class MaterialRepository
 			orderBy: {
 				createdAt: 'asc',
 			},
-		});
-
-		// Map DB records to entities using EntityMapper
+		});
 		return this.stockOutMapper.mapToEntities(dbRecords);
-	}
-
-	// Get material out by ID
+	}
 	async getMaterialOutById(id: number): Promise<MaterialStockOutEntity | null> {
 		const dbRecord = await this.prisma.materialOut.findUnique({
 			where: { id,description:{not:null} },
 		});
 
-		if (!dbRecord) return null;
-
-		// Map DB record to entity using EntityMapper
+		if (!dbRecord) return null;
 		return this.stockOutMapper.mapToEntity(dbRecord);
-	}
-
-	// Get material out list by material ID
+	}
 	async getMaterialOutsByMaterialId(materialId: number): Promise<MaterialStockOutEntity[]> {
 		const dbRecords = await this.prisma.materialOut.findMany({
 			where: { material_id: materialId },
 			orderBy: { used_at: 'desc' },
-		});
-
-		// Map DB records to entities using EntityMapper
+		});
 		return this.stockOutMapper.mapToEntities(dbRecords);
 	}
 
@@ -370,9 +336,7 @@ export default class MaterialRepository
 				quantity: true,
 			},
 		});
-		const totalUsed = totalUsedData._sum?.quantity || 0;
-
-		// Calculate remaining_stock: total received - total used
+		const totalUsed = totalUsedData._sum?.quantity || 0;
 		const remainingStock = totalStockIn - totalUsed;
 
 		return remainingStock;
@@ -403,7 +367,4 @@ export default class MaterialRepository
 		return records;
 	}
 }
-
-
-
 

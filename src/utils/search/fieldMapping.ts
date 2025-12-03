@@ -206,9 +206,7 @@ export function mapResponseFieldToDbField(entityName: EntityName, responseField:
   
   if (!dbField) {
     return null;
-  }
-  
-  // Handle nested field mappings
+  }
   if (Array.isArray(dbField)) {
     return dbField.join('.');
   }

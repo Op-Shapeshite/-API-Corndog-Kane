@@ -50,8 +50,7 @@ export class Service<T extends TEntity> {
 		filters?: FilterObject,
 		orderBy?: Record<string, 'asc' | 'desc'>,
 		outletId?: number
-	): Promise<PaginationResult<T>> {
-		// Add outletId to filters if provided
+	): Promise<PaginationResult<T>> {
 		const combinedFilters = outletId 
 			? { ...filters, outlet_id: outletId }
 			: filters;

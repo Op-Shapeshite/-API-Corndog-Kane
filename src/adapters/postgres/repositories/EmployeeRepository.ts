@@ -26,32 +26,25 @@ export default class EmployeeRepository
     searchValue?: string,
     page?: number,
     limit?: number
-  ) {
-    // Build date filter for attendance queries
+  ) {
     const dateFilter: { checkin_time?: { gte?: Date; lte?: Date } } = {};
     if (startDate || endDate) {
       dateFilter.checkin_time = {};
-      if (startDate) {
-        // Set to start of day
+      if (startDate) {
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
         dateFilter.checkin_time.gte = start;
       }
-      if (endDate) {
-        // Set to end of day
+      if (endDate) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
         dateFilter.checkin_time.lte = end;
       }
-    }
-
-    // Build status filter - cast to AttendanceStatus enum
+    }
     const statusFilter: { attendance_status?: AttendanceStatus } = {};
     if (status) {
       statusFilter.attendance_status = status as AttendanceStatus;
-    }
-
-    // Build search filter based on search_key and search_value
+    }
     const searchFilter: {
       employee?: { name?: { contains: string; mode: 'insensitive' } };
       outlet?: { name?: { contains: string; mode: 'insensitive' } };
@@ -83,15 +76,11 @@ export default class EmployeeRepository
           searchFilter.late_approval_status = searchValue as ApprovalStatus;
           break;
       }
-    }
-
-    // For table view, return attendance data with pagination
+    }
     if (view === 'table') {
       const currentPage = page && page > 0 ? page : 1;
       const pageSize = limit && limit > 0 ? limit : 10;
-      const skip = (currentPage - 1) * pageSize;
-
-      // Get total count for pagination
+      const skip = (currentPage - 1) * pageSize;
       const total = await this.prisma.attendance.count({
         where: {
           is_active: true,
@@ -147,9 +136,7 @@ export default class EmployeeRepository
           totalPages: Math.ceil(total / pageSize),
         },
       };
-    }
-
-    // For timeline view (default), return outlet assignments
+    }
     // Note: Date filtering only applies to attendance (table view)
     const schedules = await this.prisma.outletEmployee.findMany({
       where: {
@@ -196,9 +183,7 @@ export default class EmployeeRepository
     today.setHours(0, 0, 0, 0);
 
     const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Check if already checked in today
+    tomorrow.setDate(tomorrow.getDate() + 1);
     const existingAttendance = await this.prisma.attendance.findFirst({
       where: {
         employee_id: employeeId,
@@ -211,9 +196,7 @@ export default class EmployeeRepository
 
     if (existingAttendance) {
       throw new Error('Already checked in today');
-    }
-
-    // Get the current day and time
+    }
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
@@ -221,9 +204,7 @@ export default class EmployeeRepository
     const currentTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
     
     const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const day = days[now.getDay()];
-
-    // Find matching outlet setting for current day
+    const day = days[now.getDay()];
     // Allow check-in at any time (early or late) - just need a schedule for the day
     const settings = await this.prisma.outletSetting.findMany({
       where: {
@@ -237,22 +218,14 @@ export default class EmployeeRepository
 
     if (settings.length === 0) {
       throw new Error(`No schedule found for ${day} at this outlet. Please contact your manager to set up outlet schedules.`);
-    }
-
-    // Use the first (earliest) setting for the day
+    }
     // This represents the scheduled check-in time to calculate lateness
-    const setting = settings[0];
-    
-    // Parse outlet check_in_time (format: "HH:MM:SS")
+    const setting = settings[0];
     const [outletHour, outletMinute] = setting.check_in_time.split(':').map(Number);
     
     // Convert to minutes for comparison
-    const outletTimeInMinutes = outletHour * 60 + outletMinute;
-    
-    // Calculate how many minutes late (0 if on time or early)
-    const lateMinutes = Math.max(0, currentTimeInMinutes - outletTimeInMinutes);
-
-    // Create new attendance record
+    const outletTimeInMinutes = outletHour * 60 + outletMinute;
+    const lateMinutes = Math.max(0, currentTimeInMinutes - outletTimeInMinutes);
     const attendance = await this.prisma.attendance.create({
       data: {
         employee_id: employeeId,
@@ -280,9 +253,7 @@ export default class EmployeeRepository
 
     if (todayAttendance.checkoutTime) {
       throw new Error('Already checked out today');
-    }
-
-    // Update with checkout info
+    }
     const updated = await this.prisma.attendance.update({
       where: { id: todayAttendance.id },
       data: {
@@ -325,8 +296,7 @@ export default class EmployeeRepository
    * Find employee scheduled for outlet based on user_id for today
    * Returns the employee_id of the active employee assigned to the outlet today
    */
-  async findScheduledEmployeeByUserId(userId: number): Promise<number | null> {
-    // Get today's date range
+  async findScheduledEmployeeByUserId(userId: number): Promise<number | null> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -404,15 +374,11 @@ export default class EmployeeRepository
     }>; 
     total: number 
   }> {
-    const skip = (page - 1) * limit;
-
-    // Build where clause
+    const skip = (page - 1) * limit;
     const whereClause: Record<string, unknown> = {
       outlet_id: outletId,
       is_active: true,
-    };
-
-    // If date is provided, filter by that date
+    };
     if (date) {
       const targetDate = new Date(date);
       targetDate.setHours(0, 0, 0, 0);
@@ -424,14 +390,10 @@ export default class EmployeeRepository
         gte: targetDate,
         lt: nextDay,
       };
-    }
-
-    // Get total count
+    }
     const total = await this.prisma.attendance.count({
       where: whereClause,
-    });
-
-    // Get paginated data with employee and outlet details
+    });
     const attendances = await this.prisma.attendance.findMany({
       where: whereClause,
       include: {
@@ -458,9 +420,7 @@ export default class EmployeeRepository
       },
       skip,
       take: limit,
-    });
-
-    // Return raw data - mapping to response format happens in Controller layer
+    });
     return { data: attendances, total };
   }
 

@@ -53,8 +53,7 @@ export const dashboardSchema = z.object({
         // Customer growth type filter
         customer_growth_type: z.enum(['daily', 'monthly', 'weekly', 'yearly'])
     })
-}).refine((data) => {
-    // Validate date range: end_date >= start_date
+}).refine((data) => {
     const startDate = new Date(data.query.product_sales_start_date);
     const endDate = new Date(data.query.product_sales_end_date);
     return endDate >= startDate;

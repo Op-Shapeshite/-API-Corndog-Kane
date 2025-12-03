@@ -10,15 +10,9 @@ import { validateUnit } from '../../middlewares/unitValidation';
 
 const router = express.Router();
 
-const masterProductController = new MasterProductController();
-
-// Get all master products with pagination
-router.get('/', validate(getPaginationSchema), masterProductController.getAllMasterProducts);
-
-// Get product inventory for a master product
-router.get('/:id/inventory', masterProductController.getProductInventory);
-
-// Create or update product inventory
+const masterProductController = new MasterProductController();
+router.get('/', validate(getPaginationSchema), masterProductController.getAllMasterProducts);
+router.get('/:id/inventory', masterProductController.getProductInventory);
 router.post('/inventory', validate(productInventoryCreateSchema), validateUnit, masterProductController.createProductInventory);
 router.put('/inventory/:id', validate(productInventoryUpdateSchema), validateUnit, masterProductController.updateProductInventory);
 

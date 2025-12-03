@@ -132,8 +132,7 @@ function convertToSnakeCase(obj: Record<string, unknown>): Record<string, unknow
 			// Recursively convert nested objects (but not Date objects)
 			else if (value && typeof value === 'object' && !Array.isArray(value)) {
 				result[snakeKey] = convertToSnakeCase(value as Record<string, unknown>);
-			}
-			// Handle arrays
+			}
 			else if (Array.isArray(value)) {
 				result[snakeKey] = value.map(item =>
 					item && typeof item === 'object' && !(item instanceof Date)
@@ -170,9 +169,7 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 
 	async getById(id: string): Promise<T | null> {
 		const model = this.getModel();
-		const numericId = parseInt(id, 10);
-
-		// Validate that the ID is a valid number
+		const numericId = parseInt(id, 10);
 		if (isNaN(numericId)) {
 			throw new Error(`Invalid ID format: ${id}`);
 		}
@@ -199,12 +196,8 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		filters?: Record<string, unknown>,
 		orderBy?: Record<string, 'asc' | 'desc'>
 	): Promise<PaginationResult<T>> {
-		const model = this.getModel();
-
-		// Calculate skip for pagination
-		const skip = (page - 1) * limit;
-
-		// Build where clause
+		const model = this.getModel();
+		const skip = (page - 1) * limit;
 		const where: Record<string, unknown> = {};
 
 		// Helper to recursively remove undefined keys from where object
@@ -213,8 +206,7 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 			const cleaned: Record<string, unknown> = {};
 			for (const k of Object.keys(obj)) {
 				const v = obj[k];
-				if (v === undefined) continue; // drop undefined values
-				// If value is an object, sanitize recursively
+				if (v === undefined) continue; // drop undefined values
 				if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
 					const nested = sanitizeWhere(v as Record<string, unknown>);
 					if (nested && Object.keys(nested).length > 0) {
@@ -231,16 +223,11 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 				}
 			}
 			return Object.keys(cleaned).length > 0 ? cleaned : undefined;
-		}
-
-		// Add exact match filters
+		}
 		if (filters) {
 			Object.assign(where, filters);
-		}
-
-		// Add search conditions (LIKE)
-		if (search && search.length > 0) {
-			// Filter out search entries with undefined/null field or value
+		}
+		if (search && search.length > 0) {
 			const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
 
 			if (validSearch.length > 0) {
@@ -249,9 +236,7 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 						contains: value,
 						mode: 'insensitive' // Case-insensitive search
 					}
-				}));
-
-				// Use OR condition for multiple search fields
+				}));
 				if (searchConditions.length > 1) {
 					where.OR = searchConditions;
 				} else {
@@ -261,11 +246,9 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		}
 
 		// Sanitize where before passing to Prisma to avoid invalid undefined keys
-		const sanitizedWhere = sanitizeWhere(where);
-		// Get total count for pagination
+		const sanitizedWhere = sanitizeWhere(where);
 		const total = await model.count({ where: sanitizedWhere });
-		console.log(where);
-		// Get records with pagination
+		console.log(where);
 		const records = await model.findMany({
 			where: sanitizedWhere,
 			skip,
