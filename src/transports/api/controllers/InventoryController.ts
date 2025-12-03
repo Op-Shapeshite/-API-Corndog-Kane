@@ -4,6 +4,8 @@ import { TInventoryStockInRequest, TInventoryStockInUpdateRequest, TInventorySto
 import { TMetadataResponse } from "../../../core/entities/base/response";
 import Controller from "./Controller";
 import { InventoryStockInBatchResponseMapper, InventoryBuyListResponseMapper, InventoryStockInResponseMapper } from "../../../mappers/response-mappers";
+import { SearchHelper } from "../../../utils/search/searchHelper";
+import { SearchConfig } from "../../../core/repositories/Repository";
 
 /**
  * InventoryController
@@ -62,8 +64,32 @@ export class InventoryController extends Controller<TInventoryStockInResponse | 
 				const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
 				const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
 
-				// Call service - returns entity
-				const { data, total } = await inventoryService.getBuyList(page, limit);
+				// Enhanced search parameter validation
+				const validation = SearchHelper.validateSearchParams(
+					'inventory',
+					req.query.search_key as string,
+					req.query.search_value as string
+				);
+
+				if (!validation.valid) {
+					return this.handleError(
+						res,
+						new Error(validation.error),
+						validation.error || "Invalid search parameters",
+						400,
+						{ data: [], total: 0 } as TInventoryBuyListResponse,
+						{} as TMetadataResponse
+					);
+				}
+
+				// Build search config if search parameters are provided  
+				let searchConfig: SearchConfig[] | undefined;
+				if (validation.valid && req.query.search_key && req.query.search_value) {
+					searchConfig = SearchHelper.buildSearchConfig('inventory', req.query.search_key as string, req.query.search_value as string);
+				}
+
+				// Call service with search - returns entity
+				const { data, total } = await inventoryService.getBuyList(page, limit, searchConfig);
 
 				// Map entities to response
 				const responseData: TInventoryBuyListResponse = {

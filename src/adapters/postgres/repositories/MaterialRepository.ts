@@ -1,6 +1,6 @@
 import { TMaterial, TMaterialWithID } from "../../../core/entities/material/material";
 import { MaterialRepository as IMaterialRepository } from "../../../core/repositories/material";
-import Repository from "./Repository";
+import Repository, { SearchConfig } from "./Repository";
 import { PrismaClient } from "@prisma/client";
 import { EntityMapper } from "../../../mappers/EntityMapper";
 import { MaterialStockInMapperEntity } from "../../../mappers/mappers/MaterialStockInMapperEntity";
@@ -122,11 +122,72 @@ export default class MaterialRepository
 	}
 
 	// Buy List Operations
-	async getMaterialInList(skip: number, take: number): Promise<PaginatedMaterialStockIn> {
+	async getMaterialInList(skip: number, take: number, search?: SearchConfig[]): Promise<PaginatedMaterialStockIn> {
+		let whereClause: any = {};
+
+		// Build search conditions
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				if (field === 'suplier.name') {
+					return {
+						suplier: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+				
+				if (field === 'material.name') {
+					return {
+						material: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+				
+				// Handle other searchable fields
+				if (field === 'receivedAt') {
+					return { receivedAt: { contains: value } };
+				}
+				
+				if (field === 'materialId') {
+					return { materialId: parseInt(value) || 0 };
+				}
+
+				if (field === 'suplierId') {
+					return { suplierId: parseInt(value) || 0 };
+				}
+
+				if (field === 'quantity') {
+					return { quantity: parseInt(value) || 0 };
+				}
+
+				if (field === 'price') {
+					return { price: parseFloat(value) || 0 };
+				}
+
+				return null;
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause = {
+					OR: searchConditions
+				};
+			}
+		}
+
 		const [dbRecords, total] = await Promise.all([
 			this.prisma.materialIn.findMany({
 				skip,
 				take,
+				where: whereClause,
 				include: {
 					material: true,
 					suplier: true,
@@ -135,7 +196,7 @@ export default class MaterialRepository
 					createdAt: 'desc',
 				},
 			}),
-			this.prisma.materialIn.count(),
+			this.prisma.materialIn.count({ where: whereClause }),
 		]);
 
 		// Map DB records to entities using EntityMapper
@@ -159,8 +220,90 @@ export default class MaterialRepository
 		return this.stockInMapper.mapToEntities(dbRecords);
 	}
 
+	async getAllMaterialInRecordsWithSearch(search?: SearchConfig[]): Promise<MaterialStockInEntity[]> {
+		let whereClause: any = {};
+
+		// Build search conditions
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				if (field === 'material.name') {
+					return {
+						material: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+				
+				// Handle other searchable fields for material inventory  
+				if (field === 'materialId') {
+					return { materialId: parseInt(value) || 0 };
+				}
+
+				return null;
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause = {
+					OR: searchConditions
+				};
+			}
+		}
+
+		const dbRecords = await this.prisma.materialIn.findMany({
+			where: whereClause,
+			include: {
+				material: true,
+			},
+			orderBy: {
+				createdAt: 'asc',
+			},
+		});
+
+		// Map DB records to entities using EntityMapper
+		return this.stockInMapper.mapToEntities(dbRecords);
+	}
+
 	async getAllMaterialOutRecords(): Promise<MaterialStockOutEntity[]> {
 		const dbRecords = await this.prisma.materialOut.findMany({
+			orderBy: {
+				createdAt: 'asc',
+			},
+		});
+
+		// Map DB records to entities using EntityMapper
+		return this.stockOutMapper.mapToEntities(dbRecords);
+	}
+
+	async getAllMaterialOutRecordsWithSearch(search?: SearchConfig[]): Promise<MaterialStockOutEntity[]> {
+		let whereClause: any = {};
+
+		// Build search conditions for material out
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				// Handle searchable fields for material out
+				if (field === 'material_id') {
+					return { material_id: parseInt(value) || 0 };
+				}
+
+				return null;
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause = {
+					OR: searchConditions
+				};
+			}
+		}
+
+		const dbRecords = await this.prisma.materialOut.findMany({
+			where: whereClause,
 			orderBy: {
 				createdAt: 'asc',
 			},

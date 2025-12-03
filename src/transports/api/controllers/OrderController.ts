@@ -13,6 +13,8 @@ import Controller from "./Controller";
 import { AuthRequest } from '../../../policies/authMiddleware';
 import { Request } from 'express';
 import { getWebSocketInstance } from '../../websocket';
+import { SearchHelper } from "../../../utils/search/searchHelper";
+import { SearchConfig } from "../../../core/repositories/Repository";
 import { PrismaClient } from '@prisma/client';
 import ExcelJS from 'exceljs';
 import { styleHeaderRow, setExcelHeaders, autoSizeColumns, formatDate } from '../../../utils/excelHelpers';
@@ -47,7 +49,31 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
 
-      const result = await this.orderService.getAllOrders(page, limit);
+      // Enhanced search parameter validation
+      const validation = SearchHelper.validateSearchParams(
+        'order',
+        req.query.search_key as string,
+        req.query.search_value as string
+      );
+
+      if (!validation.valid) {
+        return this.handleError(
+          res,
+          new Error(validation.error),
+          validation.error || "Invalid search parameters",
+          400,
+          [] as TOrderListResponse[],
+          {} as TMetadataResponse
+        );
+      }
+
+      // Build search config if search parameters are provided
+      let searchConfig: SearchConfig[] | undefined;
+      if (validation.valid && req.query.search_key && req.query.search_value) {
+        searchConfig = SearchHelper.buildSearchConfig('order', req.query.search_key as string, req.query.search_value as string);
+      }
+
+      const result = await this.orderService.getAllOrders(page, limit, searchConfig);
 
       // Map each order to list response format
       const data: TOrderListResponse[] = result.orders.map(order =>

@@ -197,16 +197,20 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 		};
 	}
 
-	async getBuyList(page = 1, limit = 10): Promise<PaginatedMaterialStockIn> {
+	async getBuyList(page = 1, limit = 10, search?: SearchConfig[]): Promise<PaginatedMaterialStockIn> {
 		const skip = (page - 1) * limit;
-		return await this.repository.getMaterialInList(skip, limit);
+		return await this.repository.getMaterialInList(skip, limit, search);
 	}
 
 	/**
 	 * Get stocks inventory list
 	 * @returns Array of TMaterialStockInventory entities
 	 */
-	async getStocksList(page: number = 1, limit: number = 10): Promise<{ data: TMaterialStockInventory[], total: number }> {
+	async getStocksList(
+		page: number = 1, 
+		limit: number = 10, 
+		search?: SearchConfig[]
+	): Promise<{ data: TMaterialStockInventory[], total: number }> {
 		// Format time as HH:MM:SS
 		const formatTime = (date: Date | null): string => {
 			if (!date) return "00:00:00";
@@ -218,11 +222,14 @@ export default class MaterialService extends Service<TMaterial | TMaterialWithID
 			return new Date(date).toISOString().split('T')[0];
 		};
 
-		// Get all material in and out records through repository
-		// Data sudah ter-mapped dalam format camelCase oleh EntityMapper
+		// Get material in and out records with search support
 		const [materialIns, materialOuts] = await Promise.all([
-			this.repository.getAllMaterialInRecords(),
-			this.repository.getAllMaterialOutRecords(),
+			search && search.length > 0 
+				? this.repository.getAllMaterialInRecordsWithSearch(search)
+				: this.repository.getAllMaterialInRecords(),
+			search && search.length > 0
+				? this.repository.getAllMaterialOutRecordsWithSearch(search)  
+				: this.repository.getAllMaterialOutRecords(),
 		]);
 
 		// Group by material_id and date

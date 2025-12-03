@@ -1,6 +1,7 @@
 import OrderRepository from "../../adapters/postgres/repositories/OrderRepository";
 import { TOrder, TOrderWithItems, TOrderItemCreate } from "../entities/order/order";
 import { Service } from "./Service";
+import { SearchConfig } from "../repositories/Repository";
 
 export default class OrderService extends Service<TOrder> {
 	declare repository: OrderRepository;
@@ -126,10 +127,10 @@ export default class OrderService extends Service<TOrder> {
 	}
 
 	/**
-	 * Get all orders with pagination
+	 * Get all orders with pagination and search
 	 */
-	async getAllOrders(page: number = 1, limit: number = 10) {
-		return await this.repository.getAllOrdersWithDetails(page, limit);
+	async getAllOrders(page: number = 1, limit: number = 10, searchConfig?: SearchConfig[]) {
+		return await this.repository.getAllOrdersWithDetails(page, limit, searchConfig);
 	}
 
 	/**

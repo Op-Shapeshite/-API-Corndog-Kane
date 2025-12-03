@@ -10,6 +10,8 @@ import { ProductResponseMapper } from "../../../mappers/response-mappers/Product
 import { ProductStockResponseMapper } from "../../../mappers/response-mappers/ProductStockResponseMapper";
 import { ProductStockInResponseMapper } from "../../../mappers/response-mappers/ProductStockInResponseMapper";
 import { ProductDetailResponseMapper } from "../../../mappers/response-mappers/ProductDetailResponseMapper";
+import { SearchHelper } from "../../../utils/search/searchHelper";
+import { SearchConfig } from "../../../core/repositories/Repository";
 
 import fs from "fs";
 import path from "path";
@@ -171,30 +173,70 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
   getStocksList = () => {
     return async (req: Request, res: Response) => {
-      // Use validated pagination params from middleware with defaults
-      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+      try {
+        const { page, limit, search_key, search_value } = req.query;
+        
+        // Use validated defaults from pagination schema (page=1, limit=10)
+        const pageNum = page ? parseInt(page as string, 10) : 1;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
 
-      const { data, total } = await this.productService.getStocksList(page, limit);
-      const mappedResults: TProductInventoryGetResponse[] = data.map(item =>
-        ProductStockResponseMapper.toResponse(item)
-      );
+        // Validate search parameters using our SearchHelper
+        const validation = SearchHelper.validateSearchParams(
+          'product_inventory', 
+          search_key as string, 
+          search_value as string
+        );
 
-      const metadata: TMetadataResponse = {
-        page,
-        limit,
-        total_records: total,
-        total_pages: Math.ceil(total / limit),
-      };
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            {} as TProductInventoryGetResponse,
+            {} as TMetadataResponse
+          );
+        }
 
-      return this.getSuccessResponse(
-        res,
-        {
-          data: mappedResults,
-          metadata,
-        },
-        "Product stocks inventory retrieved successfully"
-      );
+        // Build search config if search parameters are provided
+        let searchConfig: SearchConfig[] | undefined;
+        if (validation.valid && search_key && search_value) {
+          searchConfig = SearchHelper.buildSearchConfig('product_inventory', search_key as string, search_value as string);
+        }
+
+        // Call the service with search parameters
+        const { data, total } = await this.productService.getStocksList(pageNum, limitNum, searchConfig);
+        
+        const mappedResults: TProductInventoryGetResponse[] = data.map(item =>
+          ProductStockResponseMapper.toResponse(item)
+        );
+
+        const metadata: TMetadataResponse = {
+          page: pageNum,
+          limit: limitNum,
+          total_records: total,
+          total_pages: Math.ceil(total / limitNum),
+        };
+
+        return this.getSuccessResponse(
+          res,
+          {
+            data: mappedResults,
+            metadata,
+          },
+          "Product stocks inventory retrieved successfully"
+        );
+      } catch (error) {
+        logger.error("Error retrieving product stocks inventory:", { error });
+        return this.handleError(
+          res,
+          error,
+          "Failed to retrieve product stocks inventory",
+          500,
+          {} as TProductInventoryGetResponse,
+          {} as TMetadataResponse
+        );
+      }
     };
   }
 
