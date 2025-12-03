@@ -205,4 +205,34 @@ export interface PayrollRepository extends Repository<TPayroll> {
    * Get deductions by internal payroll IDs
    */
   getDeductionsByInternalPayrollIds(payrollIds: number[]): Promise<TPayrollDeduction[]>;
+  
+  /**
+   * Create internal payroll record
+   */
+  createInternalPayroll(data: any): Promise<any>;
+  
+  /**
+   * Get base payroll by employee ID
+   */
+  getBasePayrollByEmployeeId(employeeId: number): Promise<any | null>;
+  
+  /**
+   * Create bonus for internal payroll
+   */
+  createInternalBonus(data: TPayrollBonusCreate): Promise<TPayrollBonus>;
+  
+  /**
+   * Create deduction for internal payroll
+   */
+  createInternalDeduction(data: TPayrollDeductionCreate): Promise<TPayrollDeduction>;
+  
+  /**
+   * Update internal payroll totals
+   */
+  updateInternalPayrollTotals(
+    payrollId: number,
+    totalBonus: number,
+    totalDeduction: number,
+    finalSalary: number
+  ): Promise<any>;
 }
