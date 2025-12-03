@@ -28,9 +28,11 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     orderBy?: Record<string, 'asc' | 'desc'>,
     outletId?: number
   ): Promise<PaginationResult<TProduct | TProductWithID>> {
-    const result = await super.findAll(page, limit, search, filters, orderBy);
+    const result = await super.findAll(page, limit, search, filters, orderBy);
+
     if (outletId) {
-      const today = new Date();
+      const today = new Date();
+
       const dataWithStock = await Promise.all(
         result.data.map(async (product) => {
           const productWithId = product as TProductWithID;
@@ -60,36 +62,44 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
    * Add product stock with PRODUCTION source
    * @returns TProductStockIn entity
    */
-  async addStockIn(data: TProductStockInRequest): Promise<TProductStockIn> {
+  async addStockIn(data: TProductStockInRequest): Promise<TProductStockIn> {
+
     const product = await this.repository.getById(data.product_id.toString());
     if (!product) {
       throw new Error(`Product with ID ${data.product_id} not found`);
-    }
+    }
+
     const detailedProduct = await this.repository.getDetailedProduct(data.product_id);
     if (!detailedProduct) {
       throw new Error(`Detailed product with ID ${data.product_id} not found`);
     }
 
     // Deduct materials based on product inventories for the quantity
-    for (const material of detailedProduct.materials) {
-      const materialQuantity = data.quantity * material.quantity;
+    for (const material of detailedProduct.materials) {
+
+      const materialQuantity = data.quantity * material.quantity;
+
       await this.materialService.stockOut({
         material_id: material.id,
         quantity: materialQuantity,
         unit_quantity: "pcs",
       });
-    }
+    }
+
     const stockInRecord = await this.repository.createStockInProduction(
       data.product_id,
       data.quantity,
       data.unit_quantity
-    );
+    );
+
     const productWithStocks = await this.repository.getProductWithStocks(data.product_id);
     if (!productWithStocks) {
       throw new Error("Product not found after stock in");
-    }
+    }
+
     const currentStock = productWithStocks.stocks
-      .reduce((sum, stock) => sum + stock.quantity, 0);
+      .reduce((sum, stock) => sum + stock.quantity, 0);
+
     return {
       id: stockInRecord.id,
       productId: data.product_id,
@@ -109,17 +119,23 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
     page: number = 1, 
     limit: number = 10, 
     search?: SearchConfig[]
-  ): Promise<{ data: TProductStockInventory[], total: number }> {
+  ): Promise<{ data: TProductStockInventory[], total: number }> {
+
     const formatTime = (date: Date | null): string => {
       if (!date) return "00:00:00";
       return new Date(date).toTimeString().split(' ')[0];
-    };
+    };
+
     const formatDate = (date: Date): string => {
       return new Date(date).toISOString().split('T')[0];
-    };
-    const productStocks = search && search.length > 0 
-      ? await this.repository.getProductStockRecordsWithSearch(search)
-      : await this.repository.getAllProductStockRecords();
+    };
+
+    const [productStocks, orderItems] = await Promise.all([
+      search && search.length > 0 
+        ? this.repository.getProductStockRecordsWithSearch(search)
+        : this.repository.getAllProductStockRecords(),
+      this.repository.getAllOrderItems(),
+    ]);
 
     // Group by product_id and date
     interface DailyStock {
@@ -157,11 +173,37 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
 
       const dailyStock = dailyStocksMap.get(key)!;
 
-      // Determine if it's stock in or out based on source
-      // In future, you can add logic to differentiate
+      // All records in productStock are stockIn
       dailyStock.stockIn += record.quantity;
       dailyStock.latestInTime = record.date;
       dailyStock.updatedAt = record.date;
+    });
+
+    // Process order items as stock out
+    orderItems.forEach(orderItem => {
+      const date = formatDate(orderItem.createdAt);
+      const key = `${orderItem.product_id}_${date}`;
+
+      if (!dailyStocksMap.has(key)) {
+        dailyStocksMap.set(key, {
+          productId: orderItem.product_id,
+          productName: orderItem.product.product_master.name,
+          date,
+          stockIn: 0,
+          stockOut: 0,
+          unitQuantity: 'pcs', // Default unit for products
+          latestInTime: null,
+          latestOutTime: null,
+          updatedAt: orderItem.createdAt,
+        });
+      }
+
+      const dailyStock = dailyStocksMap.get(key)!;
+      dailyStock.stockOut += orderItem.quantity;
+      dailyStock.latestOutTime = orderItem.createdAt;
+      if (!dailyStock.latestInTime) {
+        dailyStock.updatedAt = orderItem.createdAt;
+      }
     });
 
     // Convert to array and sort by product_id and date
@@ -170,7 +212,8 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
         return a.productId - b.productId;
       }
       return a.date.localeCompare(b.date);
-    });
+    });
+
     const productStocksMap = new Map<number, number>(); // productId -> running stock
     const data: TProductStockInventory[] = [];
 
@@ -191,7 +234,8 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
         updatedAt: daily.updatedAt,
         inTimes: formatTime(daily.latestInTime),
         outTimes: formatTime(daily.latestOutTime),
-      });
+      });
+
       productStocksMap.set(daily.productId, currentStock);
     });
 
