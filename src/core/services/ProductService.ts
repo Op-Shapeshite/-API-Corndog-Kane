@@ -116,8 +116,8 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
    * @returns Array of TProductStockInventory entities
    */
   async getStocksList(
-    page: number = 1, 
-    limit: number = 10, 
+    page: number = 1,
+    limit: number = 10,
     search?: SearchConfig[]
   ): Promise<{ data: TProductStockInventory[], total: number }> {
 
@@ -130,8 +130,8 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       return new Date(date).toISOString().split('T')[0];
     };
 
-    const [productStocks, orderItems] = await Promise.all([
-      search && search.length > 0 
+    const [productStocks] = await Promise.all([
+      search && search.length > 0
         ? this.repository.getProductStockRecordsWithSearch(search)
         : this.repository.getAllProductStockRecords(),
       this.repository.getAllOrderItems(),
@@ -179,32 +179,8 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       dailyStock.updatedAt = record.date;
     });
 
-    // Process order items as stock out
-    orderItems.forEach(orderItem => {
-      const date = formatDate(orderItem.createdAt);
-      const key = `${orderItem.product_id}_${date}`;
-
-      if (!dailyStocksMap.has(key)) {
-        dailyStocksMap.set(key, {
-          productId: orderItem.product_id,
-          productName: orderItem.product.product_master.name,
-          date,
-          stockIn: 0,
-          stockOut: 0,
-          unitQuantity: 'pcs', // Default unit for products
-          latestInTime: null,
-          latestOutTime: null,
-          updatedAt: orderItem.createdAt,
-        });
-      }
-
-      const dailyStock = dailyStocksMap.get(key)!;
-      dailyStock.stockOut += orderItem.quantity;
-      dailyStock.latestOutTime = orderItem.createdAt;
-      if (!dailyStock.latestInTime) {
-        dailyStock.updatedAt = orderItem.createdAt;
-      }
-    });
+  
+    
 
     // Convert to array and sort by product_id and date
     const dailyStocks = Array.from(dailyStocksMap.values()).sort((a, b) => {
