@@ -92,12 +92,73 @@ export const EntityFieldMappings = {
     stock: 'stock', // Special handling needed - computed field  
   } satisfies FieldMapping,
 
+  material_inventory: {
+    id: 'id',
+    material_id: 'material_id',
+    date: 'date',
+    name: 'material_name', // This needs special mapping - may need to be ['material', 'name']
+    first_stock_count: 'firstStockCount', // This is computed, not directly searchable
+    stock_in_count: 'stockInCount', // This is computed, not directly searchable
+    stock_out_count: 'stockOutCount', // This is computed, not directly searchable
+    current_stock: 'currentStock', // This is computed, not directly searchable
+    unit_quantity: 'unitQuantity', // This is computed, not directly searchable
+    updated_at: 'updatedAt',
+    out_times: 'outTimes', // This is computed, not directly searchable
+    in_times: 'inTimes', // This is computed, not directly searchable
+  } satisfies FieldMapping,
+
+  material_buy: {
+    id: 'id',
+    date: 'receivedAt',
+    suplier_name: ['suplier', 'name'], // Nested field search
+    suplier_id: 'suplierId',
+    material_id: 'materialId', 
+    material_name: ['material', 'name'], // Nested field search
+    quantity: 'quantity',
+    unit_quantity: 'quantityUnit',
+    price: 'price',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt',
+  } satisfies FieldMapping,
+
   transaction: {
     ...CommonFieldMappings,
     type: 'type',
     amount: 'amount',
     reference_id: 'referenceId',
     account: ['account', 'name'], // Nested field search
+  } satisfies FieldMapping,
+
+  inventory: {
+    id: 'id',
+    item_type: 'itemType', // Not searchable - computed field  
+    item_id: 'materialId',
+    item_name: ['material', 'name'], // Nested field search - material name
+    quantity: 'quantity',
+    unit_quantity: 'quantityUnit',
+    price: 'price',
+    supplier_id: 'suplierId',
+    supplier_name: ['suplier', 'name'], // Nested field search - note: 'suplier' not 'supplier'
+    purchased_at: 'receivedAt',
+  } satisfies FieldMapping,
+
+  order: {
+    id: 'id',
+    invoice_number: 'invoiceNumber',
+    date: 'createdAt', // Using createdAt as the date field
+    total_amount: 'totalAmount',
+    outlet_name: ['outlet', 'name'], // Nested field search
+    outlet_id: 'outletId',
+    status: 'status',
+    payment_method: 'paymentMethod',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt',
+  } satisfies FieldMapping,
+
+  master_product: {
+    ...CommonFieldMappings,
+    category_id: 'categoryId',
+    category_name: ['category', 'name'], // Nested field search
   } satisfies FieldMapping,
 
   quantity_unit: {
@@ -112,6 +173,21 @@ export const EntityFieldMappings = {
     address: 'address',
     email: 'email',
     phone: 'phone',
+  } satisfies FieldMapping,
+
+  product_inventory: {
+    id: 'id',
+    product_id: 'product_id',
+    date: 'date',
+    name: ['products', 'name'], // Nested field search - product name
+    first_stock_count: 'firstStockCount', // This is computed, not directly searchable
+    stock_in_count: 'stockInCount', // This is computed, not directly searchable  
+    stock_out_count: 'stockOutCount', // This is computed, not directly searchable
+    current_stock: 'currentStock', // This is computed, not directly searchable
+    unit_quantity: 'unitQuantity', // This is computed, not directly searchable
+    updated_at: 'updatedAt',
+    out_times: 'outTimes', // This is computed, not directly searchable
+    in_times: 'inTimes', // This is computed, not directly searchable
   } satisfies FieldMapping,
 } as const;
 

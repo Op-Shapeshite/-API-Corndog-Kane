@@ -123,7 +123,11 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
    * Get stocks inventory list
    * @returns Array of TProductStockInventory entities
    */
-  async getStocksList(page: number = 1, limit: number = 10): Promise<{ data: TProductStockInventory[], total: number }> {
+  async getStocksList(
+    page: number = 1, 
+    limit: number = 10, 
+    search?: SearchConfig[]
+  ): Promise<{ data: TProductStockInventory[], total: number }> {
     // Format time as HH:MM:SS
     const formatTime = (date: Date | null): string => {
       if (!date) return "00:00:00";
@@ -135,8 +139,10 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       return new Date(date).toISOString().split('T')[0];
     };
 
-    // Get all product stock records
-    const productStocks = await this.repository.getAllProductStockRecords();
+    // Get product stock records with search support
+    const productStocks = search && search.length > 0 
+      ? await this.repository.getProductStockRecordsWithSearch(search)
+      : await this.repository.getAllProductStockRecords();
 
     // Group by product_id and date
     interface DailyStock {

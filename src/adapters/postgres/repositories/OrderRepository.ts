@@ -1,6 +1,6 @@
 import { TOrder, TOrderWithItems, TOrderCreate, TOrderItemCreate } from "../../../core/entities/order/order";
 import { OrderRepository as IOrderRepository } from "../../../core/repositories/order";
-import Repository from "./Repository";
+import Repository, { SearchConfig } from "./Repository";
 
 /**
  * Helper function to map Prisma product (with product_master) to flat product object
@@ -440,12 +440,59 @@ export default class OrderRepository
 	/**
 	 * Get all orders with items and product details (for list)
 	 */
-	async getAllOrdersWithDetails(page: number = 1, limit: number = 10) {
+	async getAllOrdersWithDetails(page: number = 1, limit: number = 10, search?: SearchConfig[]) {
 		const skip = (page - 1) * limit;
+		let whereClause: any = { is_active: true };
+
+		// Build search conditions
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				if (field === 'outlet.name') {
+					return {
+						outlet: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+
+				// Handle other searchable fields
+				switch (field) {
+					case 'invoiceNumber':
+						return { invoiceNumber: { contains: value, mode: 'insensitive' } };
+					case 'totalAmount':
+						const numericValue = parseFloat(value);
+						if (!isNaN(numericValue)) {
+							return { totalAmount: numericValue };
+						}
+						return null;
+					case 'status':
+						return { status: { contains: value, mode: 'insensitive' } };
+					case 'paymentMethod':
+						return { paymentMethod: { contains: value, mode: 'insensitive' } };
+					case 'outletId':
+						const outletIdValue = parseInt(value);
+						if (!isNaN(outletIdValue)) {
+							return { outletId: outletIdValue };
+						}
+						return null;
+					default:
+						return null;
+				}
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause.OR = searchConditions;
+			}
+		}
 
 		const [orders, total] = await Promise.all([
 			this.prisma.order.findMany({
-				where: { is_active: true },
+				where: whereClause,
 				include: {
 					outlet: {
 						select: {
@@ -467,7 +514,7 @@ export default class OrderRepository
 				skip,
 				take: limit,
 			}),
-			this.getModel().count({ where: { is_active: true } }),
+			this.getModel().count({ where: whereClause }),
 		]);
 
 		// Map products to flat structure

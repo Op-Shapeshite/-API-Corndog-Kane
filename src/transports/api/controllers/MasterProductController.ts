@@ -7,6 +7,8 @@ import { MasterProductRepository } from "../../../adapters/postgres/repositories
 import Controller from "./Controller";
 import { MasterProductResponseMapper } from "../../../mappers/response-mappers/MasterProductResponseMapper";
 import { ProductInventoryResponseMapper } from "../../../mappers/response-mappers/ProductInventoryResponseMapper";
+import { SearchHelper } from "../../../utils/search/searchHelper";
+import { SearchConfig } from "../../../core/repositories/Repository";
 
 export class MasterProductController extends Controller<TMasterProductGetResponse | TProductInventoryGetResponse, TMetadataResponse> {
   private masterProductService: MasterProductService;
@@ -22,12 +24,36 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
       const categoryId = req.query.category_id ? parseInt(req.query.category_id as string, 10) : undefined;
+
+      // Enhanced search parameter validation
+      const validation = SearchHelper.validateSearchParams(
+        'master_product',
+        req.query.search_key as string,
+        req.query.search_value as string
+      );
+
+      if (!validation.valid) {
+        return this.handleError(
+          res,
+          new Error(validation.error),
+          validation.error || "Invalid search parameters",
+          400,
+          [] as TMasterProductGetResponse[],
+          {} as TMetadataResponse
+        );
+      }
+
+      // Build search config if search parameters are provided
+      let searchConfig: SearchConfig[] | undefined;
+      if (validation.valid && req.query.search_key && req.query.search_value) {
+        searchConfig = SearchHelper.buildSearchConfig('master_product', req.query.search_key as string, req.query.search_value as string);
+      }
       
-      // Get paginated results with category filter
+      // Get paginated results with category filter and search
       const result = await this.masterProductService.findAll(
         page,
         limit,
-        undefined,
+        searchConfig,
         categoryId ? { category_id: categoryId } : undefined
       );
 
@@ -102,7 +128,6 @@ export class MasterProductController extends Controller<TMasterProductGetRespons
       const data: TProductInventoryCreateRequest = req.body;
 
       const inventory = await this.masterProductService.createProductInventory(data);
-      console.log(inventory)
       const mappedResult = ProductInventoryResponseMapper.toResponse(inventory);
 
       return this.getSuccessResponse(

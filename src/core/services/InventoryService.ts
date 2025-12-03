@@ -8,6 +8,7 @@ import {
 	ItemType
 } from "../entities/inventory/inventory";
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
+import { SearchConfig } from "../repositories/Repository";
 import SupplierRepository from "../../adapters/postgres/repositories/SupplierRepository";
 import { Service } from "./Service";
 import { TMaterial, TMaterialWithID } from "../entities/material/material";
@@ -212,9 +213,9 @@ export default class InventoryService extends Service<TMaterial | TMaterialWithI
 	 * Get buy list (Material purchases only)
 	 * Returns data from material_ins table
 	 */
-	async getBuyList(page = 1, limit = 10): Promise<{ data: TInventoryBuyListItemEntity[], total: number }> {
-		// Fetch material purchases with pagination
-		const materialData = await this.materialRepository.getMaterialInList((page - 1) * limit, limit);
+	async getBuyList(page = 1, limit = 10, searchConfig?: SearchConfig[]): Promise<{ data: TInventoryBuyListItemEntity[], total: number }> {
+		// Fetch material purchases with pagination and search
+		const materialData = await this.materialRepository.getMaterialInList((page - 1) * limit, limit, searchConfig);
 
 		// Map to unified entity format (camelCase)
 		const items: TInventoryBuyListItemEntity[] = materialData.data.map(materialIn => ({

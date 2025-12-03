@@ -1,6 +1,6 @@
 import { TProduct, TProductWithID } from "../../../core/entities/product/product";
 import { ProductRepository as IProductRepository } from "../../../core/repositories/product";
-import Repository from "./Repository";
+import Repository, { SearchConfig } from "./Repository";
 import { ProductStockInEntity, ProductWithStocks } from "../../../core/entities/inventory/inventory";
 import { ProductMapper } from "../../../mappers/mappers/ProductMapper";
 
@@ -341,6 +341,73 @@ export class ProductRepository
 	 */
 	async getAllProductStockRecords() {
 		const dbRecords = await this.prisma.productStock.findMany({
+			include: {
+				products: {
+					include: {
+						category: true,
+					},
+				},
+			},
+			orderBy: {
+				date: "asc",
+			},
+		});
+
+		// Map products to have name field from product_master
+		return dbRecords.map((record) => ({
+			...record,
+			products: {
+				...record.products,
+				name: record.products.name,
+				categoryId: record.products.category_id,
+				category: record.products.category,
+			},
+		}));
+	}
+
+	/**
+	 * Get product stock records with search support (for inventory calculation)
+	 */
+	async getProductStockRecordsWithSearch(search?: SearchConfig[]) {
+		let whereClause: any = {};
+
+		// Build search conditions
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				if (field === 'products.name') {
+					return {
+						products: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+				
+				// Handle other searchable fields
+				if (field === 'date') {
+					return { date: { contains: value } };
+				}
+				
+				if (field === 'product_id') {
+					return { product_id: parseInt(value) || 0 };
+				}
+
+				return null;
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause = {
+					OR: searchConditions
+				};
+			}
+		}
+
+		const dbRecords = await this.prisma.productStock.findMany({
+			where: whereClause,
 			include: {
 				products: {
 					include: {
