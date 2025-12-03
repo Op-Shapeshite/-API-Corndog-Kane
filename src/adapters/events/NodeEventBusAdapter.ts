@@ -81,6 +81,13 @@ export class NodeEventBusAdapter implements IEventBus {
     this.eventEmitter.removeAllListeners();
     this.handlers.clear();
   }
+
+  /**
+   * Dispose - clear all handlers
+   */
+  dispose(): void {
+    this.clearAllHandlers();
+  }
 }
 
 /**
@@ -162,5 +169,13 @@ export class AsyncEventBusAdapter implements IEventBus {
 
     this.failedEvents = stillFailed;
     return retried;
+  }
+
+  /**
+   * Dispose - clear all handlers
+   */
+  dispose(): void {
+    this.nodeEventBus.dispose();
+    this.failedEvents = [];
   }
 }

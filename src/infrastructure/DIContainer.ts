@@ -21,7 +21,7 @@ import { InventoryHexagonalController } from '../transports/api/controllers/Inve
 // Event Bus and Unit of Work
 import { IEventBus } from '../core/domain/ports/secondary/IEventBus';
 import { IUnitOfWork } from '../core/domain/ports/secondary/IUnitOfWork';
-import { NodeEventBusAdapter, AsyncEventBusAdapter } from '../adapters/events/NodeEventBusAdapter';
+import { AsyncEventBusAdapter } from '../adapters/events/NodeEventBusAdapter';
 import { PrismaUnitOfWorkManager } from '../adapters/postgres/PrismaUnitOfWork';
 
 /**
@@ -196,10 +196,8 @@ export class DIContainer {
    * Clean up resources
    */
   async dispose(): Promise<void> {
-    // Clear event handlers
-    if (this.eventBus instanceof NodeEventBusAdapter) {
-      this.eventBus.clearAllHandlers();
-    }
+    // Clear event handlers using interface method
+    this.eventBus.dispose();
     await this.prisma.$disconnect();
   }
 }

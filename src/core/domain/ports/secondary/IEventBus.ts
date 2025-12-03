@@ -31,6 +31,11 @@ export interface IEventBus {
     eventType: new (...args: unknown[]) => T,
     handler: EventHandler<T>
   ): void;
+
+  /**
+   * Clear all handlers (for cleanup/testing)
+   */
+  dispose(): void;
 }
 
 /**
