@@ -134,6 +134,9 @@ export default class PayrollRepository
   }
 
   async linkPayrollsToBatch(payrollIds: number[], batchId: number): Promise<void> {
+    // Fix: Use the correct Prisma model name - it's 'payroll' not 'employee_payrolls'
+    // The @@map("employee_payrolls") in schema means the table name in DB is employee_payrolls
+    // but the Prisma model name is still 'payroll'
     await this.prisma.payroll.updateMany({
       where: {
         id: { in: payrollIds },
@@ -142,6 +145,21 @@ export default class PayrollRepository
         payment_batch_id: batchId,
       },
     });
+    
+    console.log(`✅ Linked ${payrollIds.length} payrolls to batch ${batchId}`);
+  }
+
+  async linkInternalPayrollsToBatch(internalPayrollIds: number[], batchId: number): Promise<void> {
+    await this.prisma.internalPayroll.updateMany({
+      where: {
+        id: { in: internalPayrollIds },
+      },
+      data: {
+        payment_batch_id: batchId,
+      },
+    });
+    
+    console.log(`✅ Linked ${internalPayrollIds.length} internal payrolls to batch ${batchId}`);
   }
 
   // ============================================================================
@@ -289,7 +307,26 @@ export default class PayrollRepository
     source: string;
   }[]> {
     console.log('=== Payroll Debug ===');
-    console.log('Date range:', startDate, 'to', endDate);
+    console.log('Date range:', startDate, 'to', endDate);
+
+    // Add debugging for payment batches
+    const existingBatches = await this.prisma.paymentBatch.findMany({
+      where: {
+        period_start: { gte: startDate },
+        period_end: { lte: endDate }
+      },
+      select: {
+        id: true,
+        employee_id: true,
+        status: true,
+        period_start: true,
+        period_end: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    console.log('🔍 Existing payment batches in period:', existingBatches);
+
     const result = await this.prisma.$queryRaw<any[]>`
       WITH LatestBatch AS (
         SELECT DISTINCT ON (employee_id)
@@ -544,17 +581,6 @@ export default class PayrollRepository
     return payroll;
   }
 
-  async linkInternalPayrollsToBatch(payrollIds: number[], batchId: number): Promise<void> {
-    await this.prisma.internalPayroll.updateMany({
-      where: {
-        id: { in: payrollIds },
-      },
-      data: {
-        payment_batch_id: batchId,
-      },
-    });
-  }
-
   async createInternalBonus(data: TPayrollBonusCreate): Promise<TPayrollBonus> {
     const bonus = await this.prisma.payrollBonus.create({
       data: {
@@ -634,8 +660,10 @@ export default class PayrollRepository
     total_deduction: number;
     final_amount: number;
     status: string;
-  }[]> {
-    const outletSummaries = await this.getAllEmployeePayrollSummary(startDate, endDate);
+  }[]> {
+
+    const outletSummaries = await this.getAllEmployeePayrollSummary(startDate, endDate);
+
     const internalResult = await this.prisma.$queryRaw<any[]>`
       WITH LatestBatchInternal AS (
         SELECT DISTINCT ON (employee_id)
@@ -723,20 +751,24 @@ export default class PayrollRepository
       orderBy: {
         period_end: 'desc',
       },
-    });
+    });
+
     if (latestOutletPayroll) {
-      const workDate = latestOutletPayroll.work_date;
+      const workDate = latestOutletPayroll.work_date;
+
       const dayOfWeek = workDate.getDay();
       const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, Monday = 1
       const monday = new Date(workDate);
       monday.setDate(workDate.getDate() + diff);
-      monday.setHours(0, 0, 0, 0);
+      monday.setHours(0, 0, 0, 0);
+
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
       sunday.setHours(23, 59, 59, 999);
       
       return { start: monday, end: sunday };
-    }
+    }
+
     if (latestInternalPayroll) {
       return {
         start: latestInternalPayroll.period_start,

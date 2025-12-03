@@ -507,6 +507,7 @@ export default class PayrollService extends Service<TPayroll> {
 
     // Link payrolls to batch
     const payrollIds = payrolls.map((p) => p.id);
+    console.log(`🔗 Linking ${payrollIds.length} payrolls (IDs: ${payrollIds.join(', ')}) to batch ${batch.id}`);
     await this.repository.linkPayrollsToBatch(payrollIds, batch.id);
 
     return this.getPaymentSlip(employeeId);
@@ -548,6 +549,9 @@ export default class PayrollService extends Service<TPayroll> {
       paymentReference: null,
       notes: `Internal payroll payment - ID: ${internalPayroll.id}`,
     });
+
+    // Link internal payroll to batch - THIS WAS MISSING!
+    await this.repository.linkInternalPayrollsToBatch([internalPayroll.id], batch.id);
 
     return this.getPaymentSlip(employeeId);
   }
