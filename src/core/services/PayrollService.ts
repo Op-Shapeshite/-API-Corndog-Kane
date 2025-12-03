@@ -384,8 +384,8 @@ export default class PayrollService extends Service<TPayroll> {
       }
     }
 
-    // Return updated detail using the original requested period dates
-    return this.getEmployeePayrollDetail(employeeId, startPeriod, endPeriod);
+    // Return updated detail using the actual period dates that were used
+    return this.getEmployeePayrollDetail(employeeId, this.formatDate(start), this.formatDate(end));
   }
 
   private async updateInternalPayrollPeriod(
@@ -479,17 +479,46 @@ export default class PayrollService extends Service<TPayroll> {
       );
     }
 
-    // Return updated detail using the original requested period dates
-    return this.getEmployeePayrollDetail(employeeId, startPeriod, endPeriod);
+    // Return updated detail using the actual period dates that were used
+    return this.getEmployeePayrollDetail(employeeId, this.formatDate(start), this.formatDate(end));
   }
 
   /**
    * POST /finance/payroll/:employee_id - Create payment batch (pay salary)
    */
   async createPayment(employeeId: number) {
+    // Get employee info first to determine type
+    const employee = await this.repository.getEmployeeById(employeeId);
+    if (!employee) {
+      throw new Error('Employee not found');
+    }
+
+    // Check employee type to determine which payroll system to use
+    const employeeType = await this.repository.getEmployeeType(employeeId);
+    
+    if (employeeType === 'outlet') {
+      return await this.createOutletPayment(employeeId, employee);
+    } else {
+      return await this.createInternalPayment(employeeId, employee);
+    }
+  }
+
+  private async createOutletPayment(employeeId: number, employee: any) {
     // Get current week unpaid payrolls
-    const { start, end } = this.getDateRange();
-    const payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
+    let { start, end } = this.getDateRange();
+    let payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
+
+    // If no payrolls found in current period, try to find the latest unpaid period
+    if (payrolls.length === 0) {
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        // Use the latest available period
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+        payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
+      }
+    }
 
     if (payrolls.length === 0) {
       throw new Error('No unpaid payrolls found');
@@ -520,6 +549,50 @@ export default class PayrollService extends Service<TPayroll> {
     // Link payrolls to batch
     const payrollIds = payrolls.map((p) => p.id);
     await this.repository.linkPayrollsToBatch(payrollIds, batch.id);
+
+    // Return payment slip
+    return this.getPaymentSlip(employeeId);
+  }
+
+  private async createInternalPayment(employeeId: number, employee: any) {
+    // For internal employees, use monthly periods  
+    let { start, end } = this.getCurrentMonthRange();
+    let internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
+
+    // If no payrolls found in current period, try to find the latest unpaid period
+    if (internalPayrolls.length === 0) {
+      const latestPeriod = await this.repository.getLatestPayrollPeriod(employeeId);
+      
+      if (latestPeriod) {
+        // Use the latest available period
+        start = latestPeriod.start;
+        end = latestPeriod.end;
+        internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
+      }
+    }
+
+    if (internalPayrolls.length === 0) {
+      throw new Error('No unpaid payrolls found');
+    }
+
+    // For internal payroll, there should typically be one payroll per period
+    const internalPayroll = internalPayrolls[0];
+
+    // Create payment batch for internal payroll using existing method
+    const batch = await this.repository.createPaymentBatch({
+      employeeId: employeeId,
+      periodStart: internalPayroll.period_start,
+      periodEnd: internalPayroll.period_end,
+      totalBaseSalary: internalPayroll.base_salary,
+      totalBonus: internalPayroll.total_bonus,
+      totalDeduction: internalPayroll.total_deduction,
+      finalAmount: internalPayroll.final_salary,
+      status: PaymentStatus.PAID,
+      paidAt: new Date(),
+      paymentMethod: null,
+      paymentReference: null,
+      notes: `Internal payroll payment - ID: ${internalPayroll.id}`,
+    });
 
     // Return payment slip
     return this.getPaymentSlip(employeeId);
