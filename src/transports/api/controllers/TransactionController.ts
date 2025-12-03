@@ -46,14 +46,37 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         const pageNum = page ? parseInt(page as string, 10) : 1;
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
         
-        // Build search config
-        const search =
-          search_key &&
-            search_value &&
-            search_key !== 'undefined' &&
-            search_value !== 'undefined'
-            ? [{ field: search_key as string, value: search_value as string }]
-            : undefined;
+        // Validate search parameters using enhanced search helper
+        const { SearchHelper } = await import('../../../utils/search/searchHelper');
+        const validation = SearchHelper.validateSearchParams(
+          'transaction', 
+          search_key as string, 
+          search_value as string
+        );
+
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            [] as any,
+            {
+              page: pageNum,
+              limit: limitNum,
+              total_records: 0,
+              total_pages: 0,
+              searchable_fields: validation.searchable_fields
+            } as any
+          );
+        }
+
+        // Build search configuration with proper field mapping
+        const search = SearchHelper.buildSearchConfig(
+          'transaction',
+          search_key as string,
+          search_value as string
+        );
         
         // Get paginated transactions
         const result = await this.transactionService.getAllTransactions(

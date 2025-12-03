@@ -13,7 +13,7 @@ const router = express.Router();
 const roleController = new RoleController();
 const roleService = new RoleService(new RoleRepository());
 
-router.get("/", validate(getPaginationSchema), roleController.findAll(roleService, RoleResponseMapper));
+router.get("/", validate(getPaginationSchema), roleController.getAll());
 router.post('/', validate(createRoleSchema), roleController.create(roleService, RoleResponseMapper, 'Role created successfully'));
 router.put('/:id', validate(updateRoleSchema), roleController.update(roleService, RoleResponseMapper, 'Role updated successfully'));
 router.delete('/:id', validate(deleteRoleSchema), roleController.delete(roleService, 'Role deleted successfully'));
