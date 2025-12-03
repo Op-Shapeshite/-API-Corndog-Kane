@@ -26,8 +26,11 @@ export class OutletProductRequestRepository
       select: { id: true },
     });
 
+    console.log(products);
     const foundIds = products.map(p => p.id);
+    console.log('founded_id:',foundIds)
     const missingIds = productIds.filter(id => !foundIds.includes(id));
+    console.log('missingIds:',missingIds)
 
     if (missingIds.length > 0) {
       const idText = missingIds.length === 1 ? 'ID' : 'IDs';
@@ -95,7 +98,8 @@ export class OutletProductRequestRepository
       },
     });
 
-    if (!dbRecord) return null;
+    if (!dbRecord) return null;
+
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -131,7 +135,8 @@ export class OutletProductRequestRepository
           },
         },
       },
-    });
+    });
+
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -166,7 +171,8 @@ export class OutletProductRequestRepository
           },
         },
       },
-    });
+    });
+
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -179,7 +185,8 @@ export class OutletProductRequestRepository
    */
   async batchCreate(
     requests: Array<{ outletId: number; productId: number; quantity: number }>
-  ): Promise<TOutletProductRequest[]> {
+  ): Promise<TOutletProductRequest[]> {
+
     await this.prisma.outletProductRequest.createMany({
       data: requests.map((req) => ({
         outlet_id: req.outletId,
@@ -190,7 +197,8 @@ export class OutletProductRequestRepository
       })),
     });
 
-    // Fetch the created records (createMany doesn't return data in Prisma)
+    // Fetch the created records (createMany doesn't return data in Prisma)
+
     const createdRecords = await this.prisma.outletProductRequest.findMany({
       where: {
         outlet_id: requests[0].outletId,
@@ -217,7 +225,8 @@ export class OutletProductRequestRepository
         createdAt: 'desc',
       },
       take: requests.length,
-    });
+    });
+
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -258,7 +267,8 @@ export class OutletProductRequestRepository
       this.prisma.outletProductRequest.count({
         where: { is_active: true },
       }),
-    ]);
+    ]);
+
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -282,7 +292,8 @@ export class OutletProductRequestRepository
       total_request_product_accepted: number;
     }>;
     total: number;
-  }> {
+  }> {
+
     const allRequests = await this.prisma.outletProductRequest.findMany({
       where: { is_active: true },
       include: {
@@ -373,7 +384,8 @@ export class OutletProductRequestRepository
   /**
    * Get detailed product requests by date and outlet
    */
-  async getDetailedByDateAndOutlet(date: string, outletId: number): Promise<TOutletProductRequest[]> {
+  async getDetailedByDateAndOutlet(date: string, outletId: number): Promise<TOutletProductRequest[]> {
+
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     
@@ -415,7 +427,8 @@ export class OutletProductRequestRepository
 		orderBy: {
 			createdAt: "desc",
 		},
-    });
+    });
+
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -426,7 +439,8 @@ export class OutletProductRequestRepository
   /**
    * Delete (soft delete) all product requests by date and outlet
    */
-  async deleteByDateAndOutlet(date: string, outletId: number): Promise<number> {
+  async deleteByDateAndOutlet(date: string, outletId: number): Promise<number> {
+
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     

@@ -6,29 +6,14 @@ import PostgresAdapter from '../../../adapters/postgres/instance';
  * Uses same logic as GET /products/stock endpoint for consistency
  */
 async function getProductCurrentStock(productId: number): Promise<number> {
-  const [productStocks, orderItems] = await Promise.all([
+  
+  const [productStocks] = await Promise.all([
     PostgresAdapter.client.productStock.findMany({
-      where: { product_id: productId },
+      where: { products: {products:{some:{id:productId}}} },
       orderBy: { date: 'asc' },
     }),
-    PostgresAdapter.client.orderItem.findMany({
-      where: { 
-        product_id: productId,
-        is_active: true,
-      },
-      include: {
-        order: {
-          select: {
-            createdAt: true,
-            status: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    }),
   ]);
+  console.log("productStocks:",productStocks)
   
   if (productStocks.length === 0) return 0;
   
@@ -56,28 +41,16 @@ async function getProductCurrentStock(productId: number): Promise<number> {
         stockOut: 0,
       });
     }
+    console.log("dailyStocksMap:",dailyStocksMap)
 
     const dailyStock = dailyStocksMap.get(date)!;
+
     dailyStock.stockIn += record.quantity;
   });
+  console.log("dailyStock:",dailyStocksMap)
 
   // Process order items (stockOut) - exclude cancelled orders
-  orderItems.forEach(orderItem => {
-    if (orderItem.order.status === 'CANCELLED') return;
-    
-    const date = formatDate(orderItem.createdAt);
 
-    if (!dailyStocksMap.has(date)) {
-      dailyStocksMap.set(date, {
-        date,
-        stockIn: 0,
-        stockOut: 0,
-      });
-    }
-
-    const dailyStock = dailyStocksMap.get(date)!;
-    dailyStock.stockOut += orderItem.quantity;
-  });
 
   // Sort by date and calculate running stock
   const dailyStocks = Array.from(dailyStocksMap.values()).sort((a, b) => 
@@ -120,6 +93,7 @@ const createProductRequestItemSchema = z.object({
 }).superRefine(async (data, ctx) => {
   const currentStock = await getProductCurrentStock(data.id);
   if (data.quantity > currentStock) {
+    console.log('not ok validation')
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: `Requested quantity (${data.quantity}) exceeds available stock (${currentStock}) for product ID ${data.id}`,
