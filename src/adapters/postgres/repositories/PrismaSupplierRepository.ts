@@ -30,10 +30,8 @@ export class PrismaSupplierRepository implements ISupplierRepository {
     return count > 0;
   }
 
-  async suppliesMaterial(
-    _supplierId: SupplierId,
-    _materialId: MaterialId
-  ): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async suppliesMaterial(supplierId: SupplierId, materialId: MaterialId): Promise<boolean> {
     // For now, any supplier can supply any material
     // This can be extended with a supplier-material relationship table
     return true;

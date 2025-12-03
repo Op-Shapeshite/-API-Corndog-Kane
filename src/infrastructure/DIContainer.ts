@@ -16,12 +16,13 @@ import { IMaterialRepository, ISupplierRepository } from '../core/domain/reposit
 import { PrismaMaterialRepository } from '../adapters/postgres/repositories/PrismaMaterialRepository';
 import { PrismaSupplierRepository } from '../adapters/postgres/repositories/PrismaSupplierRepository';
 import { LegacyInventoryServiceAdapter } from '../adapters/legacy/LegacyInventoryServiceAdapter';
+import { InventoryHexagonalController } from '../transports/api/controllers/InventoryHexagonalController';
 
 // Event Bus and Unit of Work
 import { IEventBus } from '../core/domain/ports/secondary/IEventBus';
 import { IUnitOfWork } from '../core/domain/ports/secondary/IUnitOfWork';
 import { NodeEventBusAdapter, AsyncEventBusAdapter } from '../adapters/events/NodeEventBusAdapter';
-import { PrismaUnitOfWork, PrismaUnitOfWorkManager } from '../adapters/postgres/PrismaUnitOfWork';
+import { PrismaUnitOfWorkManager } from '../adapters/postgres/PrismaUnitOfWork';
 
 /**
  * Dependency Injection Container
@@ -47,6 +48,7 @@ export class DIContainer {
   private supplierRepository!: ISupplierRepository;
   private inventoryApplicationService!: InventoryApplicationService;
   private legacyInventoryAdapter!: LegacyInventoryServiceAdapter;
+  private inventoryController!: InventoryHexagonalController;
 
   constructor(prismaClient: PrismaClient) {
     this.prisma = prismaClient;
@@ -118,6 +120,12 @@ export class DIContainer {
   private initializeControllers(): void {
     // Attendance controller
     this.attendanceController = new AttendanceController(this.attendanceApplicationService);
+    
+    // Inventory controller
+    this.inventoryController = new InventoryHexagonalController(
+      this.inventoryApplicationService,
+      this.legacyInventoryAdapter
+    );
   }
 
   // ============================================================================
@@ -178,6 +186,10 @@ export class DIContainer {
 
   getLegacyInventoryAdapter(): LegacyInventoryServiceAdapter {
     return this.legacyInventoryAdapter;
+  }
+
+  getInventoryController(): InventoryHexagonalController {
+    return this.inventoryController;
   }
 
   /**

@@ -45,6 +45,7 @@ export class HexagonalIntegration {
   private setupHexagonalRoutes(): void {
     const container = getDIContainer();
     const attendanceController = container.getAttendanceController();
+    const inventoryController = container.getInventoryController();
 
     // New hexagonal routes with /v2 prefix to distinguish from legacy routes
     const hexagonalRouter = require('express').Router();
@@ -78,6 +79,27 @@ export class HexagonalIntegration {
       attendanceController.rejectLateArrival(req, res).catch(next);
     });
 
+    // Inventory Hexagonal Endpoints
+    hexagonalRouter.post('/inventory/stock-in', (req: any, res: any, next: any) => {
+      inventoryController.stockIn(req, res).catch(next);
+    });
+
+    hexagonalRouter.get('/inventory/buy-list', (req: any, res: any, next: any) => {
+      inventoryController.getBuyList(req, res).catch(next);
+    });
+
+    hexagonalRouter.put('/inventory/stock-in/:id', (req: any, res: any, next: any) => {
+      inventoryController.updateStockIn(req, res).catch(next);
+    });
+
+    hexagonalRouter.get('/inventory/stock/:materialId', (req: any, res: any, next: any) => {
+      inventoryController.getMaterialStock(req, res).catch(next);
+    });
+
+    hexagonalRouter.post('/inventory/validate', (req: any, res: any, next: any) => {
+      inventoryController.validateStockIn(req, res).catch(next);
+    });
+
     // Mount hexagonal routes under /api/v2
     this.app.use('/api/v2', hexagonalRouter);
 
@@ -89,6 +111,11 @@ export class HexagonalIntegration {
     console.log('   GET    /api/v2/outlet/:outlet_id/attendances');
     console.log('   PATCH  /api/v2/attendance/:id/approve-late');
     console.log('   PATCH  /api/v2/attendance/:id/reject-late');
+    console.log('   POST   /api/v2/inventory/stock-in');
+    console.log('   GET    /api/v2/inventory/buy-list');
+    console.log('   PUT    /api/v2/inventory/stock-in/:id');
+    console.log('   GET    /api/v2/inventory/stock/:materialId');
+    console.log('   POST   /api/v2/inventory/validate');
   }
 
   /**
@@ -100,11 +127,20 @@ export class HexagonalIntegration {
       
       // Check if all components are initialized
       const components = {
+        // Attendance Domain
         attendanceRepository: !!container.getAttendanceRepository(),
         employeeRepository: !!container.getEmployeeRepository(),
         scheduleRepository: !!container.getScheduleRepository(),
         attendanceApplicationService: !!container.getAttendanceApplicationService(),
-        attendanceController: !!container.getAttendanceController()
+        attendanceController: !!container.getAttendanceController(),
+        // Inventory Domain
+        materialRepository: !!container.getMaterialRepository(),
+        supplierRepository: !!container.getSupplierRepository(),
+        inventoryApplicationService: !!container.getInventoryApplicationService(),
+        inventoryController: !!container.getInventoryController(),
+        // Infrastructure
+        eventBus: !!container.getEventBus(),
+        unitOfWork: !!container.getUnitOfWork(),
       };
 
       const allHealthy = Object.values(components).every(healthy => healthy);
