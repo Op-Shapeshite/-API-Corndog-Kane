@@ -7,6 +7,7 @@ import { ProductRepository } from "../../adapters/postgres/repositories/ProductR
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
 import QuantityUnitService from "./QuantityUnitService";
 import QuantityUnitRepository from "../../adapters/postgres/repositories/QuantityUnitRepository";
+import { normalizeUnit } from "../utils/unitNormalizer";
 
 export default class MasterProductService extends Service<TMasterProduct | TMasterProductWithID> {
   declare repository: MasterProductRepository;
@@ -37,11 +38,16 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
   }
 
   async createProductInventory(data: TProductInventoryCreateRequest): Promise<TProductInventory> {
-    const materials = data.materials;
+    // Normalize units first
+    const normalizedProductUnit = normalizeUnit(data.unit);
+    const materialsWithNormalizedUnits = data.materials.map(material => ({
+      ...material,
+      unit: normalizeUnit(material.unit)
+    }));
     
     // STEP 1: VALIDATION - Do all validation BEFORE any database writes
     // VALIDATION: Check material stock availability before creating inventory
-    for (const material of materials) {
+    for (const material of materialsWithNormalizedUnits) {
       const requiredQuantity = material.quantity * data.quantity;
 
       // Get material with stocks
@@ -91,16 +97,16 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       const result = await this.repository.createProductInventoryWithTransaction({
         masterProduct,
         productId: data.product_id,
-        inventoryItems: materials.map(material => ({
+        inventoryItems: materialsWithNormalizedUnits.map(material => ({
           material_id: material.material_id,
           quantity: material.quantity,
           unit_quantity: material.unit,
         })),
         productionStockIn: {
           quantity: data.quantity,
-          unit_quantity: data.unit,
+          unit_quantity: normalizedProductUnit,
         },
-        materialStockOuts: materials.map(material => ({
+        materialStockOuts: materialsWithNormalizedUnits.map(material => ({
           material_id: material.material_id,
           quantity: material.quantity * data.quantity,
           unit_quantity: material.unit,
@@ -110,7 +116,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       return {
         id: result.productId,
         quantity: data.quantity,
-        unit_quantity: data.unit,
+        unit_quantity: normalizedProductUnit,
         material: result.inventoryItems.map((m: any) => m.materials) as any[],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -138,8 +144,8 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       throw new Error(`Inventori produk untuk produk master dengan ID ${masterProductId} tidak ditemukan`);
     }
 
-    // Use existing unit if not provided in the request
-    const productUnit = data.unit || existingInventory[0]?.unit_quantity;
+    // Normalize unit if provided
+    const productUnit = data.unit ? normalizeUnit(data.unit) : existingInventory[0]?.unit_quantity;
     if (!productUnit) {
       throw new Error(`Unit produk tidak ditemukan. Harap sediakan unit dalam permintaan atau pastikan inventori produk memiliki unit yang valid`);
     }
@@ -148,8 +154,13 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
     );
 
-    // Use provided materials or keep existing materials
-    const materials: any[] = data.materials || materialsUpdated;
+    // Use provided materials or keep existing materials, normalize units if provided
+    const materials: any[] = data.materials 
+      ? data.materials.map(material => ({
+          ...material,
+          unit: normalizeUnit(material.unit)
+        }))
+      : materialsUpdated;
 
     // VALIDATION: Check material stock availability before updating inventory
     if (materials && materials.length > 0) {
