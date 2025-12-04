@@ -697,6 +697,7 @@
       "common:quantity-units:read:detail"
     ],
     "Human Resource": [
+      "roles:access:read",
       "dashboard:stats:read",
       "hr:employees:read",
       "hr:employees:read:detail",
@@ -718,6 +719,7 @@
       "common:quantity-units:read:detail"
     ],
     "Finance": [
+      "roles:access:read",
       "dashboard:stats:read",
       "finance:accounts:read",
       "finance:accounts:read:detail",
@@ -748,6 +750,7 @@
       "common:quantity-units:read:detail"
     ],
     "Gudang": [
+      "roles:access:read",
       "dashboard:stats:read",
       "outlets:read",
       "outlets:read:detail",
@@ -787,6 +790,7 @@
       "common:quantity-units:read:detail"
     ],
     "Karyawan": [
+      "roles:access:read",
       "hr:schedules:read",
       "hr:schedules:read:by-outlet",
       "hr:attendance:create",
