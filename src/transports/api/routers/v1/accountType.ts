@@ -2,32 +2,20 @@ import express from 'express';
 import { AccountTypeController } from '../../controllers/AccountTypeController';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { validate } from '../../validations/validate.middleware';
-import { authMiddleware } from '../../../../policies/authMiddleware';
-import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 const accountTypeController = new AccountTypeController();
 
-/**
- * @route GET /api/v1/finance/account-types
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// GET all account types with pagination
 router.get(
   "/",
-  authMiddleware,
-  permissionMiddleware(['finance:account-types:read']),
   validate(getPaginationSchema),
   accountTypeController.getAll()
 );
 
-/**
- * @route GET /api/v1/finance/account-types/:id
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// GET account type by ID
 router.get(
   "/:id",
-  authMiddleware,
-  permissionMiddleware(['finance:account-types:read']),
   accountTypeController.getById()
 );
 

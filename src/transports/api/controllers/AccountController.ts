@@ -58,13 +58,13 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
         return this.getSuccessResponse(
           res,
           { data: mappedResults, metadata },
-          "Daftar akun berhasil diambil"
+          "Accounts retrieved successfully"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Gagal mengambil akun",
+          "Failed to retrieve accounts",
           500,
           [] as TAccountGetResponse[],
           {
@@ -87,8 +87,8 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
         if (!account) {
           return this.handleError(
             res,
-            new Error('Akun tidak ditemukan'),
-            "Akun tidak ditemukan",
+            new Error('Account not found'),
+            "Account not found",
             404,
             {} as TAccountGetResponse,
             {} as TMetadataResponse
@@ -103,13 +103,13 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Akun berhasil diambil"
+          "Account retrieved successfully"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Gagal mengambil akun",
+          "Failed to retrieve account",
           500,
           {} as TAccountGetResponse,
           {} as TMetadataResponse
@@ -139,13 +139,13 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Akun berhasil dibuat"
+          "Account created successfully"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Gagal membuat akun",
+          "Failed to create account",
           500,
           {} as TAccountGetResponse,
           {} as TMetadataResponse
@@ -176,13 +176,13 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Akun berhasil diperbarui"
+          "Account updated successfully"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Gagal memperbarui akun",
+          "Failed to update account",
           500,
           {} as TAccountGetResponse,
           {} as TMetadataResponse
@@ -204,13 +204,13 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
             data: {} as TAccountGetResponse,
             metadata: {} as TMetadataResponse,
           },
-          "Akun berhasil dihapus"
+          "Account deleted successfully"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Gagal menghapus akun",
+          "Failed to delete account",
           500,
           {} as TAccountGetResponse,
           {} as TMetadataResponse

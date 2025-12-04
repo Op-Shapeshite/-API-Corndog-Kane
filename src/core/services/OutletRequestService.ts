@@ -190,12 +190,12 @@ export class OutletRequestService {
     // Validate: cannot update if not PENDING
     const existing = await this.productRequestRepo.getById(id);
     if (!existing) {
-      throw new Error("Permintaan produk tidak ditemukan");
+      throw new Error("Product request not found");
     }
 
     const currentRequest = existing as TOutletProductRequest;
     if (currentRequest.status !== OUTLETREQUESTSTATUS.PENDING) {
-      throw new Error("Hanya dapat mengupdate permintaan dengan status PENDING");
+      throw new Error("Can only update requests with PENDING status");
     }
 
     // Prepare update data (camelCase for entity)
@@ -220,7 +220,7 @@ export class OutletRequestService {
     // Validate: cannot update if not PENDING
     const existing = await this.materialRequestRepo.getById(id);
     if (!existing) {
-      throw new Error("Permintaan material tidak ditemukan");
+      throw new Error("Material request not found");
     }
 
     const currentRequest = existing as TOutletMaterialRequest;
@@ -246,7 +246,7 @@ export class OutletRequestService {
   async deleteProductRequest(id: string): Promise<void> {
     const existing = await this.productRequestRepo.getById(id);
     if (!existing) {
-      throw new Error("Permintaan produk tidak ditemukan");
+      throw new Error("Product request not found");
     }
 
     await this.productRequestRepo.delete(id);
@@ -258,7 +258,7 @@ export class OutletRequestService {
   async deleteMaterialRequest(id: string): Promise<void> {
     const existing = await this.materialRequestRepo.getById(id);
     if (!existing) {
-      throw new Error("Permintaan material tidak ditemukan");
+      throw new Error("Material request not found");
     }
 
     await this.materialRequestRepo.delete(id);

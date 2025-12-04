@@ -38,7 +38,7 @@ export const createProductSchema = z.object({
 export const updateProductSchema = z.object({
   params: z.object({
     id: z.string()
-      .regex(/^\d+$/, { message: 'ID harus berupa angka yang valid' })
+      .regex(/^\d+$/, { message: 'ID must be a valid number' })
       .transform(Number),
   }),
   body: z.object({
@@ -89,7 +89,7 @@ export const updateProductSchema = z.object({
 export const deleteProductSchema = z.object({
   params: z.object({
     id: z.string()
-      .regex(/^\d+$/, { message: 'ID harus berupa angka yang valid' })
+      .regex(/^\d+$/, { message: 'ID must be a valid number' })
       .transform(Number),
   }),
 });

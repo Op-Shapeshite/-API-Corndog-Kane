@@ -64,12 +64,12 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
           total_records: 1,
           total_pages: 1,
         }
-      }, "Daftar gaji berhasil diambil");
+      }, "Payroll list retrieved successfully");
     } catch (error) {
       return this.handleError(
         res,
         error,
-        "Gagal mengambil data gaji",
+        "Failed to retrieve payrolls",
         500,
         [],
         { page: 1, limit: 0, total_records: 0, total_pages: 0 }
@@ -102,9 +102,9 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
           total_records: 1,
           total_pages: 1,
         }
-      }, "Detail gaji berhasil diambil");
+      }, "Payroll detail retrieved successfully");
     } catch (error) {
-      return this.handleError(res, error, "Operasi gagal", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
+      return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
   };
 
@@ -121,7 +121,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         return this.getFailureResponse(res, {
           data: null,
           metadata: { page: 1, limit: 0, total_records: 0, total_pages: 0 }
-        }, [{ field: 'period', message: 'start_period dan end_period wajib diisi', type: 'required' }], "Validasi gagal", 400);
+        }, [{ field: 'period', message: 'start_period and end_period are required', type: 'required' }], "Validation failed", 400);
       }
 
       const result = await payrollService.updatePayrollPeriod(
@@ -142,7 +142,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
           total_records: 1,
           total_pages: 1,
         }
-      }, "Gaji berhasil diperbarui");
+      }, "Payroll updated successfully");
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
@@ -207,7 +207,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
           total_records: 1,
           total_pages: 1,
         }
-      }, "Pembayaran berhasil dibuat");
+      }, "Payment created successfully");
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
@@ -238,7 +238,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
           total_records: 1,
           total_pages: 1,
         }
-      }, "Slip pembayaran berhasil diambil");
+      }, "Payment slip retrieved successfully");
     } catch (error) {
       return this.handleError(res, error, "Operation failed", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }
@@ -272,7 +272,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
           total_records: 1,
           total_pages: 1,
         }
-      }, "Template gaji berhasil dibuat");
+      }, "Payroll template created successfully");
     } catch (error) {
       return this.handleError(res, error, "Failed to create payroll template", 500, null, { page: 1, limit: 0, total_records: 0, total_pages: 0 });
     }

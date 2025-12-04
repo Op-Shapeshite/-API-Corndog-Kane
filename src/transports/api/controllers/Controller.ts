@@ -22,7 +22,7 @@ export default class Controller<T, M> {
 	): Response<TResponse<T, M>> {
 		return res.status(200).json({
 			status: "success",
-			message: message || "Permintaan berhasil",
+			message: message || "Request was successful",
 			data,
 			metadata,
 		} as TResponse<T | T[], M>);
@@ -37,7 +37,7 @@ export default class Controller<T, M> {
   ): Response<TResponse<T, M>> {
     return res.status(code || 400).json({
       status: "failed",
-			message: message || "Permintaan gagal",
+      message: message || "Request failed",
       data,
       errors: errors || undefined,
       metadata,
@@ -151,13 +151,13 @@ export default class Controller<T, M> {
 						data: dataMapped as TResponseItem[],
 						metadata: metadata as M,
 					},
-					"Data berhasil diambil"
+					"Data retrieved successfully"
 				);
 			} catch (error) {
 				return this.handleError(
 					res,
 					error,
-					"Gagal mengambil data",
+					"Failed to retrieve data",
 					500,
 					[] as TResponseItem[],
 					{
@@ -195,7 +195,7 @@ export default class Controller<T, M> {
 	protected createCreateHandler<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
-		successMessage: string = "Data berhasil dibuat"
+		successMessage: string = "Data created successfully"
 	) {
 		return async (req: Request, res: Response) => {
 			try {
@@ -218,7 +218,7 @@ export default class Controller<T, M> {
 				return this.handleError(
 					res,
 					error,
-					"Gagal membuat data",
+					"Failed to create data",
 					500,
 					{} as TResponseItem,
 					{} as M
@@ -300,7 +300,7 @@ export default class Controller<T, M> {
 	create<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
-		successMessage: string = "Data berhasil dibuat"
+		successMessage: string = "Data created successfully"
 	) {
 		return this.createCreateHandler<E, TResponseItem>(serviceClass, mapperClass, successMessage);
 	}
@@ -315,7 +315,7 @@ export default class Controller<T, M> {
 	protected createUpdateHandler<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
-		successMessage: string = "Data berhasil diperbarui"
+		successMessage: string = "Data updated successfully"
 	) {
 		return async (req: Request, res: Response) => {
 			try {
@@ -327,8 +327,8 @@ export default class Controller<T, M> {
 					return this.getFailureResponse(
 						res,
 						{ data: {} as TResponseItem, metadata: {} as M },
-						[{ field: 'id', message: 'Data tidak ditemukan', type: 'not_found' }],
-						'Data tidak ditemukan',
+						[{ field: 'id', message: 'Data not found', type: 'not_found' }],
+						'Data not found',
 						404
 					);
 				}
@@ -349,7 +349,7 @@ export default class Controller<T, M> {
 				return this.handleError(
 					res,
 					error,
-					"Gagal memperbarui data",
+					"Failed to update data",
 					500,
 					{} as TResponseItem,
 					{} as M
@@ -369,7 +369,7 @@ export default class Controller<T, M> {
 	update<E extends TEntity, TResponseItem extends T>(
 		serviceClass: Service<E>,
 		mapperClass: ResponseMapper<E, TResponseItem>,
-		successMessage: string = "Data berhasil diperbarui"
+		successMessage: string = "Data updated successfully"
 	) {
 		return this.createUpdateHandler<E, TResponseItem>(serviceClass, mapperClass, successMessage);
 	}
@@ -382,7 +382,7 @@ export default class Controller<T, M> {
 	 */
 	protected createDeleteHandler<E extends TEntity>(
 		serviceClass: Service<E>,
-		successMessage: string = "Data berhasil dihapus"
+		successMessage: string = "Data deleted successfully"
 	) {
 		return async (req: Request, res: Response) => {
 			try {
@@ -401,7 +401,7 @@ export default class Controller<T, M> {
 				return this.handleError(
 					res,
 					error,
-					"Gagal menghapus data",
+					"Failed to delete data",
 					500,
 					{} as T,
 					{} as M
@@ -419,7 +419,7 @@ export default class Controller<T, M> {
 	 */
 	delete<E extends TEntity>(
 		serviceClass: Service<E>,
-		successMessage: string = "Data berhasil dihapus"
+		successMessage: string = "Data deleted successfully"
 	) {
 		return this.createDeleteHandler<E>(serviceClass, successMessage);
 	}

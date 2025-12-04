@@ -23,8 +23,8 @@ export class UserController extends Controller<TUserGetResponse | TuserDetailGet
         return this.getFailureResponse(
           res,
           { data: {} as TuserDetailGetResponse, metadata: {} as TMetadataResponse },
-          [{ field: 'id', message: 'Pengguna tidak ditemukan', type: 'not_found' }],
-          'Pengguna tidak ditemukan',
+          [{ field: 'id', message: 'User not found', type: 'not_found' }],
+          'User not found',
           404
         );
       }
@@ -32,13 +32,13 @@ export class UserController extends Controller<TUserGetResponse | TuserDetailGet
       return this.getSuccessResponse(
         res,
         { data: UserResponseMapper.toDetailResponse(user as TUser), metadata: {} as TMetadataResponse },
-        'Data pengguna berhasil diambil'
+        'User retrieved successfully'
       );
     } catch (error) {
       return this.handleError(
 				res,
 				error,
-				"Gagal mengambil data pengguna",
+				"Failed to retrieve user",
 				500,
 				{} as TuserDetailGetResponse,
 				{} as TMetadataResponse

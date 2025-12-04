@@ -19,8 +19,8 @@ export class TestController extends Controller<TAuthTestData, TAuthTestMetadata>
         return this.getFailureResponse(
           res,
           { data: {} as TAuthTestData, metadata: {} as TAuthTestMetadata },
-          [{ field: 'user', message: 'Anda belum login ke sistem', type: 'invalid' }],
-          'Anda belum login ke sistem',
+          [{ field: 'user', message: 'User not authenticated', type: 'invalid' }],
+          'User not authenticated',
           401
         );
       }
@@ -37,15 +37,15 @@ export class TestController extends Controller<TAuthTestData, TAuthTestMetadata>
             timestamp: new Date().toISOString(),
           }
         },
-        'Pengujian autentikasi berhasil'
+        'Authentication successful'
       );
     } catch (error) {
       console.error('Auth test error:', error);
       return this.getFailureResponse(
         res,
         { data: {} as TAuthTestData, metadata: {} as TAuthTestMetadata },
-        [{ field: 'server', message: 'Terjadi kesalahan pada server', type: 'internal_error' }],
-        'Terjadi kesalahan pada server',
+        [{ field: 'server', message: 'Internal server error', type: 'internal_error' }],
+        'Internal server error',
         500
       );
     }

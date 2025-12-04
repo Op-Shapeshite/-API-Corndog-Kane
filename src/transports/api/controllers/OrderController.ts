@@ -72,13 +72,13 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           data,
           metadata,
         },
-        'Pesanan berhasil diambil'
+        'Orders retrieved successfully'
       );
     } catch (error) {
       return this.handleError(
         res,
         error,
-        'Gagal mengambil data pesanan',
+        'Failed to fetch orders',
         500,
         [] as TOrderListResponse[],
         {
@@ -105,8 +105,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ type: 'required', field: 'outlet_id', message: 'ID Outlet tidak ditemukan dalam token autentikasi' }],
-          'ID Outlet tidak ditemukan dalam token autentikasi'
+          [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in authentication token' }],
+          'Outlet ID not found in authentication token'
         );
       }
 
@@ -130,13 +130,13 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           data,
           metadata,
         },
-        'Pesanan berhasil diambil'
+        'Orders retrieved successfully'
       );
     } catch (error) {
       return this.handleError(
         res,
         error,
-        'Gagal mengambil data pesanan',
+        'Failed to fetch orders',
         500,
         [] as TMyOrderResponse[],
         {
@@ -160,8 +160,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ type: 'invalid', field: 'order_id', message: 'ID pesanan tidak valid' }],
-          'ID pesanan tidak valid'
+          [{ type: 'invalid', field: 'order_id', message: 'Invalid order ID' }],
+          'Invalid order ID'
         );
       }
 
@@ -176,15 +176,15 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           data,
           metadata: {} as TMetadataResponse,
         },
-        'Detail pesanan berhasil diambil'
+        'Order retrieved successfully'
       );
     } catch (error) {
-      const statusCode = error instanceof Error && (error.message === 'Order not found' || error.message === 'Pesanan tidak ditemukan') ? 404 : 500;
+      const statusCode = error instanceof Error && error.message === 'Order not found' ? 404 : 500;
 
       return this.handleError(
         res,
         error,
-        'Gagal mengambil pesanan',
+        'Failed to fetch order',
         statusCode,
         null,
         {} as TMetadataResponse
@@ -204,8 +204,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ type: 'required', field: 'outlet_id', message: 'ID outlet tidak ditemukan dalam token autentikasi' }],
-          'ID outlet tidak ditemukan dalam token autentikasi'
+          [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in authentication token' }],
+          'Outlet ID not found in authentication token'
         );
       }
 
@@ -214,8 +214,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ type: 'required', field: 'payment_method', message: 'Metode pembayaran wajib diisi' }],
-          'Metode pembayaran wajib diisi'
+          [{ type: 'required', field: 'payment_method', message: 'payment_method is required' }],
+          'payment_method is required'
         );
       }
 
@@ -223,8 +223,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
         return this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ type: 'required', field: 'items', message: 'Array items wajib diisi dan tidak boleh kosong' }],
-          'Array items wajib diisi dan tidak boleh kosong'
+          [{ type: 'required', field: 'items', message: 'items array is required and must not be empty' }],
+          'items array is required and must not be empty'
         );
       }
 
@@ -235,16 +235,16 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           return this.getFailureResponse(
             res,
             { data: null, metadata: {} as TMetadataResponse },
-            [{ type: 'required', field: `items[${i}].product_id`, message: 'product_id wajib diisi dan harus berupa angka' }],
-            `Item pada indeks ${i} tidak memiliki product_id yang valid`
+            [{ type: 'required', field: `items[${i}].product_id`, message: 'product_id is required and must be a number' }],
+            `Item at index ${i} is missing valid product_id`
           );
         }
         if (!item.qty || typeof item.qty !== 'number' || item.qty <= 0) {
           return this.getFailureResponse(
             res,
             { data: null, metadata: {} as TMetadataResponse },
-            [{ type: 'required', field: `items[${i}].qty`, message: 'qty wajib diisi dan harus berupa angka positif' }],
-            `Item pada indeks ${i} tidak memiliki qty yang valid`
+            [{ type: 'required', field: `items[${i}].qty`, message: 'qty is required and must be a positive number' }],
+            `Item at index ${i} is missing valid qty`
           );
         }
 
@@ -254,8 +254,8 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
             return this.getFailureResponse(
               res,
               { data: null, metadata: {} as TMetadataResponse },
-              [{ type: 'invalid', field: `items[${i}].product_items_ids`, message: 'product_items_ids harus berupa array' }],
-              `Item pada indeks ${i} memiliki product_items_ids yang tidak valid`
+              [{ type: 'invalid', field: `items[${i}].product_items_ids`, message: 'product_items_ids must be an array' }],
+              `Item at index ${i} has invalid product_items_ids`
             );
           }
 
@@ -265,16 +265,16 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
               return this.getFailureResponse(
                 res,
                 { data: null, metadata: {} as TMetadataResponse },
-                [{ type: 'required', field: `items[${i}].product_items_ids[${j}].product_id`, message: 'product_id wajib diisi dan harus berupa angka' }],
-                `Nested item pada items[${i}].product_items_ids[${j}] tidak memiliki product_id yang valid`
+                [{ type: 'required', field: `items[${i}].product_items_ids[${j}].product_id`, message: 'product_id is required and must be a number' }],
+                `Nested item at items[${i}].product_items_ids[${j}] is missing valid product_id`
               );
             }
             if (!subItem.qty || typeof subItem.qty !== 'number' || subItem.qty <= 0) {
               return this.getFailureResponse(
                 res,
                 { data: null, metadata: {} as TMetadataResponse },
-                [{ type: 'required', field: `items[${i}].product_items_ids[${j}].qty`, message: 'qty wajib diisi dan harus berupa angka positif' }],
-                `Nested item pada items[${i}].product_items_ids[${j}] tidak memiliki qty yang valid`
+                [{ type: 'required', field: `items[${i}].product_items_ids[${j}].qty`, message: 'qty is required and must be a positive number' }],
+                `Nested item at items[${i}].product_items_ids[${j}] is missing valid qty`
               );
             }
           }
@@ -472,7 +472,7 @@ export class OrderController extends Controller<TOrderResponseTypes, TOrderMetad
           data: response,
           metadata: {} as TMetadataResponse,
         },
-        'Pesanan berhasil dibuat'
+        'Order created successfully'
       );
     } catch (error) {
       console.error('Error creating order:', error);

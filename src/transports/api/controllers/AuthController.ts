@@ -30,9 +30,9 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
             data: {} as TLoginResponse, metadata: {} as TLoginMetadataResponse
           },
           [
-            { field: 'username/password', message: 'Username atau password yang Anda masukkan salah', type:'not_found'}
+            { field: 'username/password', message: 'Invalid credentials', type:'not_found'}
           ],
-          'Username atau password salah',
+          'Invalid credentials',
           401
         );
       }
@@ -47,14 +47,14 @@ export class AuthController extends Controller<TLoginResponse,TLoginMetadataResp
         metadata: {
           token: this.createToken(loginResponse),
         }
-      }, 'Berhasil masuk ke sistem');
+      }, 'Login successful');
 
     } catch (error) {
       console.error('Login error:', error);
       return this.handleError(
         res,
         error,
-        'Terjadi kesalahan pada server',
+        'Internal server error',
         500,
         {} as TLoginResponse,
         {} as TLoginMetadataResponse

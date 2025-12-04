@@ -2,13 +2,13 @@ import z from 'zod';
 
 export const createTransactionSchema = z.object({
   body: z.object({
-    account_id: z.number().int().positive('ID akun wajib diisi'),
-    amount: z.number().positive('Jumlah harus positif'),
+    account_id: z.number().int().positive('account_id is required'),
+    amount: z.number().positive('amount must be positive'),
     transaction_type: z.enum(['INCOME', 'EXPENSE']),
     description: z.string().optional(),
     transaction_date: z.string().regex(
       /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/,
-      'Tanggal transaksi harus dalam format ISO yang valid'
+      'transaction_date must be a valid ISO date string'
     ),
     reference_number: z.string().optional(),
   }),
@@ -16,7 +16,7 @@ export const createTransactionSchema = z.object({
 
 export const updateTransactionSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'ID harus berupa angka'),
+    id: z.string().regex(/^\d+$/, 'id must be a number'),
   }),
   body: z.object({
     account_id: z.number().int().positive().optional(),
@@ -32,13 +32,13 @@ export const updateTransactionSchema = z.object({
 
 export const deleteTransactionSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'ID harus berupa angka'),
+    id: z.string().regex(/^\d+$/, 'id must be a number'),
   }),
 });
 
 export const getTransactionByIdSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'ID harus berupa angka'),
+    id: z.string().regex(/^\d+$/, 'id must be a number'),
   }),
 });
 
@@ -47,15 +47,15 @@ export const generateReportSchema = z.object({
     type: z.enum(['table', 'pdf', 'xlsx']).optional().default('table'),
     start_date: z.string().regex(
       /^\d{4}-\d{2}-\d{2}$/,
-      'Tanggal mulai harus dalam format YYYY-MM-DD'
+      'start_date must be in YYYY-MM-DD format'
     ),
     end_date: z.string().regex(
       /^\d{4}-\d{2}-\d{2}$/,
-      'Tanggal akhir harus dalam format YYYY-MM-DD'
+      'end_date must be in YYYY-MM-DD format'
     ),
     account_category_ids: z.string().regex(
       /^\d+(,\d+)*$/,
-      'ID kategori akun harus berupa angka yang dipisahkan koma'
+      'account_category_ids must be comma-separated numbers'
     ).optional(),
   }),
 });

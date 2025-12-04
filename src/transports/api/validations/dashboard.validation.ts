@@ -59,6 +59,6 @@ export const dashboardSchema = z.object({
     const endDate = new Date(data.query.product_sales_end_date);
     return endDate >= startDate;
 }, {
-    message: 'product_sales_end_date harus lebih besar atau sama dengan product_sales_start_date',
+    message: 'product_sales_end_date must be greater than or equal to product_sales_start_date',
     path: ['query', 'product_sales_end_date']
 });

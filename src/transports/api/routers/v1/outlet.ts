@@ -13,114 +13,55 @@ import { OutletController } from '../../controllers/OutletController';
 import OutletService from '../../../../core/services/OutletService';
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
 import { getPaginationSchema } from '../../validations/pagination.validation';
-import { authMiddleware } from '../../../../policies/authMiddleware';
-import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 
 const outletController = new OutletController();
 const outletService = new OutletService(new OutletRepository());
 
-/**
- * @route GET /api/v1/outlets
- * @access ADMIN | SUPERADMIN | WAREHOUSE
- */
-router.get('/', 
-	authMiddleware,
-	permissionMiddleware(['outlets:read']),
-	validate(getPaginationSchema), 
-	outletController.getAllOutlets
-);
-
-/**
- * @route GET /api/v1/outlets/:id
- * @access ADMIN | SUPERADMIN | WAREHOUSE | OUTLET
- */
+router.get('/', validate(getPaginationSchema), outletController.getAllOutlets);
 router.get('/:id',
-	authMiddleware,
-	permissionMiddleware(['outlets:read:detail']),
-	validate(getOutletByIdSchema),
-	outletController.findById.bind(outletController)
+validate(getOutletByIdSchema),
+outletController.findById.bind(outletController)
 );
-
-/**
- * @route POST /api/v1/outlets
- * @access ADMIN | SUPERADMIN
- */
 router.post(
 	"/",
-	authMiddleware,
-	permissionMiddleware(['outlets:create']),
 	validate(createOutletSchema),
 	outletController.createOutlet
 );
-
-/**
- * @route PUT /api/v1/outlets/:id
- * @access ADMIN | SUPERADMIN
- */
 router.put(
 	"/:id",
-	authMiddleware,
-	permissionMiddleware(['outlets:update']),
 	validate(updateOutletSchema),
 	outletController.updateOutlet
-);
-
-/**
- * @route DELETE /api/v1/outlets/:id
- * @access ADMIN | SUPERADMIN
- */
+	)
 router.delete(
 	"/:id",
-	authMiddleware,
-	permissionMiddleware(['outlets:delete']),
 	validate(deleteOutletSchema),
-	outletController.delete(outletService, "Outlet berhasil dihapus")
+	outletController.delete(outletService, "User deleted successfully")
 );
 
-/**
- * @route POST /api/v1/outlets/:id/employee/:employeeid
- * @access ADMIN | SUPERADMIN
- */
+// Assign employee to outlet
 router.post(
 	"/:id/employee/:employeeid",
-	authMiddleware,
-	permissionMiddleware(['outlets:update']),
 	validate(assignEmployeeToOutletSchema),
 	outletController.assignEmployeeToOutlet
 );
 
-/**
- * @route GET /api/v1/outlets/:id/stocks/products
- * @access WAREHOUSE | ADMIN | SUPERADMIN
- */
+// Get outlet product stock movements
 router.get(
 	"/:id/stocks/products",
-	authMiddleware,
-	permissionMiddleware(['warehouse:outlet-stocks:read']),
 	outletController.getOutletProductStocks
 );
 
-/**
- * @route GET /api/v1/outlets/:id/stocks/materials
- * @access WAREHOUSE | ADMIN | SUPERADMIN
- */
+// Get outlet material stock movements
 router.get(
 	"/:id/stocks/materials",
-	authMiddleware,
-	permissionMiddleware(['warehouse:outlet-stocks:read']),
 	outletController.getOutletMaterialStocks
 );
 
-/**
- * @route GET /api/v1/outlets/:id/stocks/:category
- * @access WAREHOUSE | ADMIN | SUPERADMIN
- */
+// Dynamic stocks route - supports :category parameter (products, materials, summarize)
 router.get(
 	"/:id/stocks/:category",
-	authMiddleware,
-	permissionMiddleware(['warehouse:outlet-stocks:read', 'warehouse:outlet-stocks:summarize']),
 	(req, res) => {
 		const { category } = req.params;
 		
@@ -142,14 +83,9 @@ router.get(
 	}
 );
 
-/**
- * @route GET /api/v1/outlets/:id/stocks/summarize
- * @access WAREHOUSE | ADMIN | SUPERADMIN
- */
+// Get outlet financial summary
 router.get(
 	"/:id/stocks/summarize",
-	authMiddleware,
-	permissionMiddleware(['warehouse:outlet-stocks:summarize']),
 	validate(outletSummarizeSchema),
 	outletController.getSummarize
 );

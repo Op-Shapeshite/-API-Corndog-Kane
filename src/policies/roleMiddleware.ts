@@ -48,8 +48,8 @@ export const roleMiddleware = (allowedRoles: string[]) => {
       if (!req.user.role) {
         return sendFailureResponse(
           res,
-          [{ field: 'role', message: 'Role pengguna tidak ditemukan', type: 'not_found' }],
-          'Role pengguna tidak ditemukan',
+          [{ field: 'role', message: 'User role not found', type: 'not_found' }],
+          'User role not found',
           403
         );
       }

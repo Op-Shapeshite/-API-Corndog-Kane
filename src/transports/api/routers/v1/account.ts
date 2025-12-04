@@ -8,68 +8,41 @@ import {
 } from '../../validations/account.validation';
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { AccountController } from '../../controllers/AccountController';
-import { authMiddleware } from '../../../../policies/authMiddleware';
-import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
 
 const router = express.Router();
 const accountController = new AccountController();
 
-/**
- * @route GET /api/v1/finance/accounts
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// GET all accounts (with optional category filter)
 router.get(
   "/",
-  authMiddleware,
-  permissionMiddleware(['finance:accounts:read']),
   validate(getPaginationSchema),
   accountController.getAll()
 );
 
-/**
- * @route GET /api/v1/finance/accounts/:id
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// GET account by ID
 router.get(
   "/:id",
-  authMiddleware,
-  permissionMiddleware(['finance:accounts:read']),
   validate(getAccountByIdSchema),
   accountController.getById()
 );
 
-/**
- * @route POST /api/v1/finance/accounts
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// POST create account
 router.post(
   "/",
-  authMiddleware,
-  permissionMiddleware(['finance:accounts:create']),
   validate(createAccountSchema),
   accountController.create()
 );
 
-/**
- * @route PUT /api/v1/finance/accounts/:id
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// PUT update account
 router.put(
   "/:id",
-  authMiddleware,
-  permissionMiddleware(['finance:accounts:update']),
   validate(updateAccountSchema),
   accountController.update()
 );
 
-/**
- * @route DELETE /api/v1/finance/accounts/:id
- * @access FINANCE | ADMIN | SUPERADMIN
- */
+// DELETE account
 router.delete(
   "/:id",
-  authMiddleware,
-  permissionMiddleware(['finance:accounts:delete']),
   validate(deleteAccountSchema),
   accountController.delete()
 );

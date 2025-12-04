@@ -53,8 +53,8 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
         this.getFailureResponse(
           res,
           { data: null, metadata: {} as TMetadataResponse },
-          [{ type: 'required', field: 'outlet_id', message: 'ID Outlet tidak ditemukan dalam sesi pengguna' }],
-          'ID Outlet tidak ditemukan dalam sesi pengguna'
+          [{ type: 'required', field: 'outlet_id', message: 'Outlet ID not found in user session' }],
+          'Outlet ID not found in user session'
         );
         return;
       }
@@ -75,7 +75,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
       // Map responses
       const response = {
         success: true,
-        message: 'Permintaan batch berhasil dibuat',
+        message: 'Batch request created successfully',
         data: {
           product_requests: OutletProductRequestBatchResponseMapper(result.productRequests),
           material_requests: OutletMaterialRequestBatchResponseMapper(result.materialRequests),
@@ -113,7 +113,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           data: result.data,
           metadata,
         },
-        'Permintaan berhasil diambil'
+        'Requests retrieved successfully'
       );
     } catch (error) {
       next(error);
@@ -152,7 +152,7 @@ export class OutletRequestController extends Controller<TOutletRequestResponseTy
           data: responseData,
           metadata: {} as TMetadataResponse,
         },
-        'Permintaan Anda berhasil diambil'
+        'Your requests retrieved successfully'
       );
     } catch (error) {
       next(error);

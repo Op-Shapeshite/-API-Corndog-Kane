@@ -129,7 +129,7 @@ export const getAttendancesByOutletSchema = z.object({
   query: z.object({
     date: z.string().optional().refine(
       (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
-      { message: "Tanggal harus dalam format YYYY-MM-DD" }
+      { message: "Date must be in format YYYY-MM-DD" }
     ),
     page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
     limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
@@ -144,22 +144,22 @@ export const getSchedulesSchema = z.object({
     view: z.string().optional(),
     start_date: z.string().optional().refine(
       (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
-      { message: "start_date harus dalam format YYYY-MM-DD" }
+      { message: "start_date must be in format YYYY-MM-DD" }
     ),
     end_date: z.string().optional().refine(
       (val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val),
-      { message: "end_date harus dalam format YYYY-MM-DD" }
+      { message: "end_date must be in format YYYY-MM-DD" }
     ),
     status: z.enum(['PRESENT', 'SICK', 'NOT_PRESENT', 'EXCUSED', 'CUTI']).optional(),
     search_key: z.enum(['employee_name', 'outlet_name', 'attendance_status', 'late_approval_status']).optional(),
     search_value: z.string().optional(),
     page: z.string().optional().refine(
       (val) => !val || /^\d+$/.test(val),
-      { message: "halaman harus berupa angka positif" }
+      { message: "page must be a positive number" }
     ),
     limit: z.string().optional().refine(
       (val) => !val || /^\d+$/.test(val),
-      { message: "limit harus berupa angka positif" }
+      { message: "limit must be a positive number" }
     ),
   }),
 });
@@ -172,7 +172,7 @@ export const updateLateApprovalStatusSchema = z.object({
   params: z.object({
     id: z.string().min(1, "Attendance ID is required"),
     status: z.enum(['PENDING', 'APPROVED', 'REJECTED'], {
-      message: "Status harus PENDING, APPROVED, atau REJECTED"
+      message: "Status must be PENDING, APPROVED, or REJECTED"
     }),
   }),
 });

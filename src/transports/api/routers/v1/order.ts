@@ -3,55 +3,34 @@ import { OrderController } from '../../controllers';
 import { validate } from '../../validations/validate.middleware';
 import { createOrderSchema } from '../../validations/order.validation';
 import { authMiddleware } from '../../../../policies/authMiddleware';
-import { permissionMiddleware } from '../../../../policies/permissionMiddleware';
-import { checkinMiddleware } from '../../../../policies/checkinMiddleware';
 
 const router = express.Router();
 
 const orderController = new OrderController();
 
-/**
- * @route GET /api/v1/orders/my
- * @access OUTLET | EMPLOYEE
- */
+// GET my orders (filtered by outlet_id from token)
 router.get(
 	"/my",
 	authMiddleware,
-	permissionMiddleware(['orders:read:my']),
 	(req, res) => orderController.getMyOrders(req, res)
 );
 
-/**
- * @route GET /api/v1/orders
- * @access ADMIN | SUPERADMIN
- */
+// GET all orders (with pagination)
 router.get(
 	"/",
-	authMiddleware,
-	permissionMiddleware(['orders:read']),
 	(req, res) => orderController.getAllOrders(req, res)
 );
 
-/**
- * @route GET /api/v1/orders/:id
- * @access ADMIN | SUPERADMIN | OUTLET
- */
+// GET order by ID
 router.get(
 	"/:id",
-	authMiddleware,
-	permissionMiddleware(['orders:read:detail']),
 	(req, res) => orderController.getOrderById(req, res)
 );
 
-/**
- * @route POST /api/v1/orders
- * @access OUTLET | EMPLOYEE
- */
+// POST create order
 router.post(
 	"/",
 	authMiddleware,
-	permissionMiddleware(['orders:create']),
-	checkinMiddleware,
 	validate(createOrderSchema),
 	(req, res) => orderController.createOrder(req, res)
 );

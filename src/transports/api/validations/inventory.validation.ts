@@ -15,7 +15,7 @@ const inventoryStockInItemSchema = z.object({
 	}).optional(),
 }).refine(
 	(data) => data.material_id || data.material,
-	{ message: 'ID material atau material harus disediakan' }
+	{ message: 'Either material_id or material must be provided' }
 );
 
 /**
