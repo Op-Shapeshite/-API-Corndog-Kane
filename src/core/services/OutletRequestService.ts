@@ -33,8 +33,10 @@ export class OutletRequestService {
     }
 
     let productRequests: TOutletProductRequest[] = [];
-    let materialRequests: TOutletMaterialRequest[] = [];
-    if (data.products && data.products.length > 0) {
+    let materialRequests: TOutletMaterialRequest[] = [];
+
+    if (data.products && data.products.length > 0) {
+
       const productIds = data.products.map(p => p.productId);
       await this.productRequestRepo.validateProductIds(productIds);
 
@@ -45,7 +47,8 @@ export class OutletRequestService {
           quantity: p.quantity,
         }))
       );
-    }
+    }
+
     if (data.materials && data.materials.length > 0) {
       materialRequests = await this.materialRequestRepo.batchCreate(
         data.materials.map((m) => ({
@@ -123,12 +126,34 @@ export class OutletRequestService {
       totalPages: number;
     };
   }> {
-    const skip = (page - 1) * limit;
-    const productData = await this.productRequestRepo.getAggregatedByOutlet(skip, limit);
-    const materialData = await this.materialRequestRepo.getAggregatedByOutlet();
+    const skip = (page - 1) * limit;
 
-    // Combine the data
-    const combinedData = productData.data.map((productItem) => {
+    const productData = await this.productRequestRepo.getAggregatedByOutlet(skip, limit);
+    console.log(productData)
+    const materialData = await this.materialRequestRepo.getAggregatedByOutlet();
+    console.log(materialData)
+    
+    const result: Array<{
+      outlet_id: number;
+      outlet_name: string;
+      employee_id: number | null;
+      employee_name: string | null;
+      request_date: string;
+      total_request_product: number;
+      total_request_product_accepted: number;
+      total_request_material: number;
+      total_request_material_accepted: number;
+      status: string;
+    }> = [];
+
+    // Create a map to track processed outlet_id + request_date combinations
+    const processedKeys = new Set<string>();
+
+    // Process product data
+    productData.data.forEach((productItem) => {
+      const key = `${productItem.outlet_id}_${productItem.request_date}`;
+      processedKeys.add(key);
+
       const materialItem = materialData.find(
         (m) => m.outlet_id === productItem.outlet_id && m.request_date === productItem.request_date
       );
@@ -143,7 +168,7 @@ export class OutletRequestService {
       const totalAccepted = totalRequestProductAccepted + totalRequestMaterialAccepted;
       const status = totalRequests > 0 && totalRequests === totalAccepted ? 'processed' : 'pending';
 
-      return {
+      result.push({
         outlet_id: productItem.outlet_id,
         outlet_name: productItem.outlet_name,
         employee_id: productItem.employee_id,
@@ -154,17 +179,69 @@ export class OutletRequestService {
         total_request_material: totalRequestMaterial,
         total_request_material_accepted: totalRequestMaterialAccepted,
         status,
-      };
+      });
     });
 
-    const totalPages = Math.ceil(productData.total / limit);
+    // Process material data that doesn't have corresponding product data
+    // We need to fetch outlet info for material-only entries
+    for (const materialItem of materialData) {
+      const key = `${materialItem.outlet_id}_${materialItem.request_date}`;
+      
+      // Only process if this combination wasn't already processed in product data
+      if (!processedKeys.has(key)) {
+        const totalRequestMaterial = materialItem.total_request_material || 0;
+        const totalRequestMaterialAccepted = materialItem.total_request_material_accepted || 0;
+
+        // Determine status
+        const totalRequests = totalRequestMaterial;
+        const totalAccepted = totalRequestMaterialAccepted;
+        const status = totalRequests > 0 && totalRequests === totalAccepted ? 'processed' : 'pending';
+
+        // Fetch outlet info from database
+        const { default: PostgresAdapter } = await import("../../adapters/postgres/instance");
+        const outlet = await PostgresAdapter.client.outlet.findUnique({
+          where: { id: materialItem.outlet_id },
+          select: {
+            id: true,
+            name: true,
+            outlet_employee: { 
+              select: { 
+                employee: { 
+                  select: { 
+                    id: true,
+                    name: true 
+                  } 
+                } 
+              } 
+            },
+          },
+        });
+
+        result.push({
+          outlet_id: materialItem.outlet_id,
+          outlet_name: outlet?.name || 'Unknown Outlet',
+          employee_id: outlet?.outlet_employee[0]?.employee?.id || null,
+          employee_name: outlet?.outlet_employee[0]?.employee?.name || null,
+          request_date: materialItem.request_date,
+          total_request_product: 0,
+          total_request_product_accepted: 0,
+          total_request_material: totalRequestMaterial,
+          total_request_material_accepted: totalRequestMaterialAccepted,
+          status,
+        });
+      }
+    }
+
+    // Calculate total from combined results
+    const total = result.length;
+    const totalPages = Math.ceil(total / limit);
 
     return {
-      data: combinedData,
+      data: result,
       pagination: {
         page,
         limit,
-        total: productData.total,
+        total,
         totalPages,
       },
     };
@@ -365,7 +442,8 @@ export class OutletRequestService {
     // So we need to get the raw data. For now, let's just return empty strings if no data
     let outletName = "Unknown Outlet";
     let outletLocation = "";
-    let employee_name = "";
+    let employee_name = "";
+
     if (productRequests.length > 0 || materialRequests.length > 0) {
       // Fetch outlet info from database directly
       const { default: PostgresAdapter } = await import("../../adapters/postgres/instance");
