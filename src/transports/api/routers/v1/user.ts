@@ -13,16 +13,18 @@ import UserService from '../../../../core/services/UserService';
 import { UserResponseMapper } from '../../../../mappers/response-mappers';
 import UserRepository from '../../../../adapters/postgres/repositories/UserRepository';
 import { getPaginationSchema } from '../../validations/pagination.validation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
 const userController = new UserController();
 const userService = new UserService(new UserRepository());
 
-router.get('/', validate(getPaginationSchema), userController.findAll(userService, UserResponseMapper));
-router.get('/:id', validate(getUserByIdSchema), userController.findById);
-router.post('/', validate(createUserSchema), userController.create(userService, UserResponseMapper, 'User created successfully'));
-router.put('/:id', validate(updateUserSchema), userController.update(userService, UserResponseMapper, 'User updated successfully'));
-router.delete('/:id', validate(deleteUserSchema), userController.delete(userService, 'User deleted successfully'));
+router.get('/', authMiddleware, permissionMiddleware(['users:read']), validate(getPaginationSchema), userController.findAll(userService, UserResponseMapper));
+router.get('/:id', authMiddleware, permissionMiddleware(['users:read:detail']), validate(getUserByIdSchema), userController.findById);
+router.post('/', authMiddleware, permissionMiddleware(['users:create']), validate(createUserSchema), userController.create(userService, UserResponseMapper, 'User created successfully'));
+router.put('/:id', authMiddleware, permissionMiddleware(['users:update']), validate(updateUserSchema), userController.update(userService, UserResponseMapper, 'User updated successfully'));
+router.delete('/:id', authMiddleware, permissionMiddleware(['users:delete']), validate(deleteUserSchema), userController.delete(userService, 'User deleted successfully'));
 
 export default router;

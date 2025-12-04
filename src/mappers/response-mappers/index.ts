@@ -5,6 +5,7 @@
 
 export { UserResponseMapper } from './UserResponseMapper';
 export * from './RoleResponseMapper';
+export * from './PermissionResponseMapper';
 export * from './SupplierResponseMapper'
 
 export * from './MaterialResponseMapper';

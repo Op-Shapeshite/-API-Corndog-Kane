@@ -7,6 +7,8 @@ import InventoryService from '../../../../core/services/InventoryService';
 import MaterialRepository from '../../../../adapters/postgres/repositories/MaterialRepository';
 import SupplierRepository from '../../../../adapters/postgres/repositories/SupplierRepository';
 import { validateUnit } from '../../middlewares/unitValidation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
@@ -21,18 +23,27 @@ const inventoryService = new InventoryService(
 );
 
 // Initialize controller
-const inventoryController = new InventoryController();router.post(
+const inventoryController = new InventoryController();
+router.post(
 	"/in",
+	authMiddleware,
+	permissionMiddleware(['inventory:stock-in:create']),
 	validate(inventoryStockInSchema),
 	validateUnit,
 	inventoryController.stockIn(inventoryService)
-);router.put(
+);
+router.put(
 	"/in/:id",
+	authMiddleware,
+	permissionMiddleware(['inventory:stock-in:update']),
 	validate(inventoryStockInUpdateSchema),
 	validateUnit,
 	inventoryController.updateStockIn(inventoryService)
-);router.get(
+);
+router.get(
 	"/buy",
+	authMiddleware,
+	permissionMiddleware(['inventory:buy:read']),
 	validate(getPaginationSchema),
 	inventoryController.getBuyList(inventoryService)
 );

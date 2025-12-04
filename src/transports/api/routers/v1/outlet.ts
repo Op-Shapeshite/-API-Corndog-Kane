@@ -13,29 +13,39 @@ import { OutletController } from '../../controllers/OutletController';
 import OutletService from '../../../../core/services/OutletService';
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
 import { getPaginationSchema } from '../../validations/pagination.validation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
 const outletController = new OutletController();
 const outletService = new OutletService(new OutletRepository());
 
-router.get('/', validate(getPaginationSchema), outletController.getAllOutlets);
+router.get('/', authMiddleware, permissionMiddleware(['outlets:read']), validate(getPaginationSchema), outletController.getAllOutlets);
 router.get('/:id',
+authMiddleware,
+permissionMiddleware(['outlets:read:detail']),
 validate(getOutletByIdSchema),
 outletController.findById.bind(outletController)
 );
 router.post(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['outlets:create']),
 	validate(createOutletSchema),
 	outletController.createOutlet
 );
 router.put(
 	"/:id",
+	authMiddleware,
+	permissionMiddleware(['outlets:update']),
 	validate(updateOutletSchema),
 	outletController.updateOutlet
 	)
 router.delete(
 	"/:id",
+	authMiddleware,
+	permissionMiddleware(['outlets:delete']),
 	validate(deleteOutletSchema),
 	outletController.delete(outletService, "User deleted successfully")
 );
@@ -43,21 +53,31 @@ router.delete(
 // Assign employee to outlet
 router.post(
 	"/:id/employee/:employeeid",
+	authMiddleware,
+	permissionMiddleware(['outlets:employee:assign']),
 	validate(assignEmployeeToOutletSchema),
 	outletController.assignEmployeeToOutlet
-);
+);
+
 router.get(
 	"/:id/stocks/products",
+	authMiddleware,
+	permissionMiddleware(['outlets:stocks:read']),
 	outletController.getOutletProductStocks
-);
+);
+
 router.get(
 	"/:id/stocks/materials",
+	authMiddleware,
+	permissionMiddleware(['outlets:stocks:read']),
 	outletController.getOutletMaterialStocks
 );
 
 // Dynamic stocks route - supports :category parameter (products, materials, summarize)
 router.get(
 	"/:id/stocks/:category",
+	authMiddleware,
+	permissionMiddleware(['outlets:stocks:read']),
 	(req, res) => {
 		const { category } = req.params;
 		
@@ -77,9 +97,12 @@ router.get(
 			});
 		}
 	}
-);
+);
+
 router.get(
 	"/:id/stocks/summarize",
+	authMiddleware,
+	permissionMiddleware(['outlets:stocks:read']),
 	validate(outletSummarizeSchema),
 	outletController.getSummarize
 );

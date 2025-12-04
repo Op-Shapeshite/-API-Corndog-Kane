@@ -43,6 +43,8 @@ interface PrismaDelegate<T> {
 type PrismaModelName =
 	| "user"
 	| "role"
+	| "permission"
+	| "rolePermission"
 	| "login"
 	| "outlet"
 	| "outletEmployee"

@@ -1,21 +1,31 @@
 
 import express from 'express';
-import { RoleController } from '../../controllers';
+import { RoleController, PermissionController } from '../../controllers';
 import { validate } from '../../validations/validate.middleware';
 import { createRoleSchema,updateRoleSchema,deleteRoleSchema } from '../../validations/role.validation';
 import RoleService from '../../../../core/services/RoleService';
 import RoleRepository from '../../../../adapters/postgres/repositories/RoleRepository';
 import { RoleResponseMapper } from '../../../../mappers/response-mappers';
 import { getPaginationSchema } from '../../validations/pagination.validation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
 const roleController = new RoleController();
 const roleService = new RoleService(new RoleRepository());
+const permissionController = new PermissionController();
 
-router.get("/", validate(getPaginationSchema), roleController.getAll());
-router.post('/', validate(createRoleSchema), roleController.create(roleService, RoleResponseMapper, 'Role created successfully'));
-router.put('/:id', validate(updateRoleSchema), roleController.update(roleService, RoleResponseMapper, 'Role updated successfully'));
-router.delete('/:id', validate(deleteRoleSchema), roleController.delete(roleService, 'Role deleted successfully'));
+// Role endpoints
+router.get("/", authMiddleware, permissionMiddleware(['roles:read']), validate(getPaginationSchema), roleController.getAll());
+router.post('/', authMiddleware, permissionMiddleware(['roles:create']), validate(createRoleSchema), roleController.createWithPermissions());
+router.put('/:id', authMiddleware, permissionMiddleware(['roles:update']), validate(updateRoleSchema), roleController.update(roleService, RoleResponseMapper, 'Role berhasil diperbarui'));
+router.delete('/:id', authMiddleware, permissionMiddleware(['roles:delete']), validate(deleteRoleSchema), roleController.delete(roleService, 'Role berhasil dihapus'));
+
+// Permission endpoints under /roles
+router.get('/permissions', authMiddleware, permissionMiddleware(['roles:permissions:read']), validate(getPaginationSchema), permissionController.getAll());
+
+// Get authenticated user's permissions
+router.get('/access', authMiddleware, permissionMiddleware(['roles:access:read']), permissionController.getMyPermissions());
 
 export default router;

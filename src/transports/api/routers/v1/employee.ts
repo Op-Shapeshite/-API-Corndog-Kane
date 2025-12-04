@@ -19,6 +19,7 @@ import PayrollRepository from '../../../../adapters/postgres/repositories/Payrol
 import OutletRepository from '../../../../adapters/postgres/repositories/OutletRepository';
 import { EmployeeResponseMapper } from '../../../../mappers/response-mappers/EmployeeResponseMapper';
 import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 import { storage, storageMultiple } from '../../../../policies/uploadImages';
 import { OutletController } from '../../controllers/OutletController';
 
@@ -38,11 +39,13 @@ const uploadMultipleAttendanceImages = storageMultiple('absent');
 // Upload middleware for employee image
 const uploadEmployeeImage = storage('employee');
 
-router.get('/', validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
+router.get('/', authMiddleware, permissionMiddleware(['hr:employees:read']), validate(getEmployeesSchema), employeeController.findAll(employeeService, EmployeeResponseMapper));
 // IMPORTANT: /schedule must come BEFORE /:id to avoid route conflicts
-router.get('/schedule', validate(getSchedulesSchema), (req, res) => employeeController.getSchedules(req, res, employeeService));
+router.get('/schedule', authMiddleware, permissionMiddleware(['hr:schedules:read']), validate(getSchedulesSchema), (req, res) => employeeController.getSchedules(req, res, employeeService));
+
 router.get('/schedule/:outletId',
   authMiddleware,
+  permissionMiddleware(['hr:schedules:read:by-outlet']),
   validate(getAttendancesByOutletSchema),
   (req, res) => employeeController.getAttendancesByOutlet(req, res, employeeService)
 );
@@ -50,6 +53,7 @@ router.get('/schedule/:outletId',
 // Attendance endpoints
 router.post('/checkin',
   authMiddleware,
+  permissionMiddleware(['hr:attendance:create']),
   uploadMultipleAttendanceImages([
     { name: 'image_proof', maxCount: 1 },
     { name: 'late_present_proof', maxCount: 1 }
@@ -58,31 +62,40 @@ router.post('/checkin',
 );
 router.post('/checkout',
   authMiddleware,
+  permissionMiddleware(['hr:attendance:create']),
   uploadAttendanceImage('image_proof'),
   (req, res) => employeeController.checkout(req, res, employeeService)
-);
+);
+
 router.patch('/:id/:status',
   authMiddleware,
+  permissionMiddleware(['hr:employees:late-approval:update']),
   validate(updateLateApprovalStatusSchema),
   (req, res) => employeeController.updateLateApprovalStatus(req, res, employeeService)
 );
 
-router.get('/:id', validate(getEmployeeByIdSchema), (req, res) => employeeController.findById(req, res, employeeService));
+router.get('/:id', authMiddleware, permissionMiddleware(['hr:employees:read:detail']), validate(getEmployeeByIdSchema), (req, res) => employeeController.findById(req, res, employeeService));
 router.post('/',
+  authMiddleware,
+  permissionMiddleware(['hr:employees:create']),
   uploadEmployeeImage('image'),
   validate(createEmployeeSchema),
   (req, res) => employeeController.createEmployee(req, res, employeeService)
 );
 router.put('/:id',
+  authMiddleware,
+  permissionMiddleware(['hr:employees:update']),
   uploadEmployeeImage('image_path'),
   validate(updateEmployeeSchema),
   (req, res) => employeeController.updateEmployee(req, res, employeeService)
 );
-router.delete('/:id', validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
+router.delete('/:id', authMiddleware, permissionMiddleware(['hr:employees:delete']), validate(deleteEmployeeSchema), employeeController.delete(employeeService, 'Employee deleted successfully'));
 
 // Delete schedule by outlet_id and date
 router.delete(
   "/schedule/:outlet_id/:date",
+  authMiddleware,
+  permissionMiddleware(['hr:schedules:delete']),
   validate(deleteScheduleSchema),
   outletController.deleteSchedule
 );

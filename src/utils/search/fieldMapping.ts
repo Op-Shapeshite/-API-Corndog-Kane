@@ -25,6 +25,12 @@ export const EntityFieldMappings = {
 		// No additional fields for roles beyond common ones
 	} satisfies FieldMapping,
 
+	permission: {
+		...CommonFieldMappings,
+		code: "code",
+		module: "module",
+	} satisfies FieldMapping,
+
 	employee: {
 		...CommonFieldMappings,
 		nik: "nik",

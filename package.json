@@ -17,7 +17,12 @@
 		"prisma:studio": "dotenv -e .env -- prisma studio",
 		"prisma:push": "dotenv -e .env -- prisma db push",
 		"prisma:seed": "dotenv -e .env -- prisma db seed",
-		"prisma:generate:data": "dotenv -e .env -- prisma db seed"
+		"prisma:generate:data": "dotenv -e .env -- prisma db seed",
+		"seed:permissions": "ts-node prisma/seed/permission.seeder.ts",
+		"generate:permissions": "ts-node scripts/generate-permissions-from-routers.ts",
+		"generate:permissions:json": "ts-node scripts/generate-permissions-from-routers.ts --output permissions-report.json",
+		"verify:permissions": "ts-node scripts/verify-permissions.ts",
+		"test:permissions": "npm run verify:permissions && npm run generate:permissions"
 	},
 	"prisma": {
 		"seed": "ts-node prisma/seed.ts"

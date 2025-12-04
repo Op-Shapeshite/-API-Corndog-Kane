@@ -7,6 +7,8 @@ import SupplierService from '../../../../core/services/SupplierService';
 import SupplierRepository from '../../../../adapters/postgres/repositories/SupplierRepository';
 import { SupplierResponseMapper } from "../../../../mappers/response-mappers";
 import { getPaginationSchema } from '../../validations/pagination.validation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
@@ -15,11 +17,15 @@ const supplierService = new SupplierService(new SupplierRepository());
 
 router.get(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['warehouse:suppliers:read']),
 	validate(getPaginationSchema),
 	supplierController.findAll(supplierService, SupplierResponseMapper)
 );
 router.post(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['warehouse:suppliers:create']),
 	validate(createSupplierSchema),
 	supplierController.create(
 		supplierService,
@@ -29,6 +35,8 @@ router.post(
 );
 router.put(
 	"/:id",
+	authMiddleware,
+	permissionMiddleware(['warehouse:suppliers:update']),
 	validate(updateSupplierSchema),
 	supplierController.update(
 		supplierService,
@@ -38,6 +46,8 @@ router.put(
 );
 router.delete(
 	"/:id",
+	authMiddleware,
+	permissionMiddleware(['warehouse:suppliers:delete']),
 	validate(deleteSupplierSchema),
 	supplierController.delete(supplierService, "Supplier deleted successfully")
 );
