@@ -563,4 +563,53 @@ export class ProductRepository
 
 		return dbRecords;
 	}
+	async getAllProductRequestAccepted() {
+		const dbRecords = await this.prisma.outletProductRequest.findMany({
+			where: {
+				status: 'APPROVED',
+				
+			},
+			include: {
+				product: {
+					include: {
+						product_master: {select: {name:true}},
+					},
+				},
+				
+			},
+		});
+
+		return dbRecords;
+	}
+	async getAllProductRequestAcceptedWithSearch(search?: SearchConfig[]) {
+		let whereClause: any = {
+			status: 'ACCEPTED',
+		};
+
+		if (search && search.length > 0) {
+			whereClause.OR = search.map((item) => {
+				return {
+					product: {
+						name: {
+							contains: item.value,
+							mode: 'insensitive',
+						},
+					},
+				};
+			});
+		}
+
+		const dbRecords = await this.prisma.outletProductRequest.findMany({
+			where: whereClause,
+			include: {
+				product: {
+					include: {
+						product_master: { select: { name: true } },
+					},
+				},
+			},
+		});
+
+		return dbRecords;
+	}
 }
