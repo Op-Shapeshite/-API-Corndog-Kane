@@ -38,11 +38,13 @@ export class FinancialStatementService {
 
   /**
    * Generate complete financial statements
+   * @param keepMonthlyArrays - If true, keeps monthly arrays for Excel. If false, converts to ending balance for PDF/JSON
    */
   async generateStatements(
     startDate: Date,
     endDate: Date,
-    reportCategory: 'laba_rugi' | 'neraca' | 'cashflow' | 'all'
+    reportCategory: 'laba_rugi' | 'neraca' | 'cashflow' | 'all',
+    keepMonthlyArrays: boolean = false
   ): Promise<TFinancialStatements> {
     const months = this.generateMonthRange(startDate, endDate);
 
@@ -56,17 +58,17 @@ export class FinancialStatementService {
 
     // Generate Laba Rugi (Income Statement)
     if (reportCategory === 'laba_rugi' || reportCategory === 'all') {
-      result.laba_rugi = await this.generateLabaRugi(startDate, endDate, months);
+      result.laba_rugi = await this.generateLabaRugi(startDate, endDate, months, keepMonthlyArrays);
     }
 
     // Generate Neraca (Balance Sheet)
     if (reportCategory === 'neraca' || reportCategory === 'all') {
-      result.neraca = await this.generateNeraca(startDate, endDate, months);
+      result.neraca = await this.generateNeraca(startDate, endDate, months, keepMonthlyArrays);
     }
 
     // Generate Cashflow (Cash Flow Statement)
     if (reportCategory === 'cashflow' || reportCategory === 'all') {
-      result.cashflow = await this.generateCashflow(startDate, endDate, months);
+      result.cashflow = await this.generateCashflow(startDate, endDate, months, keepMonthlyArrays);
     }
 
     return result;
@@ -78,11 +80,13 @@ export class FinancialStatementService {
   private async generateLabaRugi(
     startDate: Date,
     endDate: Date,
-    months: string[]
+    months: string[],
+    keepMonthlyArrays: boolean = false
   ): Promise<SectionResult[]> {
     const mapping = (financeMapping as any).gross_to_net as MappingType[];
     const results = await this.processMapping(mapping, startDate, endDate, months);
     // Cleanup all sections after calculations complete
+    // Laba Rugi always keeps arrays (income statements show monthly breakdown)
     return results.map(section => this.cleanupSectionResult(section));
   }
 
@@ -92,12 +96,17 @@ export class FinancialStatementService {
   private async generateNeraca(
     startDate: Date,
     endDate: Date,
-    months: string[]
+    months: string[],
+    keepMonthlyArrays: boolean = false
   ): Promise<SectionResult[]> {
     const mapping = (financeMapping as any).neraca as MappingType[];
     const results = await this.processMapping(mapping, startDate, endDate, months);
-    // Cleanup all sections after calculations complete with summed amounts
-    return results.map(section => this.cleanupSectionResultWithSum(section));
+    // Cleanup: Keep monthly arrays for Excel, or use ending balance for PDF/JSON
+    if (keepMonthlyArrays) {
+      return results.map(section => this.cleanupSectionResult(section));
+    } else {
+      return results.map(section => this.cleanupSectionResultWithSum(section));
+    }
   }
 
   /**
@@ -106,14 +115,16 @@ export class FinancialStatementService {
   private async generateCashflow(
     startDate: Date,
     endDate: Date,
-    months: string[]
+    months: string[],
+    keepMonthlyArrays: boolean = false
   ): Promise<SectionResult[]> {
     const mapping = (financeMapping as any).cashflow as MappingType[];
     
     // First, generate Laba Rugi WITHOUT cleanup to get NetProfitLoss value with section field intact
     const labaRugiMapping = (financeMapping as any).gross_to_net as MappingType[];
     const labaRugiRaw = await this.processMapping(labaRugiMapping, startDate, endDate, months);
-    const netProfitLossSection = labaRugiRaw.find(section => section.section === 'net_profit_loss');
+    const netProfitLossSection = labaRugiRaw.find(section => section.section === 'net_profit_loss');
+
     const initialContext: Record<string, number[]> = {};
     if (netProfitLossSection) {
       initialContext['net_profit_loss'] = netProfitLossSection.amount;
@@ -125,14 +136,19 @@ export class FinancialStatementService {
 
     for (const section of mapping) {
       const result = await this.processSection(section, startDate, endDate, months, dataContext);
-      results.push(result);
+      results.push(result);
+
       if (result.section) {
         dataContext[result.section] = result.amount;
       }
     }
     
-    // Cleanup all sections after calculations complete with summed amounts
-    return results.map(section => this.cleanupSectionResultWithSum(section));
+    // Cleanup: Keep monthly arrays for Excel, or use ending balance for PDF/JSON
+    if (keepMonthlyArrays) {
+      return results.map(section => this.cleanupSectionResult(section));
+    } else {
+      return results.map(section => this.cleanupSectionResultWithSum(section));
+    }
   }
 
   /**
@@ -149,7 +165,8 @@ export class FinancialStatementService {
 
     for (const section of mapping) {
       const result = await this.processSection(section, startDate, endDate, months, dataContext);
-      results.push(result);
+      results.push(result);
+
       if (result.section) {
         dataContext[result.section] = result.amount;
       }
@@ -174,18 +191,21 @@ export class FinancialStatementService {
       amount: [],
       calculation: section.calculation,
       subsections: []
-    };
+    };
+
     const localContext: Record<string, number[]> = { ...parentContext };
 
     // Process subsections first (if any)
     if (section.subsections && section.subsections.length > 0) {
       for (const subsection of section.subsections) {
         const subsectionResult = await this.processSection(subsection, startDate, endDate, months, localContext);
-        result.subsections!.push(subsectionResult);
+        result.subsections!.push(subsectionResult);
+
         if (subsectionResult.section) {
           localContext[subsectionResult.section] = subsectionResult.amount;
           
-          // Special handling for OtherIncomeExpenses subsections
+          // Special handling for OtherIncomeExpenses subsections
+
           if (subsectionResult.section === 'other_income_expenses') {
             if (subsectionResult.label === 'Pendapatan Lainnya') {
               localContext['other_income'] = subsectionResult.amount;
@@ -195,8 +215,10 @@ export class FinancialStatementService {
           }
         }
       }
-    }
-    if (section.calculation) {
+    }
+
+    if (section.calculation) {
+
       // This handles cross-report references (e.g., NetProfitLoss from Laba Rugi to Cashflow)
       const trimmedCalc = section.calculation.trim();
       
@@ -276,9 +298,11 @@ export class FinancialStatementService {
     startDate: Date,
     endDate: Date,
     months: string[]
-  ): Promise<number[]> {
+  ): Promise<number[]> {
+
     const accountTypeCodes = (section.account_types || []).filter(type => type !== "");
-    const accountNumbers = section.account_numbers || [];
+    const accountNumbers = section.account_numbers || [];
+
     if (accountTypeCodes.length === 0 && accountNumbers.length === 0) {
       return months.map(() => 0);
     }
@@ -289,7 +313,8 @@ export class FinancialStatementService {
       endDate,
       accountTypeCodes,
       accountNumbers
-    );
+    );
+
     const monthTotals = months.map(() => 0);
 
     balances.forEach((accountBalance: AccountTypeBalance) => {
@@ -345,7 +370,8 @@ export class FinancialStatementService {
       const value = data[variable][monthIndex] || 0;
       // Wrap negative numbers in parentheses to avoid syntax errors like "5 - -3" becoming "5--3"
       const valueStr = value < 0 ? `(${value})` : String(value);
-      // Replace all occurrences of the variable name
+      // Replace all occurrences of the variable name
+
       const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
       expression = expression.replace(regex, valueStr);
     });
@@ -358,17 +384,20 @@ export class FinancialStatementService {
    * Safely evaluate a mathematical expression
    * Only allows basic math operators: + - * / ( )
    */
-  private safeEval(expression: string): number {
+  private safeEval(expression: string): number {
+
     const trimmed = expression.replace(/\s/g, '');
     
     // Sanitize: Only allow numbers, operators, parentheses, and decimal points
-    const sanitized = trimmed.replace(/[^0-9+\-*/(). ]/g, '');
+    const sanitized = trimmed.replace(/[^0-9+\-*/(). ]/g, '');
+
     if (sanitized !== trimmed) {
       console.warn(`Invalid characters in expression: ${expression}`);
       return 0;
     }
 
-    try {
+    try {
+
       // eslint-disable-next-line no-new-func
       const result = new Function(`return ${sanitized}`)();
       return typeof result === 'number' && !isNaN(result) ? result : 0;
@@ -385,10 +414,12 @@ export class FinancialStatementService {
    */
   private generateMonthRange(startDate: Date, endDate: Date): string[] {
     const firstMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
-    const lastMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+    const lastMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+
     if (firstMonth === lastMonth) {
       return [firstMonth];
-    }
+    }
+
     return [firstMonth, lastMonth];
   }
 }
