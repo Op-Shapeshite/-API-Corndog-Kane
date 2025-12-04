@@ -6,3 +6,4 @@ import TransportRegistry from "./configs/TransportRegistry";
 (new TransportRegistry()).loadTransports();
 
 import "./transports/api/instance";
+
