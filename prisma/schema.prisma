@@ -81,29 +81,31 @@ enum PackagingType {
 // ============================================================================
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  name      String?
-  password  String
-  role_id   Int
-  role      Role     @relation(fields: [role_id], references: [id])
-  outlets   Outlet?
-  is_active Boolean  @default(true)
-  logins    Login[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int       @id @default(autoincrement())
+  username   String    @unique
+  name       String?
+  password   String
+  role_id    Int
+  role       Role      @relation(fields: [role_id], references: [id])
+  outlets    Outlet?
+  is_active  Boolean   @default(true)
+  deleted_at DateTime?
+  logins     Login[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@map("users")
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
   description String?
-  is_active   Boolean  @default(true)
+  is_active   Boolean   @default(true)
+  deleted_at  DateTime?
   users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("roles")
 }
@@ -150,6 +152,7 @@ model Product {
   product_master_id Int
   product_master    ProductMaster          @relation(fields: [product_master_id], references: [id])
   is_active         Boolean                @default(true)
+  deleted_at        DateTime?
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   order_items       OrderItem[]
@@ -239,6 +242,7 @@ model Employee {
   gender            Gender
   hire_date         DateTime
   is_active         Boolean           @default(true)
+  deleted_at        DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   payroll           Payroll[]

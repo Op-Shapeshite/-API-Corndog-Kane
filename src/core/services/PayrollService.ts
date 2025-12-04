@@ -289,6 +289,9 @@ export default class PayrollService extends Service<TPayroll> {
     manualBonus?: number,
     manualDeductions?: { date: string; amount: number; description: string }[]
   ) {
+    // Preserve original dates for the final return
+    const originalStart = start;
+    const originalEnd = end;
 
     let payrolls = await this.repository.getUnpaidPayrolls(employeeId, start, end);
 
@@ -356,7 +359,7 @@ export default class PayrollService extends Service<TPayroll> {
       }
     }
 
-    return this.getEmployeePayrollDetail(employeeId, this.formatDate(start), this.formatDate(end));
+    return this.getEmployeePayrollDetail(employeeId, this.formatDate(originalStart), this.formatDate(originalEnd));
   }
 
   private async updateInternalPayrollPeriod(
@@ -368,6 +371,9 @@ export default class PayrollService extends Service<TPayroll> {
     manualBonus?: number,
     manualDeductions?: { date: string; amount: number; description: string }[]
   ) {
+    // Preserve original dates for the final return
+    const originalStart = start;
+    const originalEnd = end;
 
     let internalPayrolls = await this.repository.getUnpaidInternalPayrolls(employeeId, start, end);
 
@@ -445,7 +451,7 @@ export default class PayrollService extends Service<TPayroll> {
       );
     }
 
-    return this.getEmployeePayrollDetail(employeeId, this.formatDate(start), this.formatDate(end));
+    return this.getEmployeePayrollDetail(employeeId, this.formatDate(originalStart), this.formatDate(originalEnd));
   }
   async createPayment(employeeId: number) {
 
