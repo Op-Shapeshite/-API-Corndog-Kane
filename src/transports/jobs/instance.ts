@@ -10,4 +10,4 @@ export default class JobsTransport {
 }
 
 // Auto-boot when imported
-JobsTransport.boot();
+// JobsTransport.boot();
