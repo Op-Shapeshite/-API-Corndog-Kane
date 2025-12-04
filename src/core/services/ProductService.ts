@@ -130,12 +130,16 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       return new Date(date).toISOString().split('T')[0];
     };
 
-    const [productStocks] = await Promise.all([
+    const [productStocks, productRequestsAccepted] = await Promise.all([
       search && search.length > 0
         ? this.repository.getProductStockRecordsWithSearch(search)
         : this.repository.getAllProductStockRecords(),
-      this.repository.getAllOrderItems(),
+      search && search.length > 0
+        ? this.repository.getAllProductRequestAcceptedWithSearch(search)
+        : this.repository.getAllProductRequestAccepted(),
     ]);
+    console.log('Product Stocks:', productStocks);
+    console.log('Product Requests Accepted:', productRequestsAccepted);
 
     // Group by product_id and date
     interface DailyStock {
@@ -178,16 +182,37 @@ export default class ProductService extends Service<TProduct | TProductWithID> {
       dailyStock.latestInTime = record.date;
       dailyStock.updatedAt = record.date;
     });
-
-  
-    
-
-    // Convert to array and sort by product_id and date
-    const dailyStocks = Array.from(dailyStocksMap.values()).sort((a, b) => {
-      if (a.productId !== b.productId) {
-        return a.productId - b.productId;
+    // Process product request accepted records
+    productRequestsAccepted.forEach(record => {
+      const date = formatDate(record.updatedAt);
+      const key = `${record.product.product_master_id}_${date}`;
+      if (!dailyStocksMap.has(key)) {
+        dailyStocksMap.set(key, {
+			productId: record.product.product_master_id,
+			productName: record.product.product_master.name,
+			date,
+			stockIn: dailyStocksMap.get(key)?.stockIn || 0,
+			stockOut: record.approval_quantity || 0,
+			unitQuantity: "pcs", // Default unit for products
+			latestInTime: null,
+			latestOutTime: null,
+			updatedAt: record.updatedAt,
+		});
       }
-      return a.date.localeCompare(b.date);
+
+      const dailyStock = dailyStocksMap.get(key)!;
+
+      // All  records in productRequestsAccepted are stockOut
+      dailyStock.latestOutTime = record.updatedAt;
+      dailyStock.stockOut += record.approval_quantity || 0;
+      dailyStock.updatedAt = record.updatedAt;
+    });
+    console.log('Daily Stocks Map:', dailyStocksMap);
+    const dailyStocks = Array.from(dailyStocksMap.values()).sort((a, b) => {
+      if (a.productId === b.productId) {
+        return a.date.localeCompare(b.date);
+      }
+      return a.productId - b.productId;
     });
 
     const productStocksMap = new Map<number, number>(); // productId -> running stock
