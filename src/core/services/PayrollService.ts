@@ -330,14 +330,8 @@ export default class PayrollService extends Service<TPayroll> {
       for (const deduction of manualDeductions) {
         const deductionDate = new Date(deduction.date);
 
-        const payroll = payrolls.find((p) => {
-          const pDate = new Date(p.workDate);
-          return (
-            pDate.getDate() === deductionDate.getDate() &&
-            pDate.getMonth() === deductionDate.getMonth() &&
-            pDate.getFullYear() === deductionDate.getFullYear()
-          );
-        });
+        // Match payroll by formatted date (YYYY-MM-DD) to avoid timezone/date-part issues
+        const payroll = payrolls.find((p) => this.formatDate(new Date(p.workDate)) === this.formatDate(deductionDate));
 
         if (payroll) {
           await this.repository.createDeduction({
@@ -354,6 +348,10 @@ export default class PayrollService extends Service<TPayroll> {
             payroll.totalDeduction + deduction.amount,
             payroll.finalSalary - deduction.amount
           );
+        }
+        else {
+          // Helpful debug log when a deduction does not match any payroll date
+          console.warn(`[PayrollService] No matching payroll found for deduction date ${deduction.date} (employee ${employeeId}). Available payroll dates: ${payrolls.map(p => this.formatDate(new Date(p.workDate))).join(', ')}`);
         }
       }
     }
