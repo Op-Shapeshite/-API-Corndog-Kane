@@ -18,12 +18,14 @@ import { AccountMapperEntity } from "./mappers/AccountMapperEntity";
 import { AccountCategoryMapperEntity } from "./mappers/AccountCategoryMapperEntity";
 import { TransactionMapperEntity } from "./mappers/TransactionMapperEntity";
 import { QuantityUnitMapperEntity } from "./mappers/QuantityUnitMapperEntity";
+import { PermissionMapperEntity } from "./mappers/PermissionMapperEntity";
 
 export const EntityMappers: Record<string, EntityMapConfig> = {
 	order: OrderMapperEntity,
 	material: MaterialMapperEntity,
 	user: UserMapperEntity,
 	role: RoleMapperEntity,
+	permission: PermissionMapperEntity,
 	outlet: OutletMapperEntity,
 	login: LoginMapperEntity,
 	product: ProductMapperEntity,

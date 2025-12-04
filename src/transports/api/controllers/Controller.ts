@@ -64,7 +64,8 @@ export default class Controller<T, M> {
 		emptyData: T | T[],
 		emptyMetadata: M
 	) {
-		console.error(`${message}:`, error);
+		console.error(`${message}:`, error);
+
 		const prismaError = PrismaErrorHandler.handlePrismaError(error);
 		if (prismaError) {
 			return this.getFailureResponse(
@@ -74,8 +75,10 @@ export default class Controller<T, M> {
 				message,
 				prismaError.statusCode
 			);
-		}
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		}
+
+		const errorMessage = error instanceof Error ? error.message : String(error);
+
 		return this.getFailureResponse(
 			res,
 			{ data: emptyData, metadata: emptyMetadata },
@@ -100,10 +103,12 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
+
 				const pageNum = page ? parseInt(page as string, 10) : 1;
 				const limitNum = limit ? parseInt(limit as string, 10) : 10;
-				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
+
 				const validation = SearchHelper.validateSearchParams(
 					entityName, 
 					search_key as string, 
@@ -125,7 +130,8 @@ export default class Controller<T, M> {
 							searchable_fields: validation.searchable_fields
 						} as M
 					);
-				}
+				}
+
 				const search = SearchHelper.buildSearchConfig(
 					entityName,
 					search_key as string,
@@ -194,10 +200,12 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
+
 				const pageNum = page ? parseInt(page as string, 10) : 1;
 				const limitNum = limit ? parseInt(limit as string, 10) : 10;
-				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
+
 				const search =
 					search_key && 
 					search_value && 

@@ -1,0 +1,812 @@
+{
+  "permissions": [
+    {
+      "name": "View Dashboard",
+      "code": "dashboard:read",
+      "module": "DASHBOARD",
+      "description": "Access dashboard metrics"
+    },
+    {
+      "name": "View Outlets",
+      "code": "outlets:read",
+      "module": "OUTLETS",
+      "description": "View all outlets"
+    },
+    {
+      "name": "View Outlet Detail",
+      "code": "outlets:read:detail",
+      "module": "OUTLETS",
+      "description": "View outlet details by ID"
+    },
+    {
+      "name": "Create Outlet",
+      "code": "outlets:create",
+      "module": "OUTLETS",
+      "description": "Create new outlet"
+    },
+    {
+      "name": "Update Outlet",
+      "code": "outlets:update",
+      "module": "OUTLETS",
+      "description": "Update existing outlet"
+    },
+    {
+      "name": "Delete Outlet",
+      "code": "outlets:delete",
+      "module": "OUTLETS",
+      "description": "Delete outlet"
+    },
+    {
+      "name": "Assign Employee to Outlet",
+      "code": "outlets:employee:assign",
+      "module": "OUTLETS",
+      "description": "Assign employee to outlet"
+    },
+    {
+      "name": "View Outlet Stocks",
+      "code": "outlets:stocks:read",
+      "module": "OUTLETS",
+      "description": "View outlet stocks (products, materials, summary)"
+    },
+    {
+      "name": "View Products",
+      "code": "products:read",
+      "module": "PRODUCTS",
+      "description": "View all products"
+    },
+    {
+      "name": "View Product Detail",
+      "code": "products:read:detail",
+      "module": "PRODUCTS",
+      "description": "View detailed product with materials"
+    },
+    {
+      "name": "View Product Stocks",
+      "code": "products:stocks:read",
+      "module": "PRODUCTS",
+      "description": "View product stock inventory"
+    },
+    {
+      "name": "Create Product",
+      "code": "products:create",
+      "module": "PRODUCTS",
+      "description": "Create new product"
+    },
+    {
+      "name": "Update Product",
+      "code": "products:update",
+      "module": "PRODUCTS",
+      "description": "Update existing product"
+    },
+    {
+      "name": "Delete Product",
+      "code": "products:delete",
+      "module": "PRODUCTS",
+      "description": "Delete product"
+    },
+    {
+      "name": "Product Stock In",
+      "code": "products:stock-in",
+      "module": "PRODUCTS",
+      "description": "Add product stock (PRODUCTION source)"
+    },
+    {
+      "name": "Assign Materials to Product",
+      "code": "products:materials:assign",
+      "module": "PRODUCTS",
+      "description": "Assign materials to product"
+    },
+    {
+      "name": "View Materials",
+      "code": "materials:read",
+      "module": "MATERIALS",
+      "description": "View all materials"
+    },
+    {
+      "name": "View Material Stocks",
+      "code": "materials:stocks:read",
+      "module": "MATERIALS",
+      "description": "View material stock inventory"
+    },
+    {
+      "name": "View Material Buy List",
+      "code": "materials:buy:read",
+      "module": "MATERIALS",
+      "description": "View material buy list"
+    },
+    {
+      "name": "View Material Out Detail",
+      "code": "materials:out:read:detail",
+      "module": "MATERIALS",
+      "description": "View material out by ID"
+    },
+    {
+      "name": "Create Material",
+      "code": "materials:create",
+      "module": "MATERIALS",
+      "description": "Create new material"
+    },
+    {
+      "name": "Material Stock In",
+      "code": "materials:in:create",
+      "module": "MATERIALS",
+      "description": "Add material stock (material in)"
+    },
+    {
+      "name": "Material Stock Out",
+      "code": "materials:out:create",
+      "module": "MATERIALS",
+      "description": "Remove material stock (material out)"
+    },
+    {
+      "name": "View Orders",
+      "code": "orders:read",
+      "module": "ORDERS",
+      "description": "View all orders"
+    },
+    {
+      "name": "View Order Detail",
+      "code": "orders:read:detail",
+      "module": "ORDERS",
+      "description": "View order details by ID"
+    },
+    {
+      "name": "View My Orders",
+      "code": "orders:read:my",
+      "module": "ORDERS",
+      "description": "View own orders"
+    },
+    {
+      "name": "Create Order",
+      "code": "orders:create",
+      "module": "ORDERS",
+      "description": "Create new order"
+    },
+    {
+      "name": "View Accounts",
+      "code": "finance:accounts:read",
+      "module": "FINANCE",
+      "description": "View financial accounts"
+    },
+    {
+      "name": "Create Account",
+      "code": "finance:accounts:create",
+      "module": "FINANCE",
+      "description": "Create financial account"
+    },
+    {
+      "name": "Update Account",
+      "code": "finance:accounts:update",
+      "module": "FINANCE",
+      "description": "Update financial account"
+    },
+    {
+      "name": "Delete Account",
+      "code": "finance:accounts:delete",
+      "module": "FINANCE",
+      "description": "Delete financial account"
+    },
+    {
+      "name": "View Account Categories",
+      "code": "finance:account-categories:read",
+      "module": "FINANCE",
+      "description": "View account categories"
+    },
+    {
+      "name": "View Account Types",
+      "code": "finance:account-types:read",
+      "module": "FINANCE",
+      "description": "View account types"
+    },
+    {
+      "name": "View Transactions",
+      "code": "finance:transactions:read",
+      "module": "FINANCE",
+      "description": "View financial transactions"
+    },
+    {
+      "name": "Create Transaction",
+      "code": "finance:transactions:create",
+      "module": "FINANCE",
+      "description": "Create financial transaction"
+    },
+    {
+      "name": "Update Transaction",
+      "code": "finance:transactions:update",
+      "module": "FINANCE",
+      "description": "Update financial transaction"
+    },
+    {
+      "name": "Delete Transaction",
+      "code": "finance:transactions:delete",
+      "module": "FINANCE",
+      "description": "Delete financial transaction"
+    },
+    {
+      "name": "View Payroll",
+      "code": "finance:payroll:read",
+      "module": "FINANCE",
+      "description": "View payroll records"
+    },
+    {
+      "name": "View Payroll Detail",
+      "code": "finance:payroll:read:detail",
+      "module": "FINANCE",
+      "description": "View payroll detail by employee"
+    },
+    {
+      "name": "View Payment Slip",
+      "code": "finance:payroll:pay:read",
+      "module": "FINANCE",
+      "description": "View payment slip"
+    },
+    {
+      "name": "Create Payroll",
+      "code": "finance:payroll:create",
+      "module": "FINANCE",
+      "description": "Create payroll template"
+    },
+    {
+      "name": "Create Payment",
+      "code": "finance:payroll:pay:create",
+      "module": "FINANCE",
+      "description": "Create payment for employee"
+    },
+    {
+      "name": "Update Payroll",
+      "code": "finance:payroll:update",
+      "module": "FINANCE",
+      "description": "Update payroll record"
+    },
+    {
+      "name": "View Reports",
+      "code": "finance:reports:read",
+      "module": "FINANCE",
+      "description": "View financial reports"
+    },
+    {
+      "name": "View Employees",
+      "code": "hr:employees:read",
+      "module": "HR",
+      "description": "View all employees"
+    },
+    {
+      "name": "View Employee Detail",
+      "code": "hr:employees:read:detail",
+      "module": "HR",
+      "description": "View employee details by ID"
+    },
+    {
+      "name": "Create Employee",
+      "code": "hr:employees:create",
+      "module": "HR",
+      "description": "Create new employee"
+    },
+    {
+      "name": "Update Employee",
+      "code": "hr:employees:update",
+      "module": "HR",
+      "description": "Update existing employee"
+    },
+    {
+      "name": "Delete Employee",
+      "code": "hr:employees:delete",
+      "module": "HR",
+      "description": "Delete employee"
+    },
+    {
+      "name": "Update Late Approval Status",
+      "code": "hr:employees:late-approval:update",
+      "module": "HR",
+      "description": "Update late approval status"
+    },
+    {
+      "name": "View Schedules",
+      "code": "hr:schedules:read",
+      "module": "HR",
+      "description": "View employee schedules"
+    },
+    {
+      "name": "View Schedules by Outlet",
+      "code": "hr:schedules:read:by-outlet",
+      "module": "HR",
+      "description": "View schedules by outlet (attendances)"
+    },
+    {
+      "name": "Create Schedule",
+      "code": "hr:schedules:create",
+      "module": "HR",
+      "description": "Create employee schedule"
+    },
+    {
+      "name": "Update Schedule",
+      "code": "hr:schedules:update",
+      "module": "HR",
+      "description": "Update employee schedule"
+    },
+    {
+      "name": "Delete Schedule",
+      "code": "hr:schedules:delete",
+      "module": "HR",
+      "description": "Delete employee schedule"
+    },
+    {
+      "name": "Create Attendance",
+      "code": "hr:attendance:create",
+      "module": "HR",
+      "description": "Employee check-in and check-out"
+    },
+    {
+      "name": "View Users",
+      "code": "users:read",
+      "module": "USERS",
+      "description": "View all users"
+    },
+    {
+      "name": "View User Detail",
+      "code": "users:read:detail",
+      "module": "USERS",
+      "description": "View user details by ID"
+    },
+    {
+      "name": "Create User",
+      "code": "users:create",
+      "module": "USERS",
+      "description": "Create new user"
+    },
+    {
+      "name": "Update User",
+      "code": "users:update",
+      "module": "USERS",
+      "description": "Update existing user"
+    },
+    {
+      "name": "Delete User",
+      "code": "users:delete",
+      "module": "USERS",
+      "description": "Delete user"
+    },
+    {
+      "name": "View Roles",
+      "code": "roles:read",
+      "module": "ROLES",
+      "description": "View all roles"
+    },
+    {
+      "name": "Create Role",
+      "code": "roles:create",
+      "module": "ROLES",
+      "description": "Create new role"
+    },
+    {
+      "name": "Update Role",
+      "code": "roles:update",
+      "module": "ROLES",
+      "description": "Update existing role"
+    },
+    {
+      "name": "Delete Role",
+      "code": "roles:delete",
+      "module": "ROLES",
+      "description": "Delete role"
+    },
+    {
+      "name": "View All Permissions",
+      "code": "roles:permissions:read",
+      "module": "ROLES",
+      "description": "View all available permissions"
+    },
+    {
+      "name": "View My Permissions",
+      "code": "roles:access:read",
+      "module": "ROLES",
+      "description": "View my permissions (authenticated user)"
+    },
+    {
+      "name": "View Outlet Requests",
+      "code": "warehouse:outlet-requests:read",
+      "module": "WAREHOUSE",
+      "description": "View all outlet requests"
+    },
+    {
+      "name": "View My Outlet Requests",
+      "code": "warehouse:outlet-requests:read:my",
+      "module": "WAREHOUSE",
+      "description": "View my outlet requests"
+    },
+    {
+      "name": "View Outlet Request Detail",
+      "code": "warehouse:outlet-requests:read:detail",
+      "module": "WAREHOUSE",
+      "description": "View detailed outlet request by date and outlet"
+    },
+    {
+      "name": "Create Outlet Request",
+      "code": "warehouse:outlet-requests:create",
+      "module": "WAREHOUSE",
+      "description": "Create outlet product/material request"
+    },
+    {
+      "name": "Update Outlet Request",
+      "code": "warehouse:outlet-requests:update",
+      "module": "WAREHOUSE",
+      "description": "Update outlet requests"
+    },
+    {
+      "name": "Delete Outlet Request",
+      "code": "warehouse:outlet-requests:delete",
+      "module": "WAREHOUSE",
+      "description": "Delete outlet requests"
+    },
+    {
+      "name": "Approve Outlet Request",
+      "code": "warehouse:outlet-requests:approve",
+      "module": "WAREHOUSE",
+      "description": "Approve outlet requests"
+    },
+    {
+      "name": "Reject Outlet Request",
+      "code": "warehouse:outlet-requests:reject",
+      "module": "WAREHOUSE",
+      "description": "Reject outlet requests"
+    },
+    {
+      "name": "View Master Products",
+      "code": "warehouse:master-products:read",
+      "module": "WAREHOUSE",
+      "description": "View master products"
+    },
+    {
+      "name": "View Master Product Inventory",
+      "code": "warehouse:master-products:inventory:read",
+      "module": "WAREHOUSE",
+      "description": "View master product inventory"
+    },
+    {
+      "name": "Create Master Product Inventory",
+      "code": "warehouse:master-products:inventory:create",
+      "module": "WAREHOUSE",
+      "description": "Create master product inventory"
+    },
+    {
+      "name": "Update Master Product Inventory",
+      "code": "warehouse:master-products:inventory:update",
+      "module": "WAREHOUSE",
+      "description": "Update master product inventory"
+    },
+    {
+      "name": "View Suppliers",
+      "code": "warehouse:suppliers:read",
+      "module": "WAREHOUSE",
+      "description": "View all suppliers"
+    },
+    {
+      "name": "Create Supplier",
+      "code": "warehouse:suppliers:create",
+      "module": "WAREHOUSE",
+      "description": "Create new supplier"
+    },
+    {
+      "name": "Update Supplier",
+      "code": "warehouse:suppliers:update",
+      "module": "WAREHOUSE",
+      "description": "Update existing supplier"
+    },
+    {
+      "name": "Delete Supplier",
+      "code": "warehouse:suppliers:delete",
+      "module": "WAREHOUSE",
+      "description": "Delete supplier"
+    },
+    {
+      "name": "View Inventory Buy List",
+      "code": "inventory:buy:read",
+      "module": "INVENTORY",
+      "description": "View inventory buy list"
+    },
+    {
+      "name": "Inventory Stock In",
+      "code": "inventory:stock-in:create",
+      "module": "INVENTORY",
+      "description": "Add inventory stock"
+    },
+    {
+      "name": "Update Inventory Stock In",
+      "code": "inventory:stock-in:update",
+      "module": "INVENTORY",
+      "description": "Update inventory stock record"
+    },
+    {
+      "name": "View Dashboard Stats",
+      "code": "dashboard:stats:read",
+      "module": "DASHBOARD",
+      "description": "View dashboard statistics"
+    },
+    {
+      "name": "View Categories",
+      "code": "common:categories:read",
+      "module": "COMMON",
+      "description": "View product categories"
+    },
+    {
+      "name": "Create Category",
+      "code": "common:categories:create",
+      "module": "COMMON",
+      "description": "Create product category"
+    },
+    {
+      "name": "Update Category",
+      "code": "common:categories:update",
+      "module": "COMMON",
+      "description": "Update product category"
+    },
+    {
+      "name": "Delete Category",
+      "code": "common:categories:delete",
+      "module": "COMMON",
+      "description": "Delete product category"
+    },
+    {
+      "name": "View Quantity Units",
+      "code": "common:quantity-units:read",
+      "module": "COMMON",
+      "description": "View quantity units"
+    },
+    {
+      "name": "View Quantity Unit Detail",
+      "code": "common:quantity-units:read:detail",
+      "module": "COMMON",
+      "description": "View quantity unit by ID or code"
+    },
+    {
+      "name": "View Account Detail",
+      "code": "finance:accounts:read:detail",
+      "module": "FINANCE",
+      "description": "View account detail by ID"
+    },
+    {
+      "name": "View Transaction Detail",
+      "code": "finance:transactions:read:detail",
+      "module": "FINANCE",
+      "description": "View transaction detail by ID"
+    },
+    {
+      "name": "View Account Type Detail",
+      "code": "finance:account-types:read:detail",
+      "module": "FINANCE",
+      "description": "View account type by ID"
+    },
+    {
+      "name": "Generate Income Statement",
+      "code": "finance:reports:income-statement:read",
+      "module": "FINANCE",
+      "description": "Generate income statement report"
+    },
+    {
+      "name": "Generate Balance Sheet",
+      "code": "finance:reports:balance-sheet:read",
+      "module": "FINANCE",
+      "description": "Generate balance sheet report"
+    },
+    {
+      "name": "Generate Cash Flow",
+      "code": "finance:reports:cash-flow:read",
+      "module": "FINANCE",
+      "description": "Generate cash flow report"
+    }
+  ],
+  "rolePermissions": {
+    "Super Admin": "ALL",
+    "Admin": [
+      "dashboard:stats:read",
+      "outlets:read",
+      "outlets:read:detail",
+      "outlets:create",
+      "outlets:update",
+      "outlets:delete",
+      "outlets:employee:assign",
+      "outlets:stocks:read",
+      "products:read",
+      "products:read:detail",
+      "products:stocks:read",
+      "products:create",
+      "products:update",
+      "products:delete",
+      "products:stock-in",
+      "products:materials:assign",
+      "materials:read",
+      "materials:stocks:read",
+      "materials:buy:read",
+      "materials:out:read:detail",
+      "materials:create",
+      "materials:in:create",
+      "materials:out:create",
+      "orders:read",
+      "orders:read:detail",
+      "orders:read:my",
+      "orders:create",
+      "finance:accounts:read",
+      "finance:accounts:read:detail",
+      "finance:accounts:create",
+      "finance:accounts:update",
+      "finance:accounts:delete",
+      "finance:account-categories:read",
+      "finance:account-types:read",
+      "finance:account-types:read:detail",
+      "finance:transactions:read",
+      "finance:transactions:read:detail",
+      "finance:transactions:create",
+      "finance:transactions:update",
+      "finance:transactions:delete",
+      "finance:payroll:read",
+      "finance:payroll:read:detail",
+      "finance:payroll:pay:read",
+      "finance:payroll:create",
+      "finance:payroll:pay:create",
+      "finance:payroll:update",
+      "finance:reports:income-statement:read",
+      "finance:reports:balance-sheet:read",
+      "finance:reports:cash-flow:read",
+      "hr:employees:read",
+      "hr:employees:read:detail",
+      "hr:employees:create",
+      "hr:employees:update",
+      "hr:employees:delete",
+      "hr:employees:late-approval:update",
+      "hr:schedules:read",
+      "hr:schedules:read:by-outlet",
+      "hr:schedules:create",
+      "hr:schedules:update",
+      "hr:schedules:delete",
+      "hr:attendance:create",
+      "users:read",
+      "users:read:detail",
+      "users:create",
+      "users:update",
+      "users:delete",
+      "roles:read",
+      "roles:create",
+      "roles:update",
+      "roles:delete",
+      "roles:permissions:read",
+      "roles:access:read",
+      "warehouse:outlet-requests:read",
+      "warehouse:outlet-requests:read:my",
+      "warehouse:outlet-requests:read:detail",
+      "warehouse:outlet-requests:create",
+      "warehouse:outlet-requests:update",
+      "warehouse:outlet-requests:delete",
+      "warehouse:outlet-requests:approve",
+      "warehouse:outlet-requests:reject",
+      "warehouse:master-products:read",
+      "warehouse:master-products:inventory:read",
+      "warehouse:master-products:inventory:create",
+      "warehouse:master-products:inventory:update",
+      "warehouse:suppliers:read",
+      "warehouse:suppliers:create",
+      "warehouse:suppliers:update",
+      "warehouse:suppliers:delete",
+      "inventory:buy:read",
+      "inventory:stock-in:create",
+      "inventory:stock-in:update",
+      "common:categories:read",
+      "common:categories:create",
+      "common:categories:update",
+      "common:categories:delete",
+      "common:quantity-units:read",
+      "common:quantity-units:read:detail"
+    ],
+    "Human Resource": [
+      "roles:access:read",
+      "dashboard:stats:read",
+      "hr:employees:read",
+      "hr:employees:read:detail",
+      "hr:employees:create",
+      "hr:employees:update",
+      "hr:employees:delete",
+      "hr:employees:late-approval:update",
+      "hr:schedules:read",
+      "hr:schedules:read:by-outlet",
+      "hr:schedules:create",
+      "hr:schedules:update",
+      "hr:schedules:delete",
+      "hr:attendance:create",
+      "outlets:read",
+      "outlets:read:detail",
+      "outlets:employee:assign",
+      "common:categories:read",
+      "common:quantity-units:read",
+      "common:quantity-units:read:detail"
+    ],
+    "Finance": [
+      "roles:access:read",
+      "dashboard:stats:read",
+      "finance:accounts:read",
+      "finance:accounts:read:detail",
+      "finance:accounts:create",
+      "finance:accounts:update",
+      "finance:accounts:delete",
+      "finance:account-categories:read",
+      "finance:account-types:read",
+      "finance:account-types:read:detail",
+      "finance:transactions:read",
+      "finance:transactions:read:detail",
+      "finance:transactions:create",
+      "finance:transactions:update",
+      "finance:transactions:delete",
+      "finance:payroll:read",
+      "finance:payroll:read:detail",
+      "finance:payroll:pay:read",
+      "finance:payroll:create",
+      "finance:payroll:pay:create",
+      "finance:payroll:update",
+      "finance:reports:income-statement:read",
+      "finance:reports:balance-sheet:read",
+      "finance:reports:cash-flow:read",
+      "hr:employees:read",
+      "hr:employees:read:detail",
+      "common:categories:read",
+      "common:quantity-units:read",
+      "common:quantity-units:read:detail"
+    ],
+    "Gudang": [
+      "roles:access:read",
+      "dashboard:stats:read",
+      "outlets:read",
+      "outlets:read:detail",
+      "outlets:stocks:read",
+      "warehouse:outlet-requests:read",
+      "warehouse:outlet-requests:read:my",
+      "warehouse:outlet-requests:read:detail",
+      "warehouse:outlet-requests:create",
+      "warehouse:outlet-requests:update",
+      "warehouse:outlet-requests:delete",
+      "warehouse:outlet-requests:approve",
+      "warehouse:outlet-requests:reject",
+      "warehouse:master-products:read",
+      "warehouse:master-products:inventory:read",
+      "warehouse:master-products:inventory:create",
+      "warehouse:master-products:inventory:update",
+      "warehouse:suppliers:read",
+      "warehouse:suppliers:create",
+      "warehouse:suppliers:update",
+      "warehouse:suppliers:delete",
+      "products:read",
+      "products:read:detail",
+      "products:stocks:read",
+      "products:stock-in",
+      "materials:read",
+      "materials:stocks:read",
+      "materials:buy:read",
+      "materials:out:read:detail",
+      "materials:create",
+      "materials:in:create",
+      "materials:out:create",
+      "inventory:buy:read",
+      "inventory:stock-in:create",
+      "inventory:stock-in:update",
+      "common:categories:read",
+      "common:quantity-units:read",
+      "common:quantity-units:read:detail"
+    ],
+    "Karyawan": [
+      "roles:access:read",
+      "hr:schedules:read",
+      "hr:schedules:read:by-outlet",
+      "hr:attendance:create",
+      "warehouse:outlet-requests:create",
+      "warehouse:outlet-requests:read",
+      "orders:create",
+      "orders:read",
+      "orders:read:detail",
+      "products:read",
+      "materials:read",
+      "materials:stocks:read",
+      "outlets:read:detail",
+      "outlets:stocks:read",
+      "common:categories:read",
+      "common:quantity-units:read",
+      "common:quantity-units:read:detail"
+    ]
+  }
+}

@@ -11,6 +11,8 @@ import { ProductCategoryController } from '../../controllers/ProductCategory';
 import ProductCategoryService from '../../../../core/services/ProductCategory';
 import ProductCategoryRepository from '../../../../adapters/postgres/repositories/ProductCategory';
 import { ProductCategoryResponseMapper } from '../../../../mappers/response-mappers/ProductCategoryResponseMapper';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
@@ -19,6 +21,8 @@ const productCategoryService = new ProductCategoryService(new ProductCategoryRep
 
 router.get(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['common:categories:read']),
 	validate(getPaginationSchema),
 	productCategoryController.findAll(
 		productCategoryService,
@@ -27,6 +31,8 @@ router.get(
 );
 router.post(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['common:categories:create']),
 	validate(createProductCategorySchema),
 	productCategoryController.create(
 		productCategoryService,
@@ -35,6 +41,8 @@ router.post(
 	)
 );
 router.put('/:id',
+  authMiddleware,
+  permissionMiddleware(['common:categories:update']),
   validate(updateProductCategorySchema),
   productCategoryController.update(
     productCategoryService,
@@ -43,6 +51,8 @@ router.put('/:id',
   ));
 router.delete(
 	"/:id",
+	authMiddleware,
+	permissionMiddleware(['common:categories:delete']),
 	validate(deleteProductCategorySchema),
 	productCategoryController.delete(
 		productCategoryService,

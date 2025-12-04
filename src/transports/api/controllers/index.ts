@@ -2,6 +2,7 @@ export * from "./AuthController";
 export * from "./TestController";
 export * from './UserController';
 export * from './RoleController';
+export * from './PermissionController';
 export * from "./SuplierController";
 export * from './MaterialController';
 export * from './InventoryController';

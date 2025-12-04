@@ -7,6 +7,8 @@ import MaterialRepository from '../../../../adapters/postgres/repositories/Mater
 import { MaterialResponseMapper } from "../../../../mappers/response-mappers";
 import { getPaginationSchema } from '../../validations/pagination.validation';
 import { validateUnit } from '../../middlewares/unitValidation';
+import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
@@ -16,6 +18,8 @@ const materialService = new MaterialService(new MaterialRepository());
 // GET inventory list
 router.get(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['materials:read']),
 	validate(getPaginationSchema),
 	materialController.findAll(materialService, MaterialResponseMapper)
 );
@@ -23,12 +27,16 @@ router.get(
 // POST create material
 router.post(
 	"/",
+	authMiddleware,
+	permissionMiddleware(['materials:create']),
 	materialController.create()
 );
 
 // POST stock in
 router.post(
 	"/in",
+	authMiddleware,
+	permissionMiddleware(['materials:in:create']),
 	validate(stockInSchema),
 	validateUnit,
 	materialController.stockIn()
@@ -37,6 +45,8 @@ router.post(
 // POST stock out
 router.post(
 	"/out",
+	authMiddleware,
+	permissionMiddleware(['materials:out:create']),
 	validate(stockOutSchema),
 	validateUnit,
 	materialController.stockOut()
@@ -45,6 +55,8 @@ router.post(
 // GET buy list
 router.get(
 	"/buy",
+	authMiddleware,
+	permissionMiddleware(['materials:buy:read']),
 	validate(getPaginationSchema),
 	materialController.getBuyList()
 );
@@ -52,6 +64,8 @@ router.get(
 // GET stocks inventory
 router.get(
 	"/stocks",
+	authMiddleware,
+	permissionMiddleware(['materials:stocks:read']),
 	validate(getPaginationSchema),
 	materialController.getStocksList()
 );
@@ -59,6 +73,8 @@ router.get(
 // GET material out list by material ID
 router.get(
 	"/out/:id",
+	authMiddleware,
+	permissionMiddleware(['materials:out:read:detail']),
 	materialController.getMaterialOutById()
 );
 export default router;
