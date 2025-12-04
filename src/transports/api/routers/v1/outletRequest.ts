@@ -11,6 +11,7 @@ import { OutletRequestService } from '../../../../core/services/OutletRequestSer
 import { OutletProductRequestRepository } from '../../../../adapters/postgres/repositories/OutletProductRequestRepository';
 import { OutletMaterialRequestRepository } from '../../../../adapters/postgres/repositories/OutletMaterialRequestRepository';
 import { authMiddleware } from '../../../../policies/authMiddleware';
+import { permissionMiddleware } from '../../../../policies';
 
 const router = express.Router();
 
@@ -35,6 +36,7 @@ const outletRequestController = new OutletRequestController(outletRequestService
 router.post(
   '/',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:create']),
   validate(createOutletRequestSchema),
   outletRequestController.createBatchRequest
 );
@@ -47,6 +49,7 @@ router.post(
 router.get(
   '/:date/:outlet_id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read:detail']),
   outletRequestController.getDetailedByDateAndOutlet
 );
 
@@ -58,6 +61,7 @@ router.get(
 router.get(
   '/',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   outletRequestController.getAllRequests
 );
 
@@ -69,6 +73,7 @@ router.get(
 router.get(
   '/my',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:read']),
   outletRequestController.getMyRequests
 );
 
@@ -80,6 +85,7 @@ router.get(
 router.put(
   '/products/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:update']),
   validate(updateProductRequestSchema),
   outletRequestController.updateProductRequest
 );
@@ -92,6 +98,7 @@ router.put(
 router.put(
   '/materials/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:update']),
   validate(updateMaterialRequestSchema),
   outletRequestController.updateMaterialRequest
 );
@@ -104,6 +111,7 @@ router.put(
 router.delete(
   '/:date',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:delete']),
   outletRequestController.deleteByDate
 );
 
@@ -115,6 +123,7 @@ router.delete(
 router.delete(
   '/products/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:delete']),
   outletRequestController.deleteProductRequest
 );
 
@@ -126,6 +135,7 @@ router.delete(
 router.delete(
   '/materials/:id',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:delete']),
   outletRequestController.deleteMaterialRequest
 );
 
@@ -137,6 +147,7 @@ router.delete(
 router.patch(
   '/approve',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:approve']),
   validate(approveRequestsSchema),
   outletRequestController.approveRequests
 );
@@ -149,6 +160,7 @@ router.patch(
 router.patch(
   '/products/:id/reject',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:reject']),
   outletRequestController.rejectProductRequest
 );
 
@@ -160,6 +172,7 @@ router.patch(
 router.patch(
   '/materials/:id/reject',
   authMiddleware,
+  permissionMiddleware(['warehouse:outlet-requests:reject']),
   outletRequestController.rejectMaterialRequest
 );
 

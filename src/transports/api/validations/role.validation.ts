@@ -10,7 +10,10 @@ export const createRoleSchema = z.object({
       .max(255, { message: 'Description must be at most 255 characters long' })
       .optional(),
     
-    is_active: z.boolean()
+    is_active: z.boolean(),
+    
+    permissions: z.array(z.string())
+      .optional()
   })
 });
 
