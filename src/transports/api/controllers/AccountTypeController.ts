@@ -26,8 +26,7 @@ export class AccountTypeController extends Controller<TAccountTypeResponse, TMet
 
   getAll() {
     return async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        // Use validated pagination params from middleware with defaults
+      try {
         const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
         const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
         

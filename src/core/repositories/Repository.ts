@@ -4,7 +4,6 @@ export interface SearchConfig {
   value: string;
 }
 
-// Filter value types for repository queries
 export type FilterValue = string | number | boolean | Date | null;
 export type FilterObject = Record<string, FilterValue | FilterValue[]>;
 
@@ -28,5 +27,6 @@ export default interface Repository<T> {
     orderBy?: Record<string, 'asc' | 'desc'>
   ): Promise<PaginationResult<T>>;
   update(id: string, item: Partial<T>): Promise<T>;
+  softDelete(id: string): Promise<void>;
   delete(id: string): Promise<void>;
 }

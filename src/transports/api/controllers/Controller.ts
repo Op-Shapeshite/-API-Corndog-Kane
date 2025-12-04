@@ -3,6 +3,8 @@ import { TErrorResponse, TMetadataResponse, TResponse } from "../../../core/enti
 import { PrismaErrorHandler } from "../../../adapters/postgres/repositories/PrismaErrorHandler";
 import { Service, TEntity } from "../../../core/services/Service";
 import { FilterObject } from "../../../core/repositories/Repository";
+import { SearchHelper } from '../../../utils/search/searchHelper';
+import { EntityName } from '../../../utils/search/fieldMapping';
 
 type TDataMetadataResponse<T, M> = {
   data: T |T[] |null;
@@ -62,9 +64,7 @@ export default class Controller<T, M> {
 		emptyData: T | T[],
 		emptyMetadata: M
 	) {
-		console.error(`${message}:`, error);
-		
-		// Check if it's a Prisma error and handle it specifically
+		console.error(`${message}:`, error);
 		const prismaError = PrismaErrorHandler.handlePrismaError(error);
 		if (prismaError) {
 			return this.getFailureResponse(
@@ -74,12 +74,8 @@ export default class Controller<T, M> {
 				message,
 				prismaError.statusCode
 			);
-		}
-		
-		// Extract error message from Error object or use default
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		
-		// Default error handling for non-Prisma errors
+		}
+		const errorMessage = error instanceof Error ? error.message : String(error);
 		return this.getFailureResponse(
 			res,
 			{ data: emptyData, metadata: emptyMetadata },
@@ -87,6 +83,102 @@ export default class Controller<T, M> {
 			message,
 			statusCode
 		);
+	}
+
+	/**
+	 * Enhanced findAll method with proper search field mapping
+	 * Maps response field names to database field names for accurate search
+	 * @param serviceClass - Service instance for the entity
+	 * @param mapperClass - Response mapper with toListResponse method
+	 * @param entityName - Entity name for field mapping (e.g., 'role', 'employee')
+	 * @returns Express middleware function
+	 */
+	findAllWithSearch<E extends TEntity, TResponseItem extends T>(
+		serviceClass: Service<E>,
+		mapperClass: ResponseMapper<E, TResponseItem>,
+		entityName: EntityName
+	) {
+		return async (req: Request, res: Response) => {
+			try {
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
+				const pageNum = page ? parseInt(page as string, 10) : 1;
+				const limitNum = limit ? parseInt(limit as string, 10) : 10;
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
+				const validation = SearchHelper.validateSearchParams(
+					entityName, 
+					search_key as string, 
+					search_value as string
+				);
+
+				if (!validation.valid) {
+					return this.handleError(
+						res,
+						new Error(validation.error),
+						validation.error || "Invalid search parameters",
+						400,
+						[] as TResponseItem[],
+						{
+							page: pageNum,
+							limit: limitNum,
+							total_records: 0,
+							total_pages: 0,
+							searchable_fields: validation.searchable_fields
+						} as M
+					);
+				}
+				const search = SearchHelper.buildSearchConfig(
+					entityName,
+					search_key as string,
+					search_value as string
+				);
+				
+				// Convert filter values to appropriate types (boolean, number, string)
+				const convertedFilters = Object.keys(filters).length > 0 
+					? this.convertFilterTypes(filters as Record<string, unknown>)
+					: undefined;
+				
+				const result = await serviceClass.findAll(
+					pageNum,
+					limitNum,
+					search,
+					convertedFilters as FilterObject,
+					undefined,
+					outletId
+				);
+
+				const dataMapped = mapperClass.toListResponse(result.data);
+
+				const metadata: TMetadataResponse = {
+					page: result.page,
+					limit: result.limit,
+					total_records: result.total,
+					total_pages: result.totalPages,
+				};
+
+				return this.getSuccessResponse(
+					res,
+					{
+						data: dataMapped as TResponseItem[],
+						metadata: metadata as M,
+					},
+					"Data retrieved successfully"
+				);
+			} catch (error) {
+				return this.handleError(
+					res,
+					error,
+					"Failed to retrieve data",
+					500,
+					[] as TResponseItem[],
+					{
+						page: 1,
+						limit: 10,
+						total_records: 0,
+						total_pages: 0,
+					} as M
+				);
+			}
+		};
 	}
 
 	/**
@@ -102,13 +194,10 @@ export default class Controller<T, M> {
 	) {
 		return async (req: Request, res: Response) => {
 			try {
-				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
-				// Use validated defaults from pagination schema (page=1, limit=10)
+				const { page, limit, search_key, search_value, outlet_id, ...filters } = req.query;
 				const pageNum = page ? parseInt(page as string, 10) : 1;
 				const limitNum = limit ? parseInt(limit as string, 10) : 10;
-				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
-				
-				// Build search config, filtering out undefined/invalid values
+				const outletId = outlet_id ? parseInt(outlet_id as string) : undefined;
 				const search =
 					search_key && 
 					search_value && 

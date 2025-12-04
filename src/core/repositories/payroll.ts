@@ -25,6 +25,11 @@ export interface PayrollRepository extends Repository<TPayroll> {
    */
   getEmployeeById(employeeId: number): Promise<TEmployee | null>;
   
+  /**
+   * Get employee type (outlet or internal)
+   */
+  getEmployeeType(employeeId: number): Promise<'outlet' | 'internal'>;
+  
   // ============================================================================
   // PAYROLL OPERATIONS
   // ============================================================================
@@ -42,6 +47,11 @@ export interface PayrollRepository extends Repository<TPayroll> {
     startDate: Date,
     endDate: Date
   ): Promise<TPayroll[]>;
+  
+  /**
+   * Get latest payroll period for an employee (either outlet or internal)
+   */
+  getLatestPayrollPeriod(employeeId: number): Promise<{ start: Date; end: Date } | null>;
   
   /**
    * Get payrolls by payment batch ID
@@ -145,6 +155,7 @@ export interface PayrollRepository extends Repository<TPayroll> {
     total_deduction: number;
     final_amount: number;
     status: string;
+    source: string;
   }[]>;
   
   /**
@@ -171,4 +182,57 @@ export interface PayrollRepository extends Repository<TPayroll> {
     outletId: number,
     date: Date
   ): Promise<number>;
+  
+  // ============================================================================
+  // INTERNAL PAYROLL OPERATIONS
+  // ============================================================================
+  
+  /**
+   * Get unpaid internal payrolls for an employee within date range
+   */
+  getUnpaidInternalPayrolls(
+    employeeId: number,
+    startDate: Date,
+    endDate: Date
+  ): Promise<any[]>;
+  
+  /**
+   * Get bonuses by internal payroll IDs
+   */
+  getBonusesByInternalPayrollIds(payrollIds: number[]): Promise<TPayrollBonus[]>;
+  
+  /**
+   * Get deductions by internal payroll IDs
+   */
+  getDeductionsByInternalPayrollIds(payrollIds: number[]): Promise<TPayrollDeduction[]>;
+  
+  /**
+   * Create internal payroll record
+   */
+  createInternalPayroll(data: any): Promise<any>;
+  
+  /**
+   * Get base payroll by employee ID
+   */
+  getBasePayrollByEmployeeId(employeeId: number): Promise<any | null>;
+  
+  /**
+   * Create bonus for internal payroll
+   */
+  createInternalBonus(data: TPayrollBonusCreate): Promise<TPayrollBonus>;
+  
+  /**
+   * Create deduction for internal payroll
+   */
+  createInternalDeduction(data: TPayrollDeductionCreate): Promise<TPayrollDeduction>;
+  
+  /**
+   * Update internal payroll totals
+   */
+  updateInternalPayrollTotals(
+    payrollId: number,
+    totalBonus: number,
+    totalDeduction: number,
+    finalSalary: number
+  ): Promise<any>;
 }

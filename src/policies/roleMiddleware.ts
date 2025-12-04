@@ -33,8 +33,7 @@ const sendFailureResponse = (
  */
 export const roleMiddleware = (allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      // Check if user exists (should be set by authMiddleware)
+    try {
       if (!req.user) {
         return sendFailureResponse(
           res,
@@ -42,9 +41,7 @@ export const roleMiddleware = (allowedRoles: string[]) => {
           'User not authenticated',
           401
         );
-      }
-
-      // Check if user has role property
+      }
       if (!req.user.role) {
         return sendFailureResponse(
           res,
@@ -52,9 +49,7 @@ export const roleMiddleware = (allowedRoles: string[]) => {
           'User role not found',
           403
         );
-      }
-
-      // Check if user's role is in allowed roles
+      }
       if (!allowedRoles.includes(req.user.role)) {
         return sendFailureResponse(
           res,

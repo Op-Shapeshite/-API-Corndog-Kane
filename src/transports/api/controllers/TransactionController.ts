@@ -42,33 +42,68 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
     return async (req: Request, res: Response) => {
       try {
         const { page, limit, search_key, search_value, type, ...filters } = req.query;
-        // Use validated defaults from pagination schema (page=1, limit=10)
+
         const pageNum = page ? parseInt(page as string, 10) : 1;
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
-        
-        // Build search config
-        const search =
-          search_key &&
-            search_value &&
-            search_key !== 'undefined' &&
-            search_value !== 'undefined'
-            ? [{ field: search_key as string, value: search_value as string }]
-            : undefined;
-        
-        // Get paginated transactions
+
+        const { SearchHelper } = await import('../../../utils/search/searchHelper');
+        const validation = SearchHelper.validateSearchParams(
+          'transaction', 
+          search_key as string, 
+          search_value as string
+        );
+
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            [] as any,
+            {
+              page: pageNum,
+              limit: limitNum,
+              total_records: 0,
+              total_pages: 0,
+              searchable_fields: validation.searchable_fields
+            } as any
+          );
+        }
+
+        const search = SearchHelper.buildSearchConfig(
+          'transaction',
+          search_key as string,
+          search_value as string
+        );
+
         const result = await this.transactionService.getAllTransactions(
           pageNum,
           limitNum,
           search,
           filters as Record<string, any>
         );
-        
-        // Map to response format
+
         const mappedData = TransactionResponseMapper.toListResponse(result.data);
-        
-        // If Excel export requested, generate and return Excel file
+
         if (type === 'xlsx') {
-          return this.generateTransactionsExcel(res, mappedData);
+          try {
+            await this.generateTransactionsExcel(res, mappedData);
+            return; // Important: return here to prevent JSON response
+          } catch (excelError) {
+            console.error('Error generating Excel:', excelError);
+
+            return res.status(500).json({
+              status: 'error',
+              message: 'Gagal membuat file Excel. Silakan coba lagi.',
+              data: [],
+              metadata: {
+                page: 1,
+                limit: 10,
+                total_records: 0,
+                total_pages: 0,
+              }
+            });
+          }
         }
         
         const metadata: TMetadataResponse = {
@@ -84,13 +119,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedData,
             metadata,
           },
-          "Transactions retrieved successfully"
+          "Transaksi berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve transactions",
+          "Gagal mengambil transaksi",
           500,
           [] as TTransactionGetResponse[],
           {
@@ -113,8 +148,8 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         if (!transaction) {
           return this.handleError(
             res,
-            new Error('Transaction not found'),
-            "Transaction not found",
+            new Error('Transaksi tidak ditemukan'),
+            "Transaksi tidak ditemukan",
             404,
             {} as TTransactionGetResponse,
             {} as TMetadataResponse
@@ -129,13 +164,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction retrieved successfully"
+          "Transaksi berhasil diambil"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to retrieve transaction",
+          "Gagal mengambil transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -166,13 +201,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction created successfully"
+          "Transaksi berhasil dibuat"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to create transaction",
+          "Gagal membuat transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -204,13 +239,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: mappedResult,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction updated successfully"
+          "Transaksi berhasil diperbarui"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to update transaction",
+          "Gagal memperbarui transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -232,13 +267,13 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
             data: {} as TTransactionGetResponse,
             metadata: {} as TMetadataResponse,
           },
-          "Transaction deleted successfully"
+          "Transaksi berhasil dihapus"
         );
       } catch (error) {
         return this.handleError(
           res,
           error,
-          "Failed to delete transaction",
+          "Gagal menghapus transaksi",
           500,
           {} as TTransactionGetResponse,
           {} as TMetadataResponse
@@ -255,7 +290,6 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         const endDate = new Date(req.query.end_date as string);
         const reportCategory = (req.query.report_category as string) || 'all';
 
-        // Validate dates
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
           return this.handleError(
             res,
@@ -267,7 +301,6 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           );
         }
 
-        // Validate end date >= start date
         if (endDate < startDate) {
           return this.handleError(
             res,
@@ -279,7 +312,6 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           );
         }
 
-        // Validate report category
         if (!['laba_rugi', 'neraca', 'cashflow', 'all'].includes(reportCategory)) {
           return this.handleError(
             res,
@@ -293,13 +325,17 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
 
         // Generate dynamic financial statements with monthly arrays
         if (type === 'json' || type === 'xlsx') {
+          // For Excel: keep monthly arrays for all reports (keepMonthlyArrays = true)
+          // For JSON: use ending balance for Neraca/Cashflow (keepMonthlyArrays = false)
+          const keepMonthlyArrays = type === 'xlsx';
+          
           const statements = await this.financialStatementService.generateStatements(
             startDate,
             endDate,
-            reportCategory as 'laba_rugi' | 'neraca' | 'cashflow' | 'all'
+            reportCategory as 'laba_rugi' | 'neraca' | 'cashflow' | 'all',
+            keepMonthlyArrays
           );
 
-          // If Excel export requested, generate multi-sheet Excel file
           if (type === 'xlsx') {
             return this.generateFinancialStatementsExcel(res, statements);
           }
@@ -385,7 +421,6 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Finance Report');
 
-    // Add title and period
     worksheet.mergeCells('A1:F1');
     worksheet.getCell('A1').value = 'Finance Report';
     worksheet.getCell('A1').font = { bold: true, size: 16 };
@@ -395,14 +430,12 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
     worksheet.getCell('A2').value = `Period: ${report.period.start_date} to ${report.period.end_date}`;
     worksheet.getCell('A2').alignment = { horizontal: 'center' };
 
-    // Add summary
     worksheet.addRow([]);
     worksheet.addRow(['Summary']);
     worksheet.addRow(['Total Income', report.summary.total_income]);
     worksheet.addRow(['Total Expense', report.summary.total_expense]);
     worksheet.addRow(['Balance', report.summary.balance]);
 
-    // Add transactions header
     worksheet.addRow([]);
     const headerRow = worksheet.addRow([
       'Date',
@@ -419,7 +452,6 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
       fgColor: { argb: 'FFD3D3D3' }
     };
 
-    // Add transaction data
     report.data.forEach(day => {
       day.transactions.forEach(t => {
         worksheet.addRow([
@@ -431,8 +463,7 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
           t.expense_amount
         ]);
       });
-      
-      // Add daily total
+
       const totalRow = worksheet.addRow([
         `${day.date} Total`,
         '',
@@ -444,7 +475,6 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
       totalRow.font = { bold: true };
     });
 
-    // Set column widths
     worksheet.columns = [
       { width: 15 },
       { width: 25 },
@@ -471,52 +501,44 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
   /**
    * Generate Excel file for transactions
    */
-  private async generateTransactionsExcel(res: Response, transactions: TTransactionGetResponse[]) {
-    try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Transactions');
+  private async generateTransactionsExcel(res: Response, transactions: TTransactionGetResponse[]): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Transactions');
 
-      // Add headers
-      const headerRow = worksheet.addRow([
-        'Transaction ID',
-        'Date',
-        'Account Name',
-        'Account Number',
-        'Type',
-        'Amount',
-        'Description',
-        'Reference'
+    const headerRow = worksheet.addRow([
+      'ID Transaksi',
+      'Tanggal',
+      'Nama Akun',
+      'Nomor Akun',
+      'Jenis',
+      'Jumlah',
+      'Deskripsi',
+      'Referensi'
+    ]);
+    styleHeaderRow(headerRow);
+
+    transactions.forEach(transaction => {
+      const txn = transaction as any; // Runtime has more fields than type definition
+      worksheet.addRow([
+        txn.id || '-',
+        txn.date ? formatDate(txn.date) : '-',
+        txn.account_name || '-',
+        txn.account_number || '-',
+        txn.credit > 0 ? 'PEMASUKAN' : 'PENGELUARAN',
+        (txn.credit || txn.debit || 0),
+        txn.description || '-',
+        txn.reference_number || '-'
       ]);
-      styleHeaderRow(headerRow);
+    });
 
-      // Add data rows
-      transactions.forEach(transaction => {
-        const txn = transaction as any; // Runtime has more fields than type definition
-        worksheet.addRow([
-          txn.id || '-',
-          txn.date ? formatDate(txn.date) : '-',
-          txn.account_name || '-',
-          txn.account_number || '-',
-          txn.credit > 0 ? 'INCOME' : 'EXPENSE',
-          (txn.credit || txn.debit || 0),
-          txn.description || '-',
-          txn.reference_number || '-'
-        ]);
-      });
+    // Auto-size columns
+    autoSizeColumns(worksheet);
 
-      // Auto-size columns
-      autoSizeColumns(worksheet);
+    const filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
+    setExcelHeaders(res, filename);
 
-      // Set response headers and send file
-      const filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
-      setExcelHeaders(res, filename);
-
-      await workbook.xlsx.write(res);
-      res.end();
-    } catch (error) {
-      console.error('Error generating Excel:', error);
-      throw error;
-    }
+    await workbook.xlsx.write(res);
+    res.end();
   }
 
   /**
@@ -527,8 +549,7 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
     try {
       const workbook = new ExcelJS.Workbook();
       const { period, laba_rugi, neraca, cashflow } = statements;
-      
-      // Validate period and months exist
+
       if (!period || !period.months || !Array.isArray(period.months) || period.months.length === 0) {
         throw new Error('Invalid period data: months array is missing or empty');
       }
@@ -539,8 +560,8 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
       const addSections = (worksheet: ExcelJS.Worksheet, sections: any[], indentLevel: number = 0) => {
         sections.forEach(section => {
           const indent = '  '.repeat(indentLevel);
-          
-          // Ensure section.amount is an array, fallback to empty array if undefined
+
+          // With keepMonthlyArrays=true, all amounts should be arrays
           const amounts = Array.isArray(section.amount) ? section.amount : [];
           
           const row = worksheet.addRow([
@@ -650,13 +671,11 @@ export class TransactionController extends Controller<TTransactionGetResponse | 
         autoSizeColumns(sheet);
       }
 
-      // If no sheets were created, add a placeholder
       if (workbook.worksheets.length === 0) {
         const sheet = workbook.addWorksheet('No Data');
         sheet.addRow(['No financial data available for the selected period']);
       }
 
-      // Set response headers and send file
       const filename = `financial-statements-${period.start_date}-${period.end_date}.xlsx`;
       setExcelHeaders(res, filename);
 

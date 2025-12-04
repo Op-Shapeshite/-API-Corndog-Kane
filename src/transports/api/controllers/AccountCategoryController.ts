@@ -14,8 +14,8 @@ export class AccountCategoryController extends Controller<TAccountCategoryGetRes
     this.accountCategoryService = new AccountCategoryService(new AccountCategoryRepository());
   }
 
-  // Using generic findAll pattern with pagination support
+  // Enhanced getAll with proper search field mapping
   getAll = () => {
-    return this.findAll(this.accountCategoryService, AccountCategoryResponseMapper);
+    return this.findAllWithSearch(this.accountCategoryService, AccountCategoryResponseMapper, 'account_category');
   }
 }

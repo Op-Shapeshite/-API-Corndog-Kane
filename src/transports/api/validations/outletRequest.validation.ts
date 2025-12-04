@@ -3,22 +3,66 @@ import PostgresAdapter from '../../../adapters/postgres/instance';
 
 /**
  * Helper function to get product current stock from latest inventory date
+ * Uses same logic as GET /products/stock endpoint for consistency
  */
 async function getProductCurrentStock(productId: number): Promise<number> {
-  const productWithStocks = await PostgresAdapter.client.productStock.findMany({
-    where: { product_id: productId },
-    orderBy: { date: 'desc' },
-    take: 1,
+  
+  const [productStocks] = await Promise.all([
+    PostgresAdapter.client.productStock.findMany({
+      where: { products: {products:{some:{id:productId}}} },
+      orderBy: { date: 'asc' },
+    }),
+  ]);
+  console.log("productStocks:",productStocks)
+  
+  if (productStocks.length === 0) return 0;
+  
+  // Group by date and calculate running stock like in ProductService
+  const formatDate = (date: Date): string => {
+    return new Date(date).toISOString().split('T')[0];
+  };
+
+  interface DailyStock {
+    date: string;
+    stockIn: number;
+    stockOut: number;
+  }
+
+  const dailyStocksMap = new Map<string, DailyStock>();
+
+  // Process product stock records (stockIn)
+  productStocks.forEach(record => {
+    const date = formatDate(record.date);
+
+    if (!dailyStocksMap.has(date)) {
+      dailyStocksMap.set(date, {
+        date,
+        stockIn: 0,
+        stockOut: 0,
+      });
+    }
+    console.log("dailyStocksMap:",dailyStocksMap)
+
+    const dailyStock = dailyStocksMap.get(date)!;
+
+    dailyStock.stockIn += record.quantity;
   });
-  
-  if (productWithStocks.length === 0) return 0;
-  
-  // Sum all stocks for this product
-  const allStocks = await PostgresAdapter.client.productStock.findMany({
-    where: { product_id: productId },
+  console.log("dailyStock:",dailyStocksMap)
+
+  // Process order items (stockOut) - exclude cancelled orders
+
+
+  // Sort by date and calculate running stock
+  const dailyStocks = Array.from(dailyStocksMap.values()).sort((a, b) => 
+    a.date.localeCompare(b.date)
+  );
+
+  let currentStock = 0;
+  dailyStocks.forEach(daily => {
+    currentStock = currentStock + daily.stockIn - daily.stockOut;
   });
-  
-  return allStocks.reduce((sum, stock) => sum + stock.quantity, 0);
+
+  return Math.max(0, currentStock); // Never return negative stock
 }
 
 /**
@@ -49,6 +93,7 @@ const createProductRequestItemSchema = z.object({
 }).superRefine(async (data, ctx) => {
   const currentStock = await getProductCurrentStock(data.id);
   if (data.quantity > currentStock) {
+    console.log('not ok validation')
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: `Requested quantity (${data.quantity}) exceeds available stock (${currentStock}) for product ID ${data.id}`,

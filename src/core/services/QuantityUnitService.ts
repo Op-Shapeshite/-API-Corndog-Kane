@@ -62,21 +62,23 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
         fromCode: string,
         toCode: string,
         quantity: number
-    ): Promise<number> {
-        // Get both units
+    ): Promise<number> {
         
 		const fromUnit = await this.repository.getByCode(fromCode);
 		const toUnit = await this.repository.getByCode(toCode);
-        console.log('fromUnit:', fromUnit);
-        console.log('toUnit:', toUnit);
-        console.log('fromCode:', fromCode, 'toCode:', toCode);
+        
+        console.log('🔄 Unit Conversion Debug:');
+        console.log('  fromCode:', fromCode, 'toCode:', toCode, 'quantity:', quantity);
+        console.log('  fromUnit:', fromUnit ? `${fromUnit.name} (${fromUnit.conversionFactor})` : 'NOT FOUND');
+        console.log('  toUnit:', toUnit ? `${toUnit.name} (${toUnit.conversionFactor})` : 'NOT FOUND');
+        
 		if (!fromUnit || !toUnit) {
 			throw new Error(
 				`Satuan tidak ditemukan: ${!fromUnit ? fromCode : toCode}. Pastikan kode satuan yang digunakan terdaftar di sistem`
 			);
-		}
-		// If same unit, return as is (this should be checked first!)
+		}
 		if (fromCode === toCode) {
+            console.log('  ✅ Same unit, returning:', quantity);
 			return quantity;
 		}
 
@@ -95,15 +97,13 @@ export default class QuantityUnitService extends Service<TQuantityUnit | TQuanti
 			throw new Error("Tidak dapat mengkonversi satuan COUNT (pcs). Satuan hitungan seperti pieces tidak dapat dikonversi ke satuan lain");
 		}
 
-		// If same unit, return as is
-		if (fromCode === toCode) {
-			return quantity;
-		}
-
 		// Convert via base unit
 		// Example: 1 kg to g => 1 * (1000 / 1) = 1000 g
 		const convertedQuantity =
 			quantity * (fromUnit.conversionFactor / toUnit.conversionFactor);
+
+        console.log('  📊 Conversion calculation:', `${quantity} * (${fromUnit.conversionFactor} / ${toUnit.conversionFactor}) = ${convertedQuantity}`);
+        console.log('  ✅ Result:', convertedQuantity);
 
 		return convertedQuantity;
     }

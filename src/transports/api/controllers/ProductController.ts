@@ -10,6 +10,8 @@ import { ProductResponseMapper } from "../../../mappers/response-mappers/Product
 import { ProductStockResponseMapper } from "../../../mappers/response-mappers/ProductStockResponseMapper";
 import { ProductStockInResponseMapper } from "../../../mappers/response-mappers/ProductStockInResponseMapper";
 import { ProductDetailResponseMapper } from "../../../mappers/response-mappers/ProductDetailResponseMapper";
+import { SearchHelper } from "../../../utils/search/searchHelper";
+import { SearchConfig } from "../../../core/repositories/Repository";
 
 import fs from "fs";
 import path from "path";
@@ -22,8 +24,7 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.Console(),
-    // Add file or other transports as needed
+    new winston.transports.Console(),
   ],
 });
 
@@ -171,48 +172,77 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
   getStocksList = () => {
     return async (req: Request, res: Response) => {
-      // Use validated pagination params from middleware with defaults
-      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+      try {
+        const { page, limit, search_key, search_value } = req.query;
+        const pageNum = page ? parseInt(page as string, 10) : 1;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
+        const validation = SearchHelper.validateSearchParams(
+          'product_inventory', 
+          search_key as string, 
+          search_value as string
+        );
 
-      const { data, total } = await this.productService.getStocksList(page, limit);
-      const mappedResults: TProductInventoryGetResponse[] = data.map(item =>
-        ProductStockResponseMapper.toResponse(item)
-      );
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            {} as TProductInventoryGetResponse,
+            {} as TMetadataResponse
+          );
+        }
+        let searchConfig: SearchConfig[] | undefined;
+        if (validation.valid && search_key && search_value) {
+          searchConfig = SearchHelper.buildSearchConfig('product_inventory', search_key as string, search_value as string);
+        }
 
-      const metadata: TMetadataResponse = {
-        page,
-        limit,
-        total_records: total,
-        total_pages: Math.ceil(total / limit),
-      };
+        // Call the service with search parameters
+        const { data, total } = await this.productService.getStocksList(pageNum, limitNum, searchConfig);
+        
+        const mappedResults: TProductInventoryGetResponse[] = data.map(item =>
+          ProductStockResponseMapper.toResponse(item)
+        );
 
-      return this.getSuccessResponse(
-        res,
-        {
-          data: mappedResults,
-          metadata,
-        },
-        "Product stocks inventory retrieved successfully"
-      );
+        const metadata: TMetadataResponse = {
+          page: pageNum,
+          limit: limitNum,
+          total_records: total,
+          total_pages: Math.ceil(total / limitNum),
+        };
+
+        return this.getSuccessResponse(
+          res,
+          {
+            data: mappedResults,
+            metadata,
+          },
+          "Product stocks inventory retrieved successfully"
+        );
+      } catch (error) {
+        logger.error("Error retrieving product stocks inventory:", { error });
+        return this.handleError(
+          res,
+          error,
+          "Failed to retrieve product stocks inventory",
+          500,
+          {} as TProductInventoryGetResponse,
+          {} as TMetadataResponse
+        );
+      }
     };
   }
 
   addStockIn = async (req: Request, res: Response) => {
     try {
-      const { product_id, master_product_id, quantity, unit_quantity, product } = req.body;
-
-      // If master_product_id is provided but product_id doesn't exist, we may need to create or find a product
+      const { product_id, master_product_id, quantity, unit_quantity, product } = req.body;
       let finalProductId = product_id;
 
-      if (!finalProductId && master_product_id) {
-        // Find if a product exists with the given master_product_id
+      if (!finalProductId && master_product_id) {
         const existingProducts = await this.productService.findAll(1, 1, [], { product_master_id: master_product_id });
-        if (existingProducts.data.length > 0) {
-          // Use the first product found with this master_product_id
+        if (existingProducts.data.length > 0) {
           finalProductId = (existingProducts.data[0] as any).id;
-        } else if (product) {
-          // If no product exists but we have product data, create a new product with the master_product_id
+        } else if (product) {
           const newProductData: any = {
             name: product.name,
             categoryId: product.category_id,
@@ -230,8 +260,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
           finalProductId = (createdProduct as any).id;
         }
-      } else if (!finalProductId && product) {
-        // If no product_id or master_product_id exists but we have product data, create new master and product
+      } else if (!finalProductId && product) {
         const masterProductService = new MasterProductService(new MasterProductRepository());
         const masterProduct = await masterProductService.create({
           name: product.name,
@@ -268,9 +297,7 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         product_id: finalProductId,
         quantity,
         unit_quantity,
-      });
-
-      // Map entity to response using mapper
+      });
       const responseData = ProductStockInResponseMapper.toResponse(entity);
 
       return this.getSuccessResponse(

@@ -9,10 +9,7 @@
  */
 export function getNextSaturday(startDate: Date): Date {
   const date = new Date(startDate);
-  const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-
-  // Calculate days until Saturday
-  // If today is Saturday, get next Saturday (7 days ahead)
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
   const daysUntilSaturday = dayOfWeek === 6 ? 7 : (6 - dayOfWeek + 7) % 7;
 
   date.setDate(date.getDate() + daysUntilSaturday);
@@ -28,12 +25,8 @@ export function getNextSaturday(startDate: Date): Date {
  * @returns Date object set to the last Saturday of the month at 23:59:59
  */
 export function getLastSaturdayOfMonth(startDate: Date): Date {
-  const date = new Date(startDate);
-
-  // Get the last day of the current month
-  const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-  // Find the last Saturday of this month
+  const date = new Date(startDate);
+  const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   const lastDayWeekday = lastDayOfMonth.getDay();
   let daysToSubtract = 0;
 

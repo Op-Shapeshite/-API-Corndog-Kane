@@ -52,6 +52,11 @@ export const updateProductSchema = z.object({
         return num;
       })
     ]).optional(),
+    is_active: z.string().optional().transform((val) => {
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      throw new Error('is_active must be either "true" or "false"');
+    }),
     description: z.string().optional(),
     price: z.union([
       z.number().min(0, 'Price must be a positive number'),

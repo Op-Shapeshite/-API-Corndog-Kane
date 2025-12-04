@@ -1,6 +1,6 @@
 import { TProduct, TProductWithID } from "../../../core/entities/product/product";
 import { ProductRepository as IProductRepository } from "../../../core/repositories/product";
-import Repository from "./Repository";
+import Repository, { SearchConfig } from "./Repository";
 import { ProductStockInEntity, ProductWithStocks } from "../../../core/entities/inventory/inventory";
 import { ProductMapper } from "../../../mappers/mappers/ProductMapper";
 
@@ -19,15 +19,14 @@ export class ProductRepository
 	async create(
 		item: TProduct | TProductWithID
 	): Promise<TProduct | TProductWithID> {
-		// Extract the fields that should be in ProductMaster
+
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const productCreate = item as any; // Type assertion for legacy interface compatibility
 
 		let masterProduct;
 
-		// Check if product_master_id is provided to link to existing master product
 		if (productCreate.master_product_id) {
-			// Use existing master product
+
 			masterProduct = await this.prisma.productMaster.findUnique({
 				where: { id: +productCreate.master_product_id },
 			});
@@ -38,7 +37,7 @@ export class ProductRepository
 				);
 			}
 		} else {
-			// Create new ProductMaster
+
 			masterProduct = await this.prisma.productMaster.create({
 				data: {
 					name: productCreate.name,
@@ -82,7 +81,6 @@ export class ProductRepository
 		const productUpdate = item as any; // Type assertion for legacy interface compatibility
 		const numericId = parseInt(id, 10);
 
-		// Get existing product to find product_master_id
 		const existing = await this.prisma.product.findUnique({
 			where: { id: numericId },
 			select: { product_master_id: true },
@@ -92,7 +90,6 @@ export class ProductRepository
 			throw new Error(`Product with ID ${id} not found`);
 		}
 
-		// Update ProductMaster if name or categoryId is provided
 		if (
 			productUpdate.name !== undefined ||
 			productUpdate.categoryId !== undefined
@@ -110,7 +107,6 @@ export class ProductRepository
 			});
 		}
 
-		// Update Product
 		const updated = await this.prisma.product.update({
 			where: { id: numericId },
 			data: {
@@ -150,7 +146,6 @@ export class ProductRepository
 	): Promise<{ id: number; date: Date }> {
 		const now = new Date();
 
-		// Create stock record
 		const stock = await this.prisma.productStock.create({
 			data: {
 				product_id: data.productId,
@@ -182,7 +177,6 @@ export class ProductRepository
 	): Promise<{ id: number; date: Date }> {
 		const now = new Date();
 
-		// Create stock record without detail (PRODUCTION source)
 		const stock = await this.prisma.productStock.create({
 			data: {
 				product_id: productId,
@@ -275,7 +269,6 @@ export class ProductRepository
 
 		if (!product) return null;
 
-		// Map to entity - use mapper to get name and categoryId from product_master
 		const mappedProduct = this.mapper.mapToEntity(product);
 
 		return {
@@ -353,7 +346,70 @@ export class ProductRepository
 			},
 		});
 
-		// Map products to have name field from product_master
+		return dbRecords.map((record) => ({
+			...record,
+			products: {
+				...record.products,
+				name: record.products.name,
+				categoryId: record.products.category_id,
+				category: record.products.category,
+			},
+		}));
+	}
+
+	/**
+	 * Get product stock records with search support (for inventory calculation)
+	 */
+	async getProductStockRecordsWithSearch(search?: SearchConfig[]) {
+		let whereClause: any = {};
+
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				if (field === 'products.name') {
+					return {
+						products: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+
+				if (field === 'date') {
+					return { date: { contains: value } };
+				}
+				
+				if (field === 'product_id') {
+					return { product_id: parseInt(value) || 0 };
+				}
+
+				return null;
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause = {
+					OR: searchConditions
+				};
+			}
+		}
+
+		const dbRecords = await this.prisma.productStock.findMany({
+			where: whereClause,
+			include: {
+				products: {
+					include: {
+						category: true,
+					},
+				},
+			},
+			orderBy: {
+				date: "asc",
+			},
+		});
+
 		return dbRecords.map((record) => ({
 			...record,
 			products: {
@@ -411,7 +467,6 @@ export class ProductRepository
 		});
 		const totalSold = totalSoldData._sum?.quantity || 0;
 
-		// Calculate remaining_stock: total received - total sold
 		const remainingStock = totalStockIn - totalSold;
 
 		return remainingStock;
@@ -439,7 +494,6 @@ export class ProductRepository
 
 		if (!product) return null;
 
-		// Map to entity format
 		return {
 			id: product.id,
 			name: product.product_master.name,
@@ -467,7 +521,6 @@ export class ProductRepository
 				(inventory) => ({
 					id: inventory.material.id,
 					name: inventory.material.name,
-					suplier_id: inventory.material.suplier_id,
 					is_active: inventory.material.is_active,
 					created_at: inventory.material.createdAt.toISOString(),
 					updated_at: inventory.material.updatedAt.toISOString(),
@@ -475,5 +528,88 @@ export class ProductRepository
 				})
 			),
 		};
+	}
+
+	/**
+	 * Get all order items for stock calculation
+	 */
+	async getAllOrderItems() {
+		const dbRecords = await this.prisma.orderItem.findMany({
+			where: {
+				is_active: true,
+				order: {
+					status: {
+						not: 'CANCELLED',
+					},
+				},
+			},
+			include: {
+				product: {
+					include: {
+						product_master: true,
+					},
+				},
+				order: {
+					select: {
+						createdAt: true,
+						status: true,
+					},
+				},
+			},
+			orderBy: {
+				createdAt: 'asc',
+			},
+		});
+
+		return dbRecords;
+	}
+	async getAllProductRequestAccepted() {
+		const dbRecords = await this.prisma.outletProductRequest.findMany({
+			where: {
+				status: 'APPROVED',
+				
+			},
+			include: {
+				product: {
+					include: {
+						product_master: {select: {name:true}},
+					},
+				},
+				
+			},
+		});
+
+		return dbRecords;
+	}
+	async getAllProductRequestAcceptedWithSearch(search?: SearchConfig[]) {
+		let whereClause: any = {
+			status: 'ACCEPTED',
+		};
+
+		if (search && search.length > 0) {
+			whereClause.OR = search.map((item) => {
+				return {
+					product: {
+						name: {
+							contains: item.value,
+							mode: 'insensitive',
+						},
+					},
+				};
+			});
+		}
+
+		const dbRecords = await this.prisma.outletProductRequest.findMany({
+			where: whereClause,
+			include: {
+				product: {
+					include: {
+						product_master: { select: { name: true } },
+					},
+				},
+			},
+		});
+
+		return dbRecords;
 	}
 }

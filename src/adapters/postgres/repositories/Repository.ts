@@ -133,7 +133,7 @@ function convertToSnakeCase(obj: Record<string, unknown>): Record<string, unknow
 			else if (value && typeof value === 'object' && !Array.isArray(value)) {
 				result[snakeKey] = convertToSnakeCase(value as Record<string, unknown>);
 			}
-			// Handle arrays
+
 			else if (Array.isArray(value)) {
 				result[snakeKey] = value.map(item =>
 					item && typeof item === 'object' && !(item instanceof Date)
@@ -172,15 +172,26 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		const model = this.getModel();
 		const numericId = parseInt(id, 10);
 
-		// Validate that the ID is a valid number
 		if (isNaN(numericId)) {
 			throw new Error(`Invalid ID format: ${id}`);
 		}
 
-		const record = await model.findUnique({
-			where: { id: numericId },
+		// Build where clause with soft delete filtering if supported
+		const whereClause: Record<string, unknown> = { id: numericId };
+		
+		// Only add deleted_at filter if model supports soft delete
+		if (this.supportsSoftDelete()) {
+			whereClause.deleted_at = null;
+		}
+
+		// Use findFirst instead of findUnique to support soft delete filtering
+		const records = await model.findMany({
+			where: whereClause,
+			take: 1,
 			include: this.mapper.getIncludes(),
-		} as Parameters<typeof model.findUnique>[0]);
+		});
+		
+		const record = records.length > 0 ? records[0] : null;
 		return record ? this.mapper.mapToEntity(record) : null;
 	}
 
@@ -201,11 +212,15 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 	): Promise<PaginationResult<T>> {
 		const model = this.getModel();
 
-		// Calculate skip for pagination
 		const skip = (page - 1) * limit;
 
-		// Build where clause
 		const where: Record<string, unknown> = {};
+		
+		// Soft delete filter: exclude records where deleted_at is not null
+		// Only add if model supports soft delete
+		if (this.supportsSoftDelete()) {
+			where.deleted_at = null;
+		}
 
 		// Helper to recursively remove undefined keys from where object
 		function sanitizeWhere(obj: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
@@ -214,7 +229,7 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 			for (const k of Object.keys(obj)) {
 				const v = obj[k];
 				if (v === undefined) continue; // drop undefined values
-				// If value is an object, sanitize recursively
+
 				if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
 					const nested = sanitizeWhere(v as Record<string, unknown>);
 					if (nested && Object.keys(nested).length > 0) {
@@ -233,25 +248,42 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 			return Object.keys(cleaned).length > 0 ? cleaned : undefined;
 		}
 
-		// Add exact match filters
 		if (filters) {
 			Object.assign(where, filters);
 		}
 
-		// Add search conditions (LIKE)
 		if (search && search.length > 0) {
-			// Filter out search entries with undefined/null field or value
+
 			const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
 
 			if (validSearch.length > 0) {
-				const searchConditions = validSearch.map(({ field, value }) => ({
-					[field]: {
-						contains: value,
-						mode: 'insensitive' // Case-insensitive search
+				const searchConditions = validSearch.map(({ field, value }) => {
+					// Handle nested field paths (e.g., "product_master.name")
+					if (field.includes('.')) {
+						const parts = field.split('.');
+						const nestedCondition: Record<string, unknown> = {
+							contains: value,
+							mode: 'insensitive'
+						};
+						
+						// Build nested object from the inside out
+						let result: Record<string, unknown> = nestedCondition;
+						for (let i = parts.length - 1; i >= 0; i--) {
+							result = { [parts[i]]: result };
+						}
+						
+						return result;
 					}
-				}));
+					
+					// Simple field (non-nested)
+					return {
+						[field]: {
+							contains: value,
+							mode: 'insensitive'
+						}
+					};
+				});
 
-				// Use OR condition for multiple search fields
 				if (searchConditions.length > 1) {
 					where.OR = searchConditions;
 				} else {
@@ -262,10 +294,10 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 
 		// Sanitize where before passing to Prisma to avoid invalid undefined keys
 		const sanitizedWhere = sanitizeWhere(where);
-		// Get total count for pagination
+
 		const total = await model.count({ where: sanitizedWhere });
 		console.log(where);
-		// Get records with pagination
+
 		const records = await model.findMany({
 			where: sanitizedWhere,
 			skip,
@@ -295,6 +327,41 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		return this.mapper.mapToEntity(updated);
 	}
 
+	/**
+	 * Check if the model supports soft delete (has deleted_at field)
+	 */
+	protected supportsSoftDelete(): boolean {
+		// Models that have deleted_at field in schema
+		const softDeleteModels = ['user', 'role', 'product', 'employee'];
+		return softDeleteModels.includes(this.tableName);
+	}
+
+	/**
+	 * Soft delete a record by setting is_active to false and deleted_at to current timestamp
+	 * Falls back to hard delete if model doesn't support soft delete
+	 */
+	async softDelete(id: string): Promise<void> {
+		const model = this.getModel();
+		
+		// Check if model supports soft delete
+		if (!this.supportsSoftDelete()) {
+			console.warn(`Model '${this.tableName}' does not support soft delete. Performing hard delete instead.`);
+			return this.delete(id);
+		}
+		
+		await model.update({
+			where: { id: parseInt(id) },
+			data: {
+				is_active: false,
+				deleted_at: new Date()
+			} as unknown,
+		});
+	}
+
+	/**
+	 * Hard delete - permanently removes a record from the database
+	 * Note: Consider using softDelete() instead for data preservation
+	 */
 	async delete(id: string): Promise<void> {
 		const model = this.getModel();
 		await model.delete({ where: { id: parseInt(id) } });

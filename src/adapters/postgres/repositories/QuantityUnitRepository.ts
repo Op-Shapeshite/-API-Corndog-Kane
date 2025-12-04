@@ -42,9 +42,7 @@ export default class QuantityUnitRepository extends Repository<TQuantityUnit | T
         // Try exact match first
         let record = await this.getModel().findUnique({
             where: { code },
-        });
-
-        // If not found, try case-insensitive search
+        });
         if (!record) {
             const allUnits = await this.getModel().findMany({
                 where: { is_active: true }
@@ -62,9 +60,7 @@ export default class QuantityUnitRepository extends Repository<TQuantityUnit | T
         // Try exact match first
         let count = await this.getModel().count({
             where: { code, is_active: true },
-        });
-
-        // If not found, try case-insensitive search
+        });
         if (count === 0) {
             const allUnits = await this.getModel().findMany({
                 where: { is_active: true }

@@ -46,8 +46,6 @@ export type TOutletCreate = Omit<TOutlet, "id" | "createdAt" | "updatedAt"> & {
 	};
 };
 
-
-
 export type TOutletWithSettings = TOutlet & {
   settings: TOutletSettingEntity[];
 }
@@ -69,7 +67,6 @@ export type TOutletCreateRequestWithUser = TOutletCreateRequest & {
 export type TOutletCreateRequestWithUserId = TOutletCreateRequest & {
   user_id: string;
 }
-
 
 export type TOutletGetResponse = Omit<TOutlet, 'isActive' | 'createdAt' | 'updatedAt'| 'code'> & {
   is_active: boolean; 

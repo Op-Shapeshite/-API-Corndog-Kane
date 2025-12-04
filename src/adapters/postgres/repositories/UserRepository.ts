@@ -11,8 +11,11 @@ export default class UserRepository
 	}
 
 	async findByUsername(username: string): Promise<TUser | null> {
-		const user = await this.prisma.user.findUnique({
-			where: { username },
+		const user = await this.prisma.user.findFirst({
+			where: { 
+				username,
+				deleted_at: null  // Exclude soft-deleted users
+			},
 			include: { role: true, outlets: true },
 		});
 
@@ -47,7 +50,7 @@ export default class UserRepository
 	 * Override update method to hash password if provided
 	 */
 	async update(id: string, item: Partial<TUser>): Promise<TUser> {
-		// If password is being updated, hash it first
+
 		if (item.password) {
 			const hashedPassword = await bcrypt.hash(item.password, 10);
 			item = { ...item, password: hashedPassword };

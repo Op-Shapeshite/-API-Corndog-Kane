@@ -3,7 +3,6 @@
 import * as fs from "fs";
 import * as path from "path";
 
-
 type Adapter = {
   name: string;
 }

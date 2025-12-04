@@ -31,9 +31,7 @@ export class OutletMaterialRequestRepository
       orderBy: {
         createdAt: 'desc',
       },
-    });
-
-    // Map to entity using EntityMapper
+    });
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -63,9 +61,7 @@ export class OutletMaterialRequestRepository
       },
     });
 
-    if (!dbRecord) return null;
-
-    // Map to entity using EntityMapper
+    if (!dbRecord) return null;
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -98,9 +94,7 @@ export class OutletMaterialRequestRepository
           },
         },
       },
-    });
-
-    // Map to entity using EntityMapper
+    });
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -132,9 +126,7 @@ export class OutletMaterialRequestRepository
           },
         },
       },
-    });
-
-    // Map to entity using EntityMapper
+    });
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -147,8 +139,7 @@ export class OutletMaterialRequestRepository
    */
   async batchCreate(
     requests: Array<{ outletId: number; materialId: number; quantity: number }>
-  ): Promise<TOutletMaterialRequest[]> {
-    // Create all requests
+  ): Promise<TOutletMaterialRequest[]> {
     await this.prisma.outletMaterialRequest.createMany({
       data: requests.map((req) => ({
         outlet_id: req.outletId,
@@ -159,8 +150,7 @@ export class OutletMaterialRequestRepository
       })),
     });
 
-    // Fetch the created records (createMany doesn't return data in Prisma)
-    // Get the latest records for this outlet
+    // Fetch the created records (createMany doesn't return data in Prisma)
     const createdRecords = await this.prisma.outletMaterialRequest.findMany({
       where: {
         outlet_id: requests[0].outletId,
@@ -184,9 +174,7 @@ export class OutletMaterialRequestRepository
         createdAt: 'desc',
       },
       take: requests.length,
-    });
-
-    // Map to entities using EntityMapper
+    });
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -224,9 +212,7 @@ export class OutletMaterialRequestRepository
       this.prisma.outletMaterialRequest.count({
         where: { is_active: true },
       }),
-    ]);
-
-    // Map to entity using EntityMapper
+    ]);
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -246,8 +232,7 @@ export class OutletMaterialRequestRepository
       total_request_material: number;
       total_request_material_accepted: number;
     }>
-  > {
-    // Get all material requests
+  > {
     const allRequests = await this.prisma.outletMaterialRequest.findMany({
       where: { is_active: true },
       orderBy: {
@@ -305,8 +290,7 @@ export class OutletMaterialRequestRepository
   /**
    * Get detailed material requests by date and outlet
    */
-  async getDetailedByDateAndOutlet(date: string, outletId: number): Promise<TOutletMaterialRequest[]> {
-    // Parse date to get start and end of day
+  async getDetailedByDateAndOutlet(date: string, outletId: number): Promise<TOutletMaterialRequest[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     
@@ -340,9 +324,7 @@ export class OutletMaterialRequestRepository
       orderBy: {
         createdAt: 'desc',
       },
-    });
-
-    // Map to entity using EntityMapper
+    });
     const { EntityMapper } = await import("../../../mappers/EntityMapper");
     const { getEntityMapper } = await import("../../../mappers/EntityMappers");
 
@@ -353,8 +335,7 @@ export class OutletMaterialRequestRepository
   /**
    * Delete (soft delete) all material requests by date and outlet
    */
-  async deleteByDateAndOutlet(date: string, outletId: number): Promise<number> {
-    // Parse date to get start and end of day
+  async deleteByDateAndOutlet(date: string, outletId: number): Promise<number> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     

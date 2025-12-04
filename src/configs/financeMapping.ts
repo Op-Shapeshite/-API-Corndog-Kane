@@ -60,7 +60,6 @@ enum SectionName {
     KasPositionOnLastPeriod = "kas_position_on_last_period"
 }
 
-
 const grossToNetMapping: MappingType[] = [
     {
         section: SectionName.NetSales,
@@ -251,7 +250,6 @@ const neracaMapping: MappingType[] = [
                 ],
                 calculation:`${SectionName.PaidInCapital} + ${SectionName.RetainedEarnings}`   
 
-                
             },
 
         ],
@@ -260,7 +258,6 @@ const neracaMapping: MappingType[] = [
         "calculation": `${SectionName.ShortTermLiabilities} + ${SectionName.Equity}`
     }
 ]
-
 
 const cashflowMapping: MappingType[] = [
     // 1. LABA BERSIH - Input dari Laporan Laba Rugi

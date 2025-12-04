@@ -7,6 +7,7 @@ import { ProductRepository } from "../../adapters/postgres/repositories/ProductR
 import MaterialRepository from "../../adapters/postgres/repositories/MaterialRepository";
 import QuantityUnitService from "./QuantityUnitService";
 import QuantityUnitRepository from "../../adapters/postgres/repositories/QuantityUnitRepository";
+import { normalizeUnit } from "../utils/unitNormalizer";
 
 export default class MasterProductService extends Service<TMasterProduct | TMasterProductWithID> {
   declare repository: MasterProductRepository;
@@ -37,47 +38,33 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
   }
 
   async createProductInventory(data: TProductInventoryCreateRequest): Promise<TProductInventory> {
-    let productId = data.product_id;
-    if (data.product_id === undefined) {
-      const pyaload: TMasterProduct = {
-        name: data.product_name || "Unnamed Product",
-        categoryId: data.category_id, // Default category, adjust as needed
-        isActive: true,
-      };
-      const createdMasterProduct = await this.repository.create(pyaload);
-      productId = createdMasterProduct.id;
-
-    }
-    data.product_id = productId!;
-    const materials = data.materials;
-
+    // Normalize units first
+    const normalizedProductUnit = normalizeUnit(data.unit);
+    const materialsWithNormalizedUnits = data.materials.map(material => ({
+      ...material,
+      unit: normalizeUnit(material.unit)
+    }));
+    
+    // STEP 1: VALIDATION - Do all validation BEFORE any database writes
     // VALIDATION: Check material stock availability before creating inventory
-    for (const material of materials) {
-      const requiredQuantity = material.quantity * data.quantity;
-
-      // Get material with stocks
+    for (const material of materialsWithNormalizedUnits) {
+      const requiredQuantity = material.quantity * data.quantity;
       const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
 
       if (!materialWithStocks) {
         throw new Error(`Material dengan ID ${material.material_id} tidak ditemukan di database. Pastikan material sudah terdaftar sebelum digunakan dalam produk master`);
-      }
-
-      // Calculate available stock with conversion
+      }
       let totalStockIn = 0;
       for (const item of materialWithStocks.materialIn) {
-        console.log('item: MaterialsIn ', item);
         totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
       }
 
       let totalStockOut = 0;
       for (const item of materialWithStocks.materialOut) {
-        console.log('item: MaterialsOut ', item);
         totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
       }
 
-      const availableStock = totalStockIn - totalStockOut;
-
-      // Check if sufficient stock
+      const availableStock = totalStockIn - totalStockOut;
       if (availableStock < requiredQuantity) {
         throw new Error(
           `Stok material "${materialWithStocks.name}" tidak mencukupi. ` +
@@ -87,41 +74,51 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
       }
     }
 
-    // Here you might want to create entries in a product inventory table for each material
-    // associated with the master product. This depends on your database schema.
-    const materialsCreaated = materials.map(async (material) => new Promise((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inventoryData: any = {
-        product_id: productId!,
-        material_id: material.material_id,
-        quantity: material.quantity,
-        unit_quantity: material.unit,
+    // STEP 2: DATABASE OPERATIONS - All validation passed, now create everything in transaction
+    let masterProduct: TMasterProduct | undefined;
+    
+    // Prepare master product creation data if needed
+    if (data.product_id === undefined) {
+      masterProduct = {
+        name: data.product_name || "Unnamed Product",
+        categoryId: data.category_id,
+        isActive: true,
       };
-      resolve(this.repository.createProductInventory(inventoryData));
-    }));
-    this.productRepository.createStockInProduction(
-      productId!,
-      data.quantity,
-      data.unit,
-    )
-    await Promise.all(materials.map(async (material) => new Promise((resolve) => {
-      resolve(this.materialRepository.createStockOut({
-        materialId: material.material_id,
-        quantityUnit: material.unit,
-        quantity: material.quantity * data.quantity,
-      }));
-    })));
+    }
 
-    // eslint-disable-entiere-file @typescript-eslint/no-explicit-any
-    return {
-      id: productId!,
-      quantity: data.quantity,
-      unit_quantity: data.unit,
-      material: (await Promise.all(materialsCreaated)).map((m: any) => (m.materials)) as any[],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    // return await this.repository.createProductInventory(data);
+    try {
+      const result = await this.repository.createProductInventoryWithTransaction({
+        masterProduct,
+        productId: data.product_id,
+        inventoryItems: materialsWithNormalizedUnits.map(material => ({
+          material_id: material.material_id,
+          quantity: material.quantity,
+          unit_quantity: material.unit,
+        })),
+        productionStockIn: {
+          quantity: data.quantity,
+          unit_quantity: normalizedProductUnit,
+        },
+        materialStockOuts: materialsWithNormalizedUnits.map(material => ({
+          material_id: material.material_id,
+          quantity: material.quantity * data.quantity,
+          unit_quantity: material.unit,
+        })),
+      });
+
+      return {
+        id: result.productId,
+        quantity: data.quantity,
+        unit_quantity: normalizedProductUnit,
+        material: result.inventoryItems.map((m: any) => m.materials) as any[],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+    } catch (error) {
+      // Transaction ensures no partial data is created, so no manual cleanup needed
+      throw error;
+    }
   }
 
   async updateProductInventory(
@@ -132,29 +129,37 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
     const masterProduct = await this.repository.getById(masterProductId);
     if (!masterProduct) {
       throw new Error(`Produk master dengan ID ${masterProductId} tidak ditemukan. Pastikan ID produk master yang digunakan sudah benar`);
+    }
+    const existingInventory = await this.repository.getProductInventory(masterProductId);
+    if (existingInventory.length === 0) {
+      throw new Error(`Inventori produk untuk produk master dengan ID ${masterProductId} tidak ditemukan`);
     }
 
-    let materialsUpdated: any[] = (await this.repository
-      .getProductInventory(masterProductId))
-      .map(item =>
-        ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
-      );
+    // Normalize unit if provided
+    const productUnit = data.unit ? normalizeUnit(data.unit) : existingInventory[0]?.unit_quantity;
+    if (!productUnit) {
+      throw new Error(`Unit produk tidak ditemukan. Harap sediakan unit dalam permintaan atau pastikan inventori produk memiliki unit yang valid`);
+    }
 
-    const materials: any[] = data.materials;
+    let materialsUpdated: any[] = existingInventory.map(item =>
+      ({ material_id: item.materialId, quantity: item.quantity, unit: item.unit_quantity })
+    );
+    const materials: any[] = data.materials 
+      ? data.materials.map(material => ({
+          ...material,
+          unit: normalizeUnit(material.unit)
+        }))
+      : materialsUpdated;
 
     // VALIDATION: Check material stock availability before updating inventory
     if (materials && materials.length > 0) {
       for (const material of materials) {
-        const requiredQuantity = material.quantity * data.quantity;
-
-        // Get material with stocks
+        const requiredQuantity = material.quantity * data.quantity;
         const materialWithStocks = await this.materialRepository.getMaterialWithStocks(material.material_id);
 
         if (!materialWithStocks) {
           throw new Error(`Material dengan ID ${material.material_id} tidak ditemukan di database. Pastikan material sudah terdaftar sebelum digunakan`);
-        }
-
-        // Calculate available stock with conversion
+        }
         let totalStockIn = 0;
         for (const item of materialWithStocks.materialIn) {
           totalStockIn += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
@@ -165,9 +170,7 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
           totalStockOut += await this.quantityUnitService.convertQuantity(item.quantityUnit, material.unit, item.quantity);
         }
 
-        const availableStock = totalStockIn - totalStockOut;
-
-        // Check if sufficient stock
+        const availableStock = totalStockIn - totalStockOut;
         if (availableStock < requiredQuantity) {
           throw new Error(
             `Stok material "${materialWithStocks.name}" tidak mencukupi untuk update produk inventori. ` +
@@ -176,34 +179,35 @@ export default class MasterProductService extends Service<TMasterProduct | TMast
           );
         }
       }
-
-      materialsUpdated = materials.map(async (material: any) => new Promise((resolve) => {
-        const inventoryData: any = {
-          material_id: material.material_id,
-          quantity: material.quantity,
-          unit_quantity: material.unit,
-        };
-        resolve(this.repository.updateProductInventory(masterProductId, material.material_id, inventoryData));
-      }
-      ));
     }
-    await this.productRepository.createStockInProduction(masterProductId, data.quantity, data.unit);
 
-    await Promise.all(
-      materialsUpdated.map(
-        async (material) =>
-          new Promise((resolve) => {
-            resolve(
-              this.materialRepository.createStockOut({
-                materialId: material.material_id,
-                quantityUnit: material.unit,
-                quantity: material.quantity * data.quantity,
-              })
-            );
+    // Only proceed with stock operations if all validations pass
+    try {
+      await this.productRepository.createStockInProduction(masterProductId, data.quantity, productUnit);
+      if (materials && materials.length > 0) {
+        materialsUpdated = materials.map(async (material: any) => new Promise((resolve) => {
+          const inventoryData: any = {
+            material_id: material.material_id,
+            quantity: material.quantity,
+            unit_quantity: material.unit,
+          };
+          resolve(this.repository.updateProductInventory(masterProductId, material.material_id, inventoryData));
+        }));
+        await Promise.all(
+          materials.map(async (material) => {
+            return this.materialRepository.createStockOut({
+              materialId: material.material_id,
+              quantityUnit: material.unit,
+              quantity: material.quantity * data.quantity,
+            });
           })
-      )
-    );
-    return await Promise.all([...materialsUpdated]);
+        );
+      }
+      
+      return await Promise.all([...materialsUpdated]);
+    } catch (error) {
+      throw error;
+    }
 
     // return await this.repository.updateProductInventory(masterProductId, materialId, data);
   }

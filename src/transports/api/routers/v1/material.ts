@@ -56,7 +56,6 @@ router.get(
 	materialController.getStocksList()
 );
 
-
 // GET material out list by material ID
 router.get(
 	"/out/:id",

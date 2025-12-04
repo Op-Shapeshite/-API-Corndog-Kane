@@ -22,9 +22,10 @@ const productService = new ProductService(new ProductRepository());
 router.get(
   "/",
   validate(getPaginationSchema),
-  productController.findAll(
+  productController.findAllWithSearch(
     productService,
-    ProductResponseMapper
+    ProductResponseMapper,
+    'product'
   )
 );
 

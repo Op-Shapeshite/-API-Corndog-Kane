@@ -14,26 +14,42 @@ export class AccountController extends Controller<TAccountGetResponse, TMetadata
     this.accountService = new AccountService(new AccountRepository());
   }
 
-  // Custom getAll to handle AccountResponseMapper's array-based toListResponse
+  // Enhanced getAll with proper search field mapping
   getAll = () => {
     return async (req: Request, res: Response) => {
       try {
-        const { page, limit, search_key, search_value, category_id, ...filters } = req.query;
-        // Use validated defaults from pagination schema (page=1, limit=10)
+        const { page, limit, search_key, search_value, category_id, ...filters } = req.query;
         const pageNum = page ? parseInt(page as string, 10) : 1;
         const limitNum = limit ? parseInt(limit as string, 10) : 10;
-        const categoryId = category_id ? parseInt(category_id as string, 10) : undefined;
-        
-        // Build search config
-        const search =
-          search_key && 
-          search_value && 
-          search_key !== 'undefined' && 
-          search_value !== 'undefined'
-            ? [{ field: search_key as string, value: search_value as string }]
-            : undefined;
-        
-        // Add category filter if provided
+        const categoryId = category_id ? parseInt(category_id as string, 10) : undefined;
+        const { SearchHelper } = await import('../../../utils/search/searchHelper');
+        const validation = SearchHelper.validateSearchParams(
+          'account', 
+          search_key as string, 
+          search_value as string
+        );
+
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            [] as any,
+            {
+              page: pageNum,
+              limit: limitNum,
+              total_records: 0,
+              total_pages: 0,
+              searchable_fields: validation.searchable_fields
+            } as any
+          );
+        }
+        const search = SearchHelper.buildSearchConfig(
+          'account',
+          search_key as string,
+          search_value as string
+        );
         const combinedFilters = categoryId 
           ? { ...filters, account_category_id: categoryId }
           : Object.keys(filters).length > 0 ? filters : undefined;

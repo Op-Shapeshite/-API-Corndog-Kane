@@ -113,15 +113,13 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
     filters?: Record<string, any>,
     orderBy?: Record<string, 'asc' | 'desc'>
   ) {
-    // Use custom query to include account relation
+
     const skip = (page - 1) * limit;
     const where: Record<string, any> = {};
 
-    // Handle date range filters (start_date, end_date)
     if (filters) {
       const { start_date, end_date, ...otherFilters } = filters;
-      
-      // Add non-date filters
+
       Object.assign(where, otherFilters);
       
       // Convert start_date and end_date to transaction_date range filter
@@ -129,16 +127,19 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
         where.transaction_date = {};
         
         if (start_date) {
-          where.transaction_date.gte = new Date(start_date as string);
+          const startDateTime = new Date(start_date as string);
+          startDateTime.setHours(0, 0, 0, 0);
+          where.transaction_date.gte = startDateTime;
         }
         
         if (end_date) {
-          where.transaction_date.lte = new Date(end_date as string);
+          const endDateTime = new Date(end_date as string);
+          endDateTime.setHours(23, 59, 59, 999);
+          where.transaction_date.lte = endDateTime;
         }
       }
     }
 
-    // Add search conditions
     if (search && search.length > 0) {
       const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
       
@@ -158,11 +159,8 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
       }
     }
 
-
-    // Get total count
     const total = await this.prisma.transaction.count({ where });
 
-    // Get transactions with account relation
     const transactions = await this.prisma.transaction.findMany({
       where,
       skip,
@@ -251,12 +249,11 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
     accountTypeCodes: string[],
     accountNumbers: string[]
   ): Promise<AccountTypeBalance[]> {
-    // Build filter for accounts
+
     const accountFilter: any = {
       OR: []
     };
 
-    // Add account type code filter
     if (accountTypeCodes.length > 0) {
       accountFilter.OR.push({
         account_type: {
@@ -267,7 +264,6 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
       });
     }
 
-    // Add specific account numbers filter
     if (accountNumbers.length > 0) {
       accountFilter.OR.push({
         number: {
@@ -276,7 +272,6 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
       });
     }
 
-    // If no filters, return empty
     if (accountFilter.OR.length === 0) {
       return [];
     }
@@ -346,7 +341,6 @@ export class TransactionRepository extends Repository<TTransaction | TTransactio
     // Generate month range
     const months = this.generateMonthRange(startDate, endDate);
 
-    // Build result
     const result: AccountTypeBalance[] = [];
 
     groupedData.forEach((typeData, typeCode) => {

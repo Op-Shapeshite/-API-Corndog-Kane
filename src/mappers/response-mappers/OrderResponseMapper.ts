@@ -43,8 +43,7 @@ export class OrderResponseMapper {
       payment_method: orderWithItems.paymentMethod,
       total_amount: orderWithItems.totalAmount,
       status: orderWithItems.status,
-      items: orderWithItems.items.map(item => {
-        // Map sub items (children) jika ada
+      items: orderWithItems.items.map(item => {
         const productItems = item.subItems?.map(subItem => {
           const subItemPrice = subItem.price; // qty × unit_price (already calculated)
           const subItemTotalPrice = subItemPrice; // For child: total_price = price (no sub_total_price)
@@ -56,9 +55,7 @@ export class OrderResponseMapper {
             price: subItemPrice,
             total_price: subItemTotalPrice,
           };
-        }) || [];
-
-        // Calculate parent item prices
+        }) || [];
         const itemPrice = item.price; // qty × unit_price (already calculated)
         const subTotalPrice = productItems.reduce((sum, subItem) => sum + subItem.total_price, 0); // Sum of children's total_price
         const totalPrice = itemPrice + subTotalPrice; // price + sub_total_price
@@ -126,9 +123,7 @@ export class OrderResponseMapper {
       category.quantity += item.quantity;
       category.total_amount += item.price * item.quantity;
       category.items.push(productName);
-    });
-
-    // Add categories to response
+    });
     categoryMap.forEach((value, key) => {
       response[key] = value;
     });
@@ -209,9 +204,7 @@ export class OrderResponseMapper {
       category.quantity += item.quantity;
       category.total_amount += item.price * item.quantity;
       category.items.push(productName);
-    });
-
-    // Add categories to response
+    });
     categoryMap.forEach((value, key) => {
       response[key] = value;
     });
@@ -258,8 +251,7 @@ export class OrderResponseMapper {
       }>;
     }>;
   }): TMyOrderResponse {
-    const mappedItems = order.items.map(item => {
-      // Map sub items (children) jika ada
+    const mappedItems = order.items.map(item => {
       const subItems = item.sub_items?.map(subItem => {
         const subItemPrice = subItem.price;
         const subItemTotalPrice = subItemPrice;
@@ -273,9 +265,7 @@ export class OrderResponseMapper {
           product_name: subItem.product?.name,
           image_path: subItem.product?.image_path || null,
         };
-      }) || [];
-
-      // Calculate parent item prices
+      }) || [];
       const itemPrice = item.price;
       const subTotalPrice = subItems.reduce((sum, subItem) => sum + subItem.total_price, 0);
       const totalPrice = itemPrice + subTotalPrice;
@@ -291,9 +281,7 @@ export class OrderResponseMapper {
         image_path: item.product?.image_path || null,
         sub_items: subItems.length > 0 ? subItems : undefined,
       };
-    });
-
-    // Calculate total price (sum of all items total_price)
+    });
     const orderTotalPrice = mappedItems.reduce((sum, item) => sum + item.total_price, 0);
 
     return {
@@ -315,5 +303,4 @@ export class OrderResponseMapper {
     };
   }
 }
-
 

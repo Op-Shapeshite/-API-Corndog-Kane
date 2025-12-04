@@ -9,15 +9,12 @@ export class OutletProductStockResponseMapper {
    * Convert UTC-based date string to GMT+7 date string
    * Repository generates dates in UTC (2025-11-12), but we display in GMT+7 (2025-11-13)
    */
-  private static toLocalDateString(utcDateString: string): string {
-    // Get current time in GMT+7
+  private static toLocalDateString(utcDateString: string): string {
     const now = new Date();
     const gmt7Now = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     const currentGMT7Date = gmt7Now.toISOString().split('T')[0];
     
-    console.log(`🔍 Current GMT+7 date: ${currentGMT7Date}, Input: ${utcDateString}`);
-    
-    // If input matches today's UTC date, it should be displayed as GMT+7 date
+    console.log(`🔍 Current GMT+7 date: ${currentGMT7Date}, Input: ${utcDateString}`);
     const utcToday = now.toISOString().split('T')[0];
     if (utcDateString === utcToday) {
       console.log(`🔍 Converting UTC today (${utcDateString}) → GMT+7 today (${currentGMT7Date})`);

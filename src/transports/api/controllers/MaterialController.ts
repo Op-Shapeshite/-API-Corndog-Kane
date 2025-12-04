@@ -5,6 +5,8 @@ import MaterialService from '../../../core/services/MaterialService';
 import MaterialRepository from "../../../adapters/postgres/repositories/MaterialRepository";
 import Controller from "./Controller";
 import { MaterialStockOutResponseMapper } from "../../../mappers/response-mappers/MaterialStockOutResponseMapper";
+import { SearchHelper } from "../../../utils/search/searchHelper";
+import { SearchConfig } from "../../../core/repositories/Repository";
 
 export class MaterialController extends Controller<TMaterialGetResponse | TMaterialInventoryGetResponse | TMaterialStockInGetResponse, TMetadataResponse> {
   private materialService: MaterialService;
@@ -39,9 +41,7 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         const data: TMaterialStockInCreateRequest = req.body;
 
         // Service returns entity
-        const entity = await this.materialService.stockIn(data);
-
-        // Map entity to response
+        const entity = await this.materialService.stockIn(data);
         const responseData = MaterialStockOutResponseMapper.toResponse(entity);
 
         // 🔥 AUTO-POST FINANCE TRANSACTION TO ACCOUNT 5101 (HPP/COGS)
@@ -50,18 +50,14 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
           const { PrismaClient } = await import('@prisma/client');
 
           const transactionRepo = new TransactionRepository();
-          const prisma = new PrismaClient();
-
-          // Get material name  
+          const prisma = new PrismaClient();
           const material = await prisma.material.findUnique({
             where: { id: data.material_id },
             select: { name: true }
           });
 
           const materialName = material?.name || 'Unknown Material';
-          const purchaseDate = new Date();
-
-          // Calculate total purchase cost: price * quantity
+          const purchaseDate = new Date();
           const totalCost = data.price * data.quantity;
 
           if (totalCost > 0) {
@@ -110,9 +106,7 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         const data: TMaterialStockOutCreateRequest = req.body;
 
         // Service returns entity
-        const entity = await this.materialService.stockOut(data);
-
-        // Map entity to response
+        const entity = await this.materialService.stockOut(data);
         const mappedResult: TMaterialInventoryGetResponse = MaterialStockOutResponseMapper.toResponse(entity);
 
         return this.getSuccessResponse(
@@ -139,18 +133,36 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
   getBuyList = () => {
     return async (req: Request, res: Response) => {
       try {
-        // Use validated pagination params from middleware with defaults
-        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+        const { page, limit, search_key, search_value } = req.query;
+        const pageNum = page ? parseInt(page as string, 10) : 1;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
+        const validation = SearchHelper.validateSearchParams(
+          'material_buy', 
+          search_key as string, 
+          search_value as string
+        );
 
-        const { data, total } = await this.materialService.getBuyList(page, limit);
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            [] as TMaterialStockInGetResponse[],
+            {} as TMetadataResponse
+          );
+        }
+        let searchConfig: SearchConfig[] | undefined;
+        if (validation.valid && search_key && search_value) {
+          searchConfig = SearchHelper.buildSearchConfig('material_buy', search_key as string, search_value as string);
+        }
 
-        // Map MaterialStockInEntity to TMaterialStockInGetResponse format
+        const { data, total } = await this.materialService.getBuyList(pageNum, limitNum, searchConfig);
         const mappedResults: TMaterialStockInGetResponse[] = data.map(item => ({
           id: item.id,
           date: item.receivedAt.toISOString(),
-          suplier_id: item.material.suplierId,
-          suplier_name: item.material.suplier?.name || '',
+          suplier_id: item.suplierId,
+          suplier_name: item.suplier?.name || '',
           material_id: item.materialId,
           material_name: item.material.name,
           price: item.price,
@@ -162,10 +174,10 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
         }));
 
         const metadata: TMetadataResponse = {
-          page,
-          limit,
+          page: pageNum,
+          limit: limitNum,
           total_records: total,
-          total_pages: Math.ceil(total / limit),
+          total_pages: Math.ceil(total / limitNum),
         };
 
         return this.getSuccessResponse(
@@ -192,20 +204,40 @@ export class MaterialController extends Controller<TMaterialGetResponse | TMater
   getStocksList = () => {
     return async (req: Request, res: Response) => {
       try {
-        // Use validated pagination params from middleware with defaults
-        const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-        const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+        const { page, limit, search_key, search_value } = req.query;
+        const pageNum = page ? parseInt(page as string, 10) : 1;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
+        const validation = SearchHelper.validateSearchParams(
+          'material_inventory', 
+          search_key as string, 
+          search_value as string
+        );
 
-        const { data, total } = await this.materialService.getStocksList(page, limit);
+        if (!validation.valid) {
+          return this.handleError(
+            res,
+            new Error(validation.error),
+            validation.error || "Invalid search parameters",
+            400,
+            [] as TMaterialInventoryGetResponse[],
+            {} as TMetadataResponse
+          );
+        }
+        let searchConfig: SearchConfig[] | undefined;
+        if (validation.valid && search_key && search_value) {
+          searchConfig = SearchHelper.buildSearchConfig('material_inventory', search_key as string, search_value as string);
+        }
+
+        const { data, total } = await this.materialService.getStocksList(pageNum, limitNum, searchConfig);
         const mappedResults: TMaterialInventoryGetResponse[] = data.map(item =>
           MaterialStockOutResponseMapper.toResponse(item)
         );
 
         const metadata: TMetadataResponse = {
-          page,
-          limit,
+          page: pageNum,
+          limit: limitNum,
           total_records: total,
-          total_pages: Math.ceil(total / limit),
+          total_pages: Math.ceil(total / limitNum),
         };
 
         return this.getSuccessResponse(

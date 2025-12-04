@@ -1,6 +1,5 @@
 import { createClient } from "redis";
 
-
 export default class  RedisAdapter { 
 
   public static client = createClient();
@@ -12,5 +11,4 @@ export default class  RedisAdapter {
   }
 
 }
-
 

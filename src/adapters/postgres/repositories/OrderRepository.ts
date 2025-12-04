@@ -1,6 +1,6 @@
 import { TOrder, TOrderWithItems, TOrderCreate, TOrderItemCreate } from "../../../core/entities/order/order";
 import { OrderRepository as IOrderRepository } from "../../../core/repositories/order";
-import Repository from "./Repository";
+import Repository, { SearchConfig } from "./Repository";
 
 /**
  * Helper function to map Prisma product (with product_master) to flat product object
@@ -13,8 +13,7 @@ function mapProductFromPrisma(prismaProduct: any) {
 		...prismaProduct,
 		name: prismaProduct.product_master?.name || '',
 		category: prismaProduct.product_master?.category || null,
-		image_path: prismaProduct.image_path || null,
-		// Remove product_master from the result to avoid confusion
+		image_path: prismaProduct.image_path || null,
 		product_master: undefined,
 	};
 }
@@ -113,9 +112,7 @@ export default class OrderRepository
 	async getAvailableStockForOutlet(productId: number, outletId: number): Promise<number> {
 		const today = new Date();
 		const endOfDay = new Date(today);
-		endOfDay.setHours(23, 59, 59, 999);
-
-		// Calculate total stock IN: all approved requests up to today
+		endOfDay.setHours(23, 59, 59, 999);
 		const totalStockInData = await this.prisma.outletProductRequest.aggregate({
 			where: {
 				outlet_id: outletId,
@@ -129,9 +126,7 @@ export default class OrderRepository
 				approval_quantity: true,
 			},
 		});
-		const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
-
-		// Calculate total SOLD: all order items up to today
+		const totalStockIn = totalStockInData._sum?.approval_quantity || 0;
 		const totalSoldData = await this.prisma.orderItem.aggregate({
 			where: {
 				product_id: productId,
@@ -146,9 +141,7 @@ export default class OrderRepository
 				quantity: true,
 			},
 		});
-		const totalSold = totalSoldData._sum?.quantity || 0;
-
-		// Calculate remaining stock: total received - total sold
+		const totalSold = totalSoldData._sum?.quantity || 0;
 		const remainingStock = totalStockIn - totalSold;
 
 		return remainingStock;
@@ -161,8 +154,7 @@ export default class OrderRepository
 		orderData: TOrderCreate,
 		items: TOrderItemCreate[]
 	): Promise<TOrderWithItems> {
-		const result = await this.prisma.$transaction(async (tx) => {
-			// Create the order
+		const result = await this.prisma.$transaction(async (tx) => {
 			const order = await tx.order.create({
 				data: {
 					outlet_id: orderData.outletId,
@@ -176,12 +168,9 @@ export default class OrderRepository
 					packaging_type: orderData.packagingType as any,
 					is_active: true,
 				},
-			});
-
-			// Create order items with nested items
+			});
 			const orderItems = await Promise.all(
-				items.map(async (item) => {
-					// Create parent item
+				items.map(async (item) => {
 					const parentItem = await tx.orderItem.create({
 						data: {
 							order_id: order.id,
@@ -190,9 +179,7 @@ export default class OrderRepository
 							price: item.price,
 							is_active: true,
 						},
-					});
-
-					// Create sub items (children) if exists
+					});
 					const subItemsData = [];
 					if (item.subItems && item.subItems.length > 0) {
 						const createdSubItems = await Promise.all(
@@ -217,9 +204,7 @@ export default class OrderRepository
 			);
 
 			// ===== RECORD MATERIAL USAGE =====
-			await this.recordMaterialUsage(tx, order.id, orderItems, orderData);
-
-			// Return mapped entity with items
+			await this.recordMaterialUsage(tx, order.id, orderItems, orderData);
 			return {
 				id: order.id.toString(),
 				outletId: order.outlet_id,
@@ -275,15 +260,11 @@ export default class OrderRepository
 			material_id: number;
 			quantity: number;
 			quantity_unit: string;
-		}> = [];
-
-		// Get all parent items (root items only)
+		}> = [];
 		const parentItems = orderItems.filter(item => !item.order_item_root_id);
 
 		// Track total parent quantity for bag/packaging
-		const totalParentQuantity = parentItems.reduce((sum, item) => sum + item.quantity, 0);
-
-		// Map to track materials already processed (to aggregate quantities)
+		const totalParentQuantity = parentItems.reduce((sum, item) => sum + item.quantity, 0);
 		const materialMap = new Map<number, { quantity: number; unit: string }>();
 
 		// 1. PROCESS PRODUCT INVENTORY MATERIALS (excluding minyak - handled separately)
@@ -335,9 +316,7 @@ export default class OrderRepository
 					// minyakUnit is 'ml' by default and we convert to it.
 				}
 			}
-		}
-
-		// Add minyak to map if used
+		}
 		if (minyakMaterialId && totalMinyakQuantity > 0) {
 			materialMap.set(minyakMaterialId, {
 				quantity: totalMinyakQuantity,
@@ -440,12 +419,55 @@ export default class OrderRepository
 	/**
 	 * Get all orders with items and product details (for list)
 	 */
-	async getAllOrdersWithDetails(page: number = 1, limit: number = 10) {
+	async getAllOrdersWithDetails(page: number = 1, limit: number = 10, search?: SearchConfig[]) {
 		const skip = (page - 1) * limit;
+		let whereClause: any = { is_active: true };
+		if (search && search.length > 0) {
+			const searchConditions = search.map(config => {
+				const { field, value } = config;
+				
+				if (field === 'outlet.name') {
+					return {
+						outlet: {
+							name: {
+								contains: value,
+								mode: 'insensitive'
+							}
+						}
+					};
+				}
+				switch (field) {
+					case 'invoiceNumber':
+						return { invoiceNumber: { contains: value, mode: 'insensitive' } };
+					case 'totalAmount':
+						const numericValue = parseFloat(value);
+						if (!isNaN(numericValue)) {
+							return { totalAmount: numericValue };
+						}
+						return null;
+					case 'status':
+						return { status: { contains: value, mode: 'insensitive' } };
+					case 'paymentMethod':
+						return { paymentMethod: { contains: value, mode: 'insensitive' } };
+					case 'outletId':
+						const outletIdValue = parseInt(value);
+						if (!isNaN(outletIdValue)) {
+							return { outletId: outletIdValue };
+						}
+						return null;
+					default:
+						return null;
+				}
+			}).filter(Boolean);
+
+			if (searchConditions.length > 0) {
+				whereClause.OR = searchConditions;
+			}
+		}
 
 		const [orders, total] = await Promise.all([
 			this.prisma.order.findMany({
-				where: { is_active: true },
+				where: whereClause,
 				include: {
 					outlet: {
 						select: {
@@ -467,10 +489,8 @@ export default class OrderRepository
 				skip,
 				take: limit,
 			}),
-			this.getModel().count({ where: { is_active: true } }),
-		]);
-
-		// Map products to flat structure
+			this.getModel().count({ where: whereClause }),
+		]);
 		const mappedOrders = orders.map(order => ({
 			...order,
 			items: order.items.map(item => ({
@@ -535,9 +555,7 @@ export default class OrderRepository
 					outlet_id: outletId,
 				},
 			}),
-		]);
-
-		// Map products to flat structure
+		]);
 		const mappedOrders = orders.map(order => ({
 			...order,
 			items: order.items.map(item => ({
@@ -592,9 +610,7 @@ export default class OrderRepository
 			},
 		});
 
-		if (!order) return null;
-
-		// Map products to flat structure
+		if (!order) return null;
 		return {
 			...order,
 			items: order.items.map(item => ({
@@ -633,9 +649,7 @@ export default class OrderRepository
 			},
 		});
 
-		if (!order) return null;
-
-		// Map products to flat structure
+		if (!order) return null;
 		return {
 			...order,
 			items: order.items.map(item => ({

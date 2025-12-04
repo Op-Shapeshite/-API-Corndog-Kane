@@ -75,7 +75,6 @@ export class MasterProductRepository
 			material: {
 				id: inventory.material.id,
 				name: inventory.material.name,
-				supplier_id: inventory.material.suplier_id,
 				is_active: inventory.material.is_active,
 				created_at: inventory.material.createdAt,
 				updated_at: inventory.material.updatedAt,
@@ -108,7 +107,7 @@ export class MasterProductRepository
 	}
 
 	async updateProductInventory(masterProductId: number, materialId: number, data: TProductInventoryUpdateRequest) {
-		// Find the existing product inventory record by product_id and material_id
+
 		const existing = await this.prisma.productInventory.findFirst({
 			where: {
 				product_id: masterProductId,
@@ -117,7 +116,7 @@ export class MasterProductRepository
 		});
 
 		if (!existing) {
-			throw new Error(`Product inventory for product ${masterProductId} and material not found`);
+			throw new Error(`Product inventory for product ${masterProductId} and material ${materialId} not found`);
 		}
 
 		const updated = await this.prisma.productInventory.update({
@@ -126,6 +125,7 @@ export class MasterProductRepository
 			},
 			data: {
 				...(data.quantity !== undefined && { quantity: data.quantity }),
+				...(data.unit !== undefined && { unit_quantity: data.unit }), // Update unit if provided
 			},
 			include: {
 				material: true,
@@ -136,11 +136,11 @@ export class MasterProductRepository
 			id: updated.id,
 			productId: updated.product_id,
 			quantity: updated.quantity,
+			unit: updated.unit_quantity, // Return the unit for consistency
 			materialId: updated.material_id,
 			material: {
 				id: updated.material.id,
 				name: updated.material.name,
-				supplier_id: updated.material.suplier_id,
 				is_active: updated.material.is_active,
 				created_at: updated.material.createdAt,
 				updated_at: updated.material.updatedAt,
@@ -210,7 +210,6 @@ export class MasterProductRepository
 			material: {
 				id: transaction.material.id,
 				name: transaction.material.name,
-				supplier_id: transaction.material.suplier_id,
 				is_active: transaction.material.is_active,
 				created_at: transaction.material.createdAt,
 				updated_at: transaction.material.updatedAt,
@@ -218,6 +217,114 @@ export class MasterProductRepository
 			createdAt: transaction.createdAt,
 			updatedAt: transaction.updatedAt,
 		}));
+	}
+
+	/**
+	 * Create product inventory with all related records in a single transaction
+	 * This ensures atomicity - if any part fails, nothing is created
+	 */
+	async createProductInventoryWithTransaction(data: {
+		masterProduct?: TMasterProduct;
+		productId?: number;
+		inventoryItems: Array<{
+			material_id: number;
+			quantity: number;
+			unit_quantity: string;
+		}>;
+		productionStockIn: {
+			quantity: number;
+			unit_quantity: string;
+		};
+		materialStockOuts: Array<{
+			material_id: number;
+			quantity: number;
+			unit_quantity: string;
+		}>;
+	}): Promise<{
+		productId: number;
+		inventoryItems: any[];
+	}> {
+		return await this.prisma.$transaction(async (prisma) => {
+			let productId = data.productId;
+
+			if (data.masterProduct && !data.productId) {
+				const createdProduct = await prisma.productMaster.create({
+					data: {
+						name: data.masterProduct.name,
+						category_id: data.masterProduct.categoryId,
+						is_active: data.masterProduct.isActive ?? true,
+					},
+				});
+				productId = createdProduct.id;
+			}
+
+			if (!productId) {
+				throw new Error('Product ID is required for inventory creation');
+			}
+
+			// Use Prisma upsert to avoid duplicating materials for the same product
+			const inventoryItems = await Promise.all(
+				data.inventoryItems.map(async (item) => {
+					return await prisma.productInventory.upsert({
+						where: {
+							product_material_unique: {
+								product_id: productId!,
+								material_id: item.material_id,
+							},
+						},
+						update: {
+							quantity: item.quantity, // Update existing record
+							unit_quantity: item.unit_quantity,
+							updatedAt: new Date(),
+						},
+						create: {
+							product_id: productId!,
+							material_id: item.material_id,
+							quantity: item.quantity,
+							unit_quantity: item.unit_quantity,
+						},
+						include: {
+							material: true,
+						},
+					});
+				})
+			);
+
+			await prisma.productStock.create({
+				data: {
+					product_id: productId!,
+					quantity: data.productionStockIn.quantity,
+					units: data.productionStockIn.unit_quantity,
+					date: new Date(),
+					source_from: 'PRODUCTION',
+				},
+			});
+
+			await Promise.all(
+				data.materialStockOuts.map(stockOut =>
+					prisma.materialOut.create({
+						data: {
+							material_id: stockOut.material_id,
+							quantity: stockOut.quantity,
+							quantity_unit: stockOut.unit_quantity,
+						},
+					})
+				)
+			);
+
+			return {
+				productId: productId!,
+				inventoryItems: inventoryItems.map(item => ({
+					id: item.id,
+					material_id: item.material_id,
+					quantity: item.quantity,
+					unit_quantity: item.unit_quantity,
+					material: item.material, // This should work now because we included it in the query
+					createdAt: item.createdAt,
+					updatedAt: item.updatedAt,
+				})),
+			};
+		});
 	}
 
 	private mapToEntity(record: ProductMaster & { category?: Category | null }): TMasterProductWithID {

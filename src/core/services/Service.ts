@@ -51,7 +51,7 @@ export class Service<T extends TEntity> {
 		orderBy?: Record<string, 'asc' | 'desc'>,
 		outletId?: number
 	): Promise<PaginationResult<T>> {
-		// Add outletId to filters if provided
+
 		const combinedFilters = outletId 
 			? { ...filters, outlet_id: outletId }
 			: filters;
@@ -67,7 +67,19 @@ export class Service<T extends TEntity> {
 		return this.repository.update(id, item);
 	}
 	
+	/**
+	 * Soft delete - marks record as deleted without removing from database
+	 * Sets is_active = false and deleted_at = current timestamp
+	 */
 	async delete(id: string): Promise<void> {
+		return this.repository.softDelete(id);
+	}
+	
+	/**
+	 * Hard delete - permanently removes record from database
+	 * WARNING: This cannot be undone. Consider using delete() (soft delete) instead.
+	 */
+	async hardDelete(id: string): Promise<void> {
 		return this.repository.delete(id);
 	}
 }

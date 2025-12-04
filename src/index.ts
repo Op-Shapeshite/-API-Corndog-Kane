@@ -4,3 +4,6 @@ import TransportRegistry from "./configs/TransportRegistry";
 
 (new AdapterRegistry()).loadAdapters();
 (new TransportRegistry()).loadTransports();
+
+import "./transports/api/instance";
+
