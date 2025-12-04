@@ -10,6 +10,12 @@ export const getPaginationSchema = z.object({
         .refine(val => val > 0, { message: 'Page must be greater than 0' })
     ),
     type: z.string()
+      .optional(), 
+    start_date: z.string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'start_date must be in YYYY-MM-DD format' })
+      .optional(),
+    end_date: z.string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'end_date must be in YYYY-MM-DD format' })
       .optional(),
     limit: z.preprocess(
       (val) => val ?? '10',
