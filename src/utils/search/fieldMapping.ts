@@ -145,7 +145,7 @@ export const EntityFieldMappings = {
 
 	order: {
 		id: "id",
-		invoice_number: "invoiceNumber",
+		invoice_number: "invoice_number",
 		date: "createdAt", // Using createdAt as the date field
 		total_amount: "totalAmount",
 		outlet_name: ["outlet", "name"], // Nested field search
