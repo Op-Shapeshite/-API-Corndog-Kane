@@ -40,6 +40,13 @@ export const updateRoleSchema = z.object({
   })
 });
 
+export const getRoleDetailSchema = z.object({
+  params: z.object({
+    id: z.string()
+      .regex(/^\d+$/, { message: 'ID must be a number' })
+  })
+});
+
 export const deleteRoleSchema = z.object({
   params: z.object({
     id: z.string()

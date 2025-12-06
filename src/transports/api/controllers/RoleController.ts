@@ -269,4 +269,111 @@ export class RoleController extends Controller<TRoleGetResponse, TMetadataRespon
       }
     };
   }
+
+  /**
+   * Get role detail with all permissions
+   * Returns complete role information including associated permissions
+   */
+  getDetail = () => {
+    return async (req: Request, res: Response) => {
+      try {
+        const roleId = parseInt(req.params.id);
+
+        if (isNaN(roleId)) {
+          return this.getFailureResponse(
+            res,
+            { data: {} as TRoleGetResponse, metadata: {} as TMetadataResponse },
+            [{ field: 'id', message: 'ID role tidak valid', type: 'invalid' }],
+            "ID role tidak valid",
+            400
+          );
+        }
+
+        const prisma = PostgresAdapter.client;
+
+        // Fetch role with permissions
+        const role = await prisma.role.findUnique({
+          where: { id: roleId },
+          include: {
+            rolePermissions: {
+              where: { is_active: true },
+              include: {
+                permission: {
+                  select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    description: true,
+                    module: true,
+                    is_active: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                },
+              },
+              orderBy: {
+                permission: {
+                  code: 'asc',
+                },
+              },
+            },
+            _count: {
+              select: {
+                rolePermissions: true,
+              },
+            },
+          },
+        });
+
+        if (!role) {
+          return this.getFailureResponse(
+            res,
+            { data: {} as TRoleGetResponse, metadata: {} as TMetadataResponse },
+            [{ field: 'id', message: 'Role tidak ditemukan', type: 'not_found' }],
+            "Role tidak ditemukan",
+            404
+          );
+        }
+
+        // Map to response format
+        const mappedResult = {
+          id: role.id.toString(),
+          name: role.name,
+          description: role.description,
+          is_active: role.is_active,
+          created_at: role.createdAt,
+          updated_at: role.updatedAt,
+          permissions: role.rolePermissions.map((rp: any) => ({
+            id: rp.permission.id.toString(),
+            code: rp.permission.code,
+            name: rp.permission.name,
+            description: rp.permission.description,
+            module: rp.permission.module,
+            is_active: rp.permission.is_active,
+            created_at: rp.permission.createdAt,
+            updated_at: rp.permission.updatedAt,
+          })),
+          permissions_count: role._count.rolePermissions,
+        };
+
+        return this.getSuccessResponse(
+          res,
+          {
+            data: mappedResult as any,
+            metadata: {} as TMetadataResponse,
+          },
+          "Detail role berhasil diambil"
+        );
+      } catch (error) {
+        return this.handleError(
+          res,
+          error,
+          "Gagal mengambil detail role",
+          500,
+          {} as TRoleGetResponse,
+          {} as TMetadataResponse
+        );
+      }
+    };
+  }
 }
