@@ -22,6 +22,59 @@ export class PermissionController extends Controller<TPermissionGetResponse, TMe
   }
 
   /**
+   * Get all permissions without pagination
+   * Returns all active permissions in the system
+   */
+  getAllWithoutPagination = () => {
+    return async (req: Request, res: Response) => {
+      try {
+        const prisma = PostgresAdapter.client;
+
+        // Fetch all active permissions
+        const permissions = await prisma.permission.findMany({
+          where: { is_active: true },
+          orderBy: [
+            { module: 'asc' },
+            { code: 'asc' }
+          ]
+        });
+
+        // Map to response format
+        const mappedPermissions = permissions.map((permission: any) => ({
+          id: permission.id.toString(),
+          name: permission.name,
+          code: permission.code,
+          description: permission.description,
+          module: permission.module,
+          is_active: permission.is_active,
+          created_at: permission.createdAt,
+          updated_at: permission.updatedAt,
+        }));
+
+        return this.getSuccessResponse(
+          res,
+          {
+            data: mappedPermissions,
+            metadata: {
+              total_records: mappedPermissions.length,
+            } as TMetadataResponse,
+          },
+          "Permissions berhasil diambil"
+        );
+      } catch (error) {
+        return this.handleError(
+          res,
+          error,
+          "Gagal mengambil permissions",
+          500,
+          [] as TPermissionGetResponse[],
+          {} as TMetadataResponse
+        );
+      }
+    };
+  }
+
+  /**
    * Get permissions for authenticated user based on their role
    * Returns only the permissions that the user has access to
    */
