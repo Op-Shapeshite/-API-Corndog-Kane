@@ -186,7 +186,7 @@ export const EntityFieldMappings = {
 		id: "id",
 		product_id: "product_id",
 		date: "date",
-		name: ["products", "name"], // Nested field search - product name
+		name: ["products", "name"], // ProductStock.products (ProductMaster) -> name
 		first_stock_count: "firstStockCount", // This is computed, not directly searchable
 		stock_in_count: "stockInCount", // This is computed, not directly searchable
 		stock_out_count: "stockOutCount", // This is computed, not directly searchable
@@ -195,6 +195,13 @@ export const EntityFieldMappings = {
 		updated_at: "updatedAt",
 		out_times: "outTimes", // This is computed, not directly searchable
 		in_times: "inTimes", // This is computed, not directly searchable
+	} satisfies FieldMapping,
+
+	payroll: {
+		employee_id: "employee_id",
+		employee_name: "employee_name",
+		status: "status",
+		source: "source",
 	} satisfies FieldMapping,
 } as const;
 

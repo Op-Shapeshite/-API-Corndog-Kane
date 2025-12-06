@@ -361,40 +361,13 @@ export class ProductRepository
 	 * Get product stock records with search support (for inventory calculation)
 	 */
 	async getProductStockRecordsWithSearch(search?: SearchConfig[]) {
-		let whereClause: any = {};
-
-		if (search && search.length > 0) {
-			const searchConditions = search.map(config => {
-				const { field, value } = config;
-				
-				if (field === 'products.name') {
-					return {
-						products: {
-							name: {
-								contains: value,
-								mode: 'insensitive'
-							}
-						}
-					};
-				}
-
-				if (field === 'date') {
-					return { date: { contains: value } };
-				}
-				
-				if (field === 'product_id') {
-					return { product_id: parseInt(value) || 0 };
-				}
-
-				return null;
-			}).filter(Boolean);
-
-			if (searchConditions.length > 0) {
-				whereClause = {
-					OR: searchConditions
-				};
-			}
-		}
+		const { buildWhereClauseWithSearch } = await import('../../../utils/search/nestedSearchBuilder');
+		
+		const whereClause = buildWhereClauseWithSearch(
+			{}, // No base conditions
+			search,
+			'insensitive'
+		);
 
 		const dbRecords = await this.prisma.productStock.findMany({
 			where: whereClause,
@@ -582,22 +555,27 @@ export class ProductRepository
 		return dbRecords;
 	}
 	async getAllProductRequestAcceptedWithSearch(search?: SearchConfig[]) {
-		let whereClause: any = {
-			status: 'ACCEPTED',
-		};
-
-		if (search && search.length > 0) {
-			whereClause.OR = search.map((item) => {
+		const { buildWhereClauseWithSearch } = await import('../../../utils/search/nestedSearchBuilder');
+		
+		// Transform search config from ProductStock structure to OutletProductRequest structure
+		// ProductStock uses: products.name (2 levels)
+		// OutletProductRequest uses: product.product_master.name (3 levels)
+		const transformedSearch = search?.map(config => {
+			if (config.field === 'products.name') {
+				// Transform ProductStock path to OutletProductRequest path
 				return {
-					product: {
-						name: {
-							contains: item.value,
-							mode: 'insensitive',
-						},
-					},
+					...config,
+					field: 'product.product_master.name'
 				};
-			});
-		}
+			}
+			return config;
+		});
+		
+		const whereClause = buildWhereClauseWithSearch(
+			{ status: 'ACCEPTED' },
+			transformedSearch,
+			'insensitive'
+		);
 
 		const dbRecords = await this.prisma.outletProductRequest.findMany({
 			where: whereClause,
