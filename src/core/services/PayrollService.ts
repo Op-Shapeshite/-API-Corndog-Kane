@@ -80,7 +80,7 @@ export default class PayrollService extends Service<TPayroll> {
     return payroll;
   }
 
-  async getAllEmployeePayrolls(startDate?: string, endDate?: string, searchKey?: string, searchValue?: string) {
+  async getAllEmployeePayrolls(startDate?: string, endDate?: string, searchKey?: string, searchValue?: string,status?:string) {
     const { start, end } = this.getDateRange(startDate, endDate);
 
     const summaries = await this.repository.getAllEmployeePayrollSummary(start, end);
@@ -116,6 +116,7 @@ export default class PayrollService extends Service<TPayroll> {
         return false;
       });
     }
+    if (status) filteredSummaries = filteredSummaries.filter((payroll) => payroll.status === status);
 
     return filteredSummaries;
   }

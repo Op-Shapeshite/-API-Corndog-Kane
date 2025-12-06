@@ -17,7 +17,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
   }
   getAllPayrolls = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
-      const { start_date, end_date, type, search_key, search_value } = req.query;
+      const { start_date, end_date,status, type, search_key, search_value } = req.query;
 
       // Validate search parameters
       const { SearchHelper } = await import('../../../utils/search/searchHelper');
@@ -48,7 +48,8 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         start_date as string | undefined,
         end_date as string | undefined,
         search_key as string | undefined,
-        search_value as string | undefined
+        search_value as string | undefined,
+        status as string | undefined
       );
 
       const mappedData = PayrollListResponseMapper.map(result);
