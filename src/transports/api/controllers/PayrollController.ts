@@ -17,11 +17,38 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
   }
   getAllPayrolls = async (req: Request, res: Response, payrollService: PayrollService) => {
     try {
-      const { start_date, end_date, type } = req.query;
+      const { start_date, end_date, type, search_key, search_value } = req.query;
+
+      // Validate search parameters
+      const { SearchHelper } = await import('../../../utils/search/searchHelper');
+      const validation = SearchHelper.validateSearchParams(
+        'payroll',
+        search_key as string,
+        search_value as string
+      );
+
+      if (!validation.valid) {
+        return this.handleError(
+          res,
+          new Error(validation.error),
+          validation.error || "Invalid search parameters",
+          400,
+          [],
+          {
+            page: 1,
+            limit: 0,
+            total_records: 0,
+            total_pages: 0,
+            searchable_fields: validation.searchable_fields
+          } as any
+        );
+      }
 
       const result = await payrollService.getAllEmployeePayrolls(
         start_date as string | undefined,
-        end_date as string | undefined
+        end_date as string | undefined,
+        search_key as string | undefined,
+        search_value as string | undefined
       );
 
       const mappedData = PayrollListResponseMapper.map(result);
@@ -55,7 +82,7 @@ export class PayrollController extends Controller<TPayrollResponseTypes, TMetada
         metadata: {
           page: 1,
           limit: result.length,
-          total_records: 1,
+          total_records: result.length,
           total_pages: 1,
         }
       }, "Payroll list retrieved successfully");

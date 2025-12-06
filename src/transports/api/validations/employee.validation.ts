@@ -152,6 +152,7 @@ export const getSchedulesSchema = z.object({
     ),
     status: z.enum(['PRESENT', 'SICK', 'NOT_PRESENT', 'EXCUSED', 'CUTI']).optional(),
     search_key: z.enum(['employee_name', 'outlet_name', 'attendance_status', 'late_approval_status']).optional(),
+    type:z.enum(['xlsx', 'table']).default('table').optional(),
     search_value: z.string().optional(),
     page: z.string().optional().refine(
       (val) => !val || /^\d+$/.test(val),

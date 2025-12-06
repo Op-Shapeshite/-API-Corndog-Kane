@@ -80,12 +80,12 @@ export default class PayrollService extends Service<TPayroll> {
     return payroll;
   }
 
-  async getAllEmployeePayrolls(startDate?: string, endDate?: string) {
+  async getAllEmployeePayrolls(startDate?: string, endDate?: string, searchKey?: string, searchValue?: string) {
     const { start, end } = this.getDateRange(startDate, endDate);
 
     const summaries = await this.repository.getAllEmployeePayrollSummary(start, end);
 
-    return summaries.map((s) => ({
+    let filteredSummaries = summaries.map((s) => ({
       employee_id: s.employee_id,
       employee_name: s.employee_name,
       period: this.formatPeriod(s.period_start, s.period_end),
@@ -96,6 +96,28 @@ export default class PayrollService extends Service<TPayroll> {
       status: s.status,
       source: s.source,
     }));
+
+    // Apply search filtering if provided
+    if (searchKey && searchValue) {
+      filteredSummaries = filteredSummaries.filter((payroll) => {
+        const fieldValue = (payroll as any)[searchKey];
+        if (fieldValue === null || fieldValue === undefined) return false;
+        
+        // Case-insensitive search for string fields
+        if (typeof fieldValue === 'string') {
+          return fieldValue.toLowerCase().includes(searchValue.toLowerCase());
+        }
+        
+        // Exact match for numeric fields
+        if (typeof fieldValue === 'number') {
+          return fieldValue.toString() === searchValue;
+        }
+        
+        return false;
+      });
+    }
+
+    return filteredSummaries;
   }
 
   async getEmployeePayrollDetail(employeeId: number, startDate?: string, endDate?: string) {

@@ -24,7 +24,8 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.Console(),
+    new winston.transports.Console(),
+
   ],
 });
 
@@ -173,15 +174,17 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
   getStocksList = () => {
     return async (req: Request, res: Response) => {
       try {
-        const { page, limit, search_key, search_value } = req.query;
+        const { page, limit, search_key, search_value } = req.query;
+
         const pageNum = page ? parseInt(page as string, 10) : 1;
-        const limitNum = limit ? parseInt(limit as string, 10) : 10;
+        const limitNum = limit ? parseInt(limit as string, 10) : 10;
+
         const validation = SearchHelper.validateSearchParams(
           'product_inventory', 
           search_key as string, 
           search_value as string
         );
-
+        
         if (!validation.valid) {
           return this.handleError(
             res,
@@ -191,11 +194,13 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
             {} as TProductInventoryGetResponse,
             {} as TMetadataResponse
           );
-        }
+        }
+
         let searchConfig: SearchConfig[] | undefined;
         if (validation.valid && search_key && search_value) {
           searchConfig = SearchHelper.buildSearchConfig('product_inventory', search_key as string, search_value as string);
         }
+        console.log(searchConfig);
 
         // Call the service with search parameters
         const { data, total } = await this.productService.getStocksList(pageNum, limitNum, searchConfig);
@@ -235,14 +240,18 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
   addStockIn = async (req: Request, res: Response) => {
     try {
-      const { product_id, master_product_id, quantity, unit_quantity, product } = req.body;
+      const { product_id, master_product_id, quantity, unit_quantity, product } = req.body;
+
       let finalProductId = product_id;
 
-      if (!finalProductId && master_product_id) {
+      if (!finalProductId && master_product_id) {
+
         const existingProducts = await this.productService.findAll(1, 1, [], { product_master_id: master_product_id });
-        if (existingProducts.data.length > 0) {
+        if (existingProducts.data.length > 0) {
+
           finalProductId = (existingProducts.data[0] as any).id;
-        } else if (product) {
+        } else if (product) {
+
           const newProductData: any = {
             name: product.name,
             categoryId: product.category_id,
@@ -260,7 +269,8 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
 
           finalProductId = (createdProduct as any).id;
         }
-      } else if (!finalProductId && product) {
+      } else if (!finalProductId && product) {
+
         const masterProductService = new MasterProductService(new MasterProductRepository());
         const masterProduct = await masterProductService.create({
           name: product.name,
@@ -297,7 +307,8 @@ export class ProductController extends Controller<TProductGetResponse | TProduct
         product_id: finalProductId,
         quantity,
         unit_quantity,
-      });
+      });
+
       const responseData = ProductStockInResponseMapper.toResponse(entity);
 
       return this.getSuccessResponse(

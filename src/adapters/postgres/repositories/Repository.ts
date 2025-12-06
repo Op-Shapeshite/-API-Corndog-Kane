@@ -255,40 +255,16 @@ export default abstract class Repository<T extends TEntity> implements Repositor
 		}
 
 		if (search && search.length > 0) {
-
+			const { buildSearchOrConditions } = require('../../../utils/search/nestedSearchBuilder');
+			
 			const validSearch = search.filter(s => s.field && s.field !== 'undefined' && s.value && s.value !== 'undefined');
 
 			if (validSearch.length > 0) {
-				const searchConditions = validSearch.map(({ field, value }) => {
-					// Handle nested field paths (e.g., "product_master.name")
-					if (field.includes('.')) {
-						const parts = field.split('.');
-						const nestedCondition: Record<string, unknown> = {
-							contains: value,
-							mode: 'insensitive'
-						};
-						
-						// Build nested object from the inside out
-						let result: Record<string, unknown> = nestedCondition;
-						for (let i = parts.length - 1; i >= 0; i--) {
-							result = { [parts[i]]: result };
-						}
-						
-						return result;
-					}
-					
-					// Simple field (non-nested)
-					return {
-						[field]: {
-							contains: value,
-							mode: 'insensitive'
-						}
-					};
-				});
+				const searchConditions = buildSearchOrConditions(validSearch, 'insensitive');
 
 				if (searchConditions.length > 1) {
 					where.OR = searchConditions;
-				} else {
+				} else if (searchConditions.length === 1) {
 					Object.assign(where, searchConditions[0]);
 				}
 			}
