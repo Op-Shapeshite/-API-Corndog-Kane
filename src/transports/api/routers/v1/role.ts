@@ -19,11 +19,11 @@ const permissionController = new PermissionController();
 // Role endpoints
 router.get("/", authMiddleware, permissionMiddleware(['roles:read']), validate(getPaginationSchema), roleController.getAll());
 router.post('/', authMiddleware, permissionMiddleware(['roles:create']), validate(createRoleSchema), roleController.createWithPermissions());
-router.put('/:id', authMiddleware, permissionMiddleware(['roles:update']), validate(updateRoleSchema), roleController.update(roleService, RoleResponseMapper, 'Role berhasil diperbarui'));
+router.put('/:id', authMiddleware, permissionMiddleware(['roles:update']), validate(updateRoleSchema), roleController.updateWithPermissions());
 router.delete('/:id', authMiddleware, permissionMiddleware(['roles:delete']), validate(deleteRoleSchema), roleController.delete(roleService, 'Role berhasil dihapus'));
 
 // Permission endpoints under /roles
-router.get('/permissions', authMiddleware, permissionMiddleware(['roles:permissions:read']), validate(getPaginationSchema), permissionController.getAll());
+router.get('/permissions', authMiddleware, permissionMiddleware(['roles:permissions:read']), permissionController.getAllWithoutPagination());
 
 // Get authenticated user's permissions
 router.get('/access', authMiddleware, permissionMiddleware(['roles:access:read']), permissionController.getMyPermissions());

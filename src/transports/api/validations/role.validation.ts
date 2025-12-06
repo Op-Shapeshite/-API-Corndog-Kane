@@ -29,7 +29,14 @@ export const updateRoleSchema = z.object({
       .optional(),
     
     is_active: z.boolean()
+      .optional(),
+    
+    permissions: z.array(z.string())
       .optional()
+  }),
+  params: z.object({
+    id: z.string()
+      .regex(/^\d+$/, { message: 'ID must be a number' })
   })
 });
 
